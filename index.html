@@ -305,52 +305,9 @@ function renderAll(d){
   </div>`:'';
 
   // ── 위닝 카드 렌더 함수 ──
-    // 필터별 핵심 지표 정의
-  const SORT_METRIC={
-    revenue:{primary:c=>`${fmtS(c.revenue)}`,primaryLabel:'전환매출',secondary:c=>fmtR(c.roas_pct),secondaryLabel:'ROAS',primaryClass:c=>rvC(c.roas_pct)},
-    roas:   {primary:c=>fmtR(c.roas_pct),    primaryLabel:'ROAS',    secondary:c=>fmtS(c.revenue),  secondaryLabel:'전환매출',primaryClass:c=>rvC(c.roas_pct)},
-    ctr:    {primary:c=>`${c.ctr}%`,          primaryLabel:'CTR',     secondary:c=>`₩${Math.round(c.cpc||0).toLocaleString()}`,secondaryLabel:'CPC',primaryClass:()=>'rv-good'},
-    cvr:    {primary:c=>`${c.cvr}%`,          primaryLabel:'CVR',     secondary:c=>`${c.purchases}건`,secondaryLabel:'구매',primaryClass:()=>'rv-good'},
-  };
+  
 
-  function buildWinCard(c,thr,sort='revenue'){
-    const sc=c.win_score||0,flags=c.win_flags||{};
-    const failKeys=Object.entries(flags).filter(([,v])=>!v).map(([k])=>({roas:'ROAS',ctr:'CTR',cvr:'CVR',cpc:'CPC',purchases:'구매'}[k]||k));
-    const dots=Array.from({length:5},(_,i)=>`<div class="wdot${i<sc?(sc<=3?' wn':' on'):''}"></div>`).join('');
-    const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
-    const dT=c.roas_delta!=null?`<span class="tag ${c.roas_delta>0?'td-up':'td-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="tag td-new">🆕 NEW</span>`;
-    const sClass=sc>=5?'s5':sc<=3?'s3':'';
-    const sm=SORT_METRIC[sort]||SORT_METRIC.revenue;
-    const primVal=sm.primary(c), secVal=sm.secondary(c), primCls=sm.primaryClass(c);
-    // 전주 비교 (핵심 지표별)
-    let prevVal=null;
-    if(sort==='revenue'&&c.prev_revenue!=null) prevVal=`전주 ${fmtS(c.prev_revenue)}`;
-    else if(sort==='roas'&&c.old_roas_pct!=null) prevVal=`전주 ${fmtR(c.old_roas_pct)}`;
-    else if(sort==='ctr'&&c.prev_ctr!=null) prevVal=`전주 ${c.prev_ctr}%`;
-    else if(sort==='cvr'&&c.prev_cvr!=null) prevVal=`전주 ${c.prev_cvr}%`;
-    return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')">
-      <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div>
-        <div class="wthumb-tl">
-          <span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
-          <span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)} 대비`)}</span>
-        </div>
-        <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
-      </div>
-      <div class="wbody">
-        <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div>
-        <div class="wlabels"><span class="tag ${PC[c.purpose]||'tp-기타'}">${c.purpose}</span><span class="tag tm-${c.media}">${c.media}</span></div>
-        <div class="wroas">
-          <span class="${primCls}" style="font-size:16px;font-weight:600">${primVal}</span>
-          <span style="font-size:10px;color:var(--text3)">${sm.secondaryLabel} ${secVal}</span>
-        </div>
-        ${prevVal?`<div style="font-size:10px;color:var(--text3)">${prevVal}</div>`:''}
-        <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span></div>
-        <div class="wdots">${dots}</div>
-        ${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}
-        <div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div>
-      </div>
-    </div>`;
-  }
+
 
   function getWinData(purpose,sort){
     let all=d.winning||[];
@@ -690,6 +647,52 @@ function renderTChart(wd){
         scales:{x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc,font:(_,i)=>({size:11,weight:i===fIdx?'bold':'normal'})},grid:{color:gc}},y:{ticks:{color:tc,callback:v=>m.fmt(v)},grid:{color:gc}}}}
     });
   }
+}
+
+const SORT_METRIC={
+  revenue:{primary:c=>fmtS(c.revenue),primaryLabel:'전환매출',secondary:c=>fmtR(c.roas_pct),secondaryLabel:'ROAS',primaryClass:c=>rvC(c.roas_pct)},
+  roas:   {primary:c=>fmtR(c.roas_pct),primaryLabel:'ROAS',secondary:c=>fmtS(c.revenue),secondaryLabel:'전환매출',primaryClass:c=>rvC(c.roas_pct)},
+  ctr:    {primary:c=>`${c.ctr}%`,primaryLabel:'CTR',secondary:c=>`₩${Math.round(c.cpc||0).toLocaleString()}`,secondaryLabel:'CPC',primaryClass:()=>'rv-good'},
+  cvr:    {primary:c=>`${c.cvr}%`,primaryLabel:'CVR',secondary:c=>`${c.purchases}건`,secondaryLabel:'구매',primaryClass:()=>'rv-good'},
+};
+
+function buildWinCard(c,thr,sort='revenue'){
+  const sc=c.win_score||0,flags=c.win_flags||{};
+  const failKeys=Object.entries(flags).filter(([,v])=>!v).map(([k])=>({roas:'ROAS',ctr:'CTR',cvr:'CVR',cpc:'CPC',purchases:'구매'}[k]||k));
+  const dots=Array.from({length:5},(_,i)=>`<div class="wdot${i<sc?(sc<=3?' wn':' on'):''}"></div>`).join('');
+  const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
+  const dT=c.roas_delta!=null?`<span class="tag ${c.roas_delta>0?'td-up':'td-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="tag td-new">🆕 NEW</span>`;
+  const sClass=sc>=5?'s5':sc<=3?'s3':'';
+  const sm=SORT_METRIC[sort]||SORT_METRIC.revenue;
+  const primVal=sm.primary(c), secVal=sm.secondary(c), primCls=sm.primaryClass(c);
+  // 전주 비교 (핵심 지표별)
+  let prevVal=null;
+  if(sort==='revenue'&&c.prev_revenue!=null) prevVal=`전주 ${fmtS(c.prev_revenue)}`;
+  else if(sort==='roas'&&c.old_roas_pct!=null) prevVal=`전주 ${fmtR(c.old_roas_pct)}`;
+  else if(sort==='ctr'&&c.prev_ctr!=null) prevVal=`전주 ${c.prev_ctr}%`;
+  else if(sort==='cvr'&&c.prev_cvr!=null) prevVal=`전주 ${c.prev_cvr}%`;
+  return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')">
+    <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div>
+      <div class="wthumb-tl">
+        <span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
+        <span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)} 대비`)}</span>
+      </div>
+      <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
+    </div>
+    <div class="wbody">
+      <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div>
+      <div class="wlabels"><span class="tag ${PC[c.purpose]||'tp-기타'}">${c.purpose}</span><span class="tag tm-${c.media}">${c.media}</span></div>
+      <div class="wroas">
+        <span class="${primCls}" style="font-size:16px;font-weight:600">${primVal}</span>
+        <span style="font-size:10px;color:var(--text3)">${sm.secondaryLabel} ${secVal}</span>
+      </div>
+      ${prevVal?`<div style="font-size:10px;color:var(--text3)">${prevVal}</div>`:''}
+      <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span></div>
+      <div class="wdots">${dots}</div>
+      ${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}
+      <div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div>
+    </div>
+  </div>`;
 }
 
 loadWeeks();
