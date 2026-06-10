@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>메타 광고 위닝소재 리포트</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -26,22 +27,18 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .hdr{padding:1rem 0 0;margin-bottom:0}
 .hdr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-bottom:.75rem}
 .hdr-title{font-size:17px;font-weight:500}
-
-/* 주차 탭 */
 .week-tabs{display:flex;gap:0;border-bottom:.5px solid var(--border);margin-bottom:1.25rem;overflow-x:auto}
 .week-tab{padding:8px 18px;font-size:13px;font-weight:500;color:var(--text3);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;transition:color .15s}
 .week-tab.active{color:#185FA5;border-bottom-color:#378ADD}
 .week-tab:hover:not(.active){color:var(--text2)}
-.week-tab-loading{padding:8px 18px;font-size:12px;color:var(--text3)}
 
-/* 요약 KPI */
+/* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:1.25rem}
 .kpi{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-md);padding:8px 10px}
 .kpi-l{font-size:10px;color:var(--text3);margin-bottom:4px}
-.kpi-v{font-size:16px;font-weight:500;color:var(--text)}
-.kpi-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.kpi-v{font-size:16px;font-weight:500}
 
-/* 섹션 공통 */
+/* 섹션 */
 .sec{margin-bottom:1.75rem}
 .sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .sec-title{font-size:13px;font-weight:500}
@@ -51,12 +48,15 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .trend-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tcol{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
 .tcol-hdr{padding:9px 12px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500}
-.trow{display:flex;align-items:stretch;border-bottom:.5px solid var(--border)}
+.trow{display:flex;align-items:stretch;border-bottom:.5px solid var(--border);cursor:pointer}
 .trow:last-child{border-bottom:none}
 .trow:hover{background:var(--bg2)}
 .trow-thumb{width:60px;flex-shrink:0;background:var(--bg2);position:relative;overflow:hidden;min-height:80px}
 .trow-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .trow-thumb-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3)}
+.trow-thumb-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
+.trow:hover .trow-thumb-overlay{opacity:1;background:rgba(0,0,0,0.35)}
+.trow-thumb-overlay i{color:#fff;font-size:18px}
 .trow-body{flex:1;min-width:0;padding:8px 10px;display:flex;flex-direction:column;gap:5px}
 .trow-l1{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .trow-l2{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
@@ -73,12 +73,15 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .d7-col-hdr{padding:8px 11px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .d7-col-title{font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px}
 .d7-cnt{font-size:11px;color:var(--text3)}
-.d7-row{display:flex;align-items:stretch;border-bottom:.5px solid var(--border)}
+.d7-row{display:flex;align-items:stretch;border-bottom:.5px solid var(--border);cursor:pointer}
 .d7-row:last-child{border-bottom:none}
 .d7-row:hover{background:var(--bg2)}
 .d7-thumb{width:52px;flex-shrink:0;background:var(--bg2);position:relative;overflow:hidden;min-height:70px}
 .d7-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .d7-thumb-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3)}
+.d7-thumb-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
+.d7-row:hover .d7-thumb-overlay{opacity:1;background:rgba(0,0,0,0.35)}
+.d7-thumb-overlay i{color:#fff;font-size:16px}
 .d7-body{flex:1;min-width:0;padding:7px 9px;display:flex;flex-direction:column;gap:4px}
 .d7-l1{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .d7-name{font-size:11px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -90,12 +93,16 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .fbtn.on{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
 .fbtn:hover:not(.on){background:var(--bg3)}
 .win-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-.wcard{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:border-color .15s}
+.wcard{background:var(--bg);border:.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color .15s}
 .wcard:hover{border-color:var(--border2)}
 .wthumb{width:100%;padding-top:60%;position:relative;background:var(--bg2);overflow:hidden}
-.wthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.wthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .2s}
+.wcard:hover .wthumb img{transform:scale(1.04)}
 .wthumb-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text3);font-size:10px}
 .wthumb-tags{position:absolute;top:5px;left:5px;right:5px;display:flex;justify-content:space-between;align-items:flex-start;gap:3px}
+.wthumb-zoom{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,0.3);transition:opacity .15s}
+.wcard:hover .wthumb-zoom{opacity:1}
+.wthumb-zoom i{color:#fff;font-size:24px}
 .wbody{padding:8px 10px;display:flex;flex-direction:column;gap:5px}
 .wname{font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:4px}
 .wmets{display:flex;gap:4px;flex-wrap:wrap}
@@ -136,30 +143,93 @@ td{padding:6px 7px;border-bottom:.5px solid var(--border);vertical-align:middle;
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg2)}
 
-/* 로딩 */
-.loading{text-align:center;padding:3rem;color:var(--text3);font-size:13px}
+/* ===== 소재 팝업 ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity .2s}
+.modal-overlay.show{opacity:1}
+.modal{background:var(--bg);border-radius:var(--radius-lg);width:100%;max-width:780px;max-height:90vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s}
+.modal-overlay.show .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:.5px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1}
+.modal-title{font-size:14px;font-weight:500;display:flex;align-items:center;gap:7px}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;padding:2px;display:flex;align-items:center;border-radius:6px}
+.modal-close:hover{background:var(--bg2);color:var(--text)}
+.modal-body{padding:1.25rem}
+.modal-top{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+.modal-img-wrap{border-radius:var(--radius-md);overflow:hidden;background:var(--bg2);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
+.modal-img-wrap img{width:100%;height:100%;object-fit:cover}
+.modal-img-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:12px}
+.modal-meta{display:flex;flex-direction:column;gap:10px}
+.modal-meta-title{font-size:15px;font-weight:500;line-height:1.4}
+.modal-tags{display:flex;gap:6px;flex-wrap:wrap}
+.modal-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px}
+.modal-kpi{background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px}
+.modal-kpi-l{font-size:10px;color:var(--text3);margin-bottom:3px}
+.modal-kpi-v{font-size:16px;font-weight:500}
+.modal-kpi-sub{font-size:10px;color:var(--text3);margin-top:1px}
 
+/* 그래프 섹션 */
+.chart-section{margin-top:0}
+.chart-sec-title{font-size:13px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.metric-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.mtab{padding:4px 12px;font-size:11px;font-weight:500;border-radius:14px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer}
+.mtab.on{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
+.chart-wrap{position:relative;height:220px;background:var(--bg2);border-radius:var(--radius-md);padding:1rem}
+.rank-table{width:100%;border-collapse:collapse;font-size:12px}
+.rank-table th{font-size:10px;font-weight:500;color:var(--text3);padding:5px 8px;border-bottom:.5px solid var(--border);text-align:left}
+.rank-table td{padding:6px 8px;border-bottom:.5px solid var(--border)}
+.rank-table tr:last-child td{border-bottom:none}
+.no-data{text-align:center;padding:2rem;color:var(--text3);font-size:12px}
+
+.loading{text-align:center;padding:3rem;color:var(--text3);font-size:13px}
 @media(max-width:600px){
   .trend-cols,.d7-cols{grid-template-columns:1fr}
   .win-grid{grid-template-columns:repeat(2,1fr)}
   .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .modal-top{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 <div class="container">
 <div class="dash">
-
 <div class="hdr">
-  <div class="hdr-top">
-    <div class="hdr-title">메타 광고 위닝소재 리포트</div>
+  <div class="hdr-top"><div class="hdr-title">메타 광고 위닝소재 리포트</div></div>
+  <div class="week-tabs" id="weekTabs"><div style="padding:8px 18px;font-size:12px;color:var(--text3)">불러오는 중...</div></div>
+</div>
+<div id="mainContent"><div class="loading">데이터 불러오는 중...</div></div>
+</div>
+</div>
+
+<!-- 소재 팝업 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="hideModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-top">
+        <div class="modal-img-wrap" id="modalImgWrap"></div>
+        <div class="modal-meta">
+          <div class="modal-tags" id="modalTags"></div>
+          <div class="modal-kpis" id="modalKpis"></div>
+        </div>
+      </div>
+      <div class="chart-section">
+        <div class="chart-sec-title"><i class="ti ti-chart-line" style="font-size:14px;color:#185FA5"></i>주차별 성과 트렌드</div>
+        <div class="metric-tabs" id="metricTabs">
+          <button class="mtab on" onclick="setMetric('roas')">ROAS</button>
+          <button class="mtab" onclick="setMetric('spend')">광고비</button>
+          <button class="mtab" onclick="setMetric('ctr')">CTR</button>
+          <button class="mtab" onclick="setMetric('cvr')">CVR</button>
+          <button class="mtab" onclick="setMetric('rank')">소재 순위</button>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div id="rankTableWrap" style="display:none;margin-top:8px"></div>
+      </div>
+    </div>
   </div>
-  <div class="week-tabs" id="weekTabs"><div class="week-tab-loading">주차 불러오는 중...</div></div>
-</div>
-
-<div id="mainContent"><div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>데이터 불러오는 중...</div></div>
-
-</div>
 </div>
 
 <script>
@@ -169,54 +239,56 @@ const fmtR=p=>Math.round(p).toLocaleString()+'%';
 const rvC=p=>p>=700?'rv-great':p>=400?'rv-good':p>=200?'rv-warn':p>0?'rv-bad':'rv-zero';
 const mb=m=>m==='영상'?'background:#E6F1FB;color:#0C447C':'background:#E1F5EE;color:#085041';
 const ageCls=d=>d===null||d===undefined?'age-old':d<=7?'age-d0':d<=14?'age-d7':d<=30?'age-d14':d<=60?'age-d30':'age-old';
+const isDark=matchMedia('(prefers-color-scheme:dark)').matches;
+const tc=isDark?'#B4B2A9':'#5F5E5A';
+const gc=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
 
-function tImg(img,ec){
-  if(!img)return`<div class="${ec}"><i class="ti ti-photo" style="font-size:16px"></i></div>`;
-  return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:16px"></i></div>`;
+function tImg(img,ec,overlay=false){
+  const ov=overlay?`<div class="trow-thumb-overlay"><i class="ti ti-zoom-in"></i></div>`:'';
+  if(!img)return`<div class="${ec}"><i class="ti ti-photo" style="font-size:16px"></i></div>${ov}`;
+  return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:16px"></i></div>${ov}`;
 }
 
-let weeks = [], curWeekId = null, curFilter = '전체', detailOpen = false;
-const cache = {};
+let weeks=[], curWeekId=null, curFilter='전체', detailOpen=false;
+const cache={};
+let trendChart=null, curMetric='roas', modalKey=null;
 
-async function loadWeeks() {
-  try {
-    const res = await fetch('data/weeks.json');
-    weeks = await res.json();
+// ── 주차 로드 ──
+async function loadWeeks(){
+  try{
+    const res=await fetch('data/weeks.json');
+    weeks=await res.json();
     renderTabs();
-    if (weeks.length) switchWeek(weeks[0].id);
-  } catch(e) {
-    document.getElementById('weekTabs').innerHTML = '<div class="week-tab-loading" style="color:#A32D2D">weeks.json 불러오기 실패</div>';
+    if(weeks.length) switchWeek(weeks[0].id);
+  }catch(e){
+    document.getElementById('weekTabs').innerHTML='<div style="padding:8px 18px;font-size:12px;color:#A32D2D">weeks.json 로드 실패</div>';
   }
 }
 
-function renderTabs() {
-  document.getElementById('weekTabs').innerHTML = weeks.map(w =>
+function renderTabs(){
+  document.getElementById('weekTabs').innerHTML=weeks.map(w=>
     `<button class="week-tab${w.id===curWeekId?' active':''}" onclick="switchWeek('${w.id}')">${w.label}</button>`
   ).join('');
 }
 
-async function switchWeek(id) {
-  curWeekId = id;
-  curFilter = '전체';
-  detailOpen = false;
+async function switchWeek(id){
+  curWeekId=id; curFilter='전체'; detailOpen=false;
   renderTabs();
-  if (cache[id]) { renderAll(cache[id]); return; }
-  document.getElementById('mainContent').innerHTML = '<div class="loading"><i class="ti ti-loader" style="font-size:20px"></i><br>데이터 불러오는 중...</div>';
-  try {
-    const res = await fetch(`data/${id}.json`);
-    const data = await res.json();
-    cache[id] = data;
-    renderAll(data);
-  } catch(e) {
-    document.getElementById('mainContent').innerHTML = `<div class="loading" style="color:#A32D2D">${id}.json 불러오기 실패</div>`;
+  if(cache[id]){renderAll(cache[id]);return;}
+  document.getElementById('mainContent').innerHTML='<div class="loading">데이터 불러오는 중...</div>';
+  try{
+    const res=await fetch(`data/${id}.json`);
+    cache[id]=await res.json();
+    renderAll(cache[id]);
+  }catch(e){
+    document.getElementById('mainContent').innerHTML=`<div class="loading" style="color:#A32D2D">${id}.json 로드 실패</div>`;
   }
 }
 
-function renderAll(d) {
-  const s = d.summary;
-  const prevL = d.prev_label;
-
-  const kpiHtml = `<div class="kpi-row">
+// ── 메인 렌더 ──
+function renderAll(d){
+  const s=d.summary;
+  const kpiHtml=`<div class="kpi-row">
     <div class="kpi"><div class="kpi-l">총 광고비</div><div class="kpi-v">${fmtS(s.spend)}</div></div>
     <div class="kpi"><div class="kpi-l">전환값</div><div class="kpi-v">${fmtS(s.revenue)}</div></div>
     <div class="kpi"><div class="kpi-l">ROAS</div><div class="kpi-v">${fmtR(s.roas_pct)}</div></div>
@@ -226,32 +298,30 @@ function renderAll(d) {
     <div class="kpi"><div class="kpi-l">활성 소재</div><div class="kpi-v">${s.active_ads}개</div></div>
   </div>`;
 
-  // 트렌드
-  function makeTrow(r, up) {
-    const d = Math.round(r.roas_delta);
-    return`<div class="trow">
-      <div class="trow-thumb">${tImg(r.img,'trow-thumb-empty')}</div>
+  function makeTrow(r,up){
+    const d2=Math.round(r.roas_delta);
+    return`<div class="trow" onclick="openModal('${r.key}')">
+      <div class="trow-thumb">${tImg(r.img,'trow-thumb-empty',true)}</div>
       <div class="trow-body">
-        <div class="trow-l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="trow-name">${r.key}</span><span class="delta-tag ${up?'d-up':'d-dn'}">${d>0?'+':''}${d}%</span>${r.age_days!=null?`<span class="age-tag ${ageCls(r.age_days)}">D+${r.age_days}</span>`:''}</div>
+        <div class="trow-l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="trow-name">${r.key}</span><span class="delta-tag ${up?'d-up':'d-dn'}">${d2>0?'+':''}${d2}%</span>${r.age_days!=null?`<span class="age-tag ${ageCls(r.age_days)}">D+${r.age_days}</span>`:''}</div>
         <div class="trow-l2"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${fmtR(r.roas_pct)}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
         <div class="trow-l3"><span class="spend-chip"><i class="ti ti-ad" style="font-size:10px"></i>광고비 ${fmtS(r.spend)}</span><span class="mc mc-ctr">CTR ${r.ctr}%</span><span class="mc mc-cvr">CVR ${r.cvr}%</span><span class="mc-media" style="${mb(r.media)}">${r.media}</span></div>
       </div>
     </div>`;
   }
 
-  const trendHtml = `<div class="sec">
-    <div class="sec-hdr"><i class="ti ti-trending-up" style="font-size:15px;color:#3B6D11"></i><span class="sec-title">주간 트렌드</span><span class="sec-sub">전주(${prevL}) 대비 ROAS 변화 · 지출 5만원 이상</span></div>
+  const trendHtml=`<div class="sec">
+    <div class="sec-hdr"><i class="ti ti-trending-up" style="font-size:15px;color:#3B6D11"></i><span class="sec-title">주간 트렌드</span><span class="sec-sub">전주(${d.prev_label}) 대비 ROAS 변화 · 지출 5만원 이상</span></div>
     <div class="trend-cols">
       <div class="tcol"><div class="tcol-hdr" style="color:#27500A"><i class="ti ti-arrow-up-right" style="font-size:14px"></i>상승 소재</div>${d.rising.map(r=>makeTrow(r,true)).join('')}</div>
       <div class="tcol"><div class="tcol-hdr" style="color:#A32D2D"><i class="ti ti-arrow-down-right" style="font-size:14px"></i>하락 소재</div>${d.falling.map(r=>makeTrow(r,false)).join('')}</div>
     </div>
   </div>`;
 
-  // D+7
-  function makeD7Row(r) {
-    const eT = r.old_roas_pct===null ? `<span class="delta-tag d-new">신규</span>` : r.roas_delta!=null ? `<span class="delta-tag ${r.roas_delta>0?'d-up':'d-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>` : '';
-    return`<div class="d7-row">
-      <div class="d7-thumb">${tImg(r.img,'d7-thumb-empty')}</div>
+  function makeD7Row(r){
+    const eT=r.old_roas_pct===null?`<span class="delta-tag d-new">신규</span>`:r.roas_delta!=null?`<span class="delta-tag ${r.roas_delta>0?'d-up':'d-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
+    return`<div class="d7-row" onclick="openModal('${r.key}')">
+      <div class="d7-thumb">${tImg(r.img,'d7-thumb-empty',true)}<div class="d7-thumb-overlay"><i class="ti ti-zoom-in"></i></div></div>
       <div class="d7-body">
         <div class="d7-l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7-name">${r.key}</span>${eT}${r.age_days!=null?`<span class="age-tag age-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
         <div style="display:flex;align-items:baseline;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
@@ -259,11 +329,10 @@ function renderAll(d) {
       </div>
     </div>`;
   }
-  const d7WS = d.d7_win.reduce((s,r)=>s+r.spend,0);
-  const d7LS = d.d7_lose.reduce((s,r)=>s+r.spend,0);
-  const d7Avg = d.d7_win.length ? Math.round(d.d7_win.reduce((s,r)=>s+r.roas_pct,0)/d.d7_win.length) : 0;
+  const d7WS=d.d7_win.reduce((s,r)=>s+r.spend,0),d7LS=d.d7_lose.reduce((s,r)=>s+r.spend,0);
+  const d7Avg=d.d7_win.length?Math.round(d.d7_win.reduce((s,r)=>s+r.roas_pct,0)/d.d7_win.length):0;
 
-  const d7Html = `<div class="sec">
+  const d7Html=`<div class="sec">
     <div class="sec-hdr"><i class="ti ti-test-pipe" style="font-size:15px;color:#854F0B"></i><span class="sec-title">신규 소재 초기 성과</span><span class="sec-sub">투입 7일 이내 · 위닝 vs 루징</span></div>
     <div class="d7-wrap">
       <div class="d7-summary">
@@ -273,28 +342,22 @@ function renderAll(d) {
         <div class="d7-stat">위닝 평균 ROAS <strong>${d7Avg}%</strong></div>
       </div>
       <div class="d7-cols">
-        <div class="d7-col">
-          <div class="d7-col-hdr"><div class="d7-col-title" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝 소재</div><span class="d7-cnt">${d.d7_win.length}개</span></div>
-          ${d.d7_win.length ? d.d7_win.map(makeD7Row).join('') : '<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">위닝 소재 없음</div>'}
-        </div>
-        <div class="d7-col">
-          <div class="d7-col-hdr"><div class="d7-col-title" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징 소재</div><span class="d7-cnt">${d.d7_lose.length}개</span></div>
-          ${d.d7_lose.length ? d.d7_lose.map(makeD7Row).join('') : '<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">루징 소재 없음</div>'}
-        </div>
+        <div class="d7-col"><div class="d7-col-hdr"><div class="d7-col-title" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span class="d7-cnt">${d.d7_win.length}개</span></div>${d.d7_win.length?d.d7_win.map(makeD7Row).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
+        <div class="d7-col"><div class="d7-col-hdr"><div class="d7-col-title" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span class="d7-cnt">${d.d7_lose.length}개</span></div>${d.d7_lose.length?d.d7_lose.map(makeD7Row).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
       </div>
     </div>
   </div>`;
 
-  // 위닝
-  function winHtml(filter) {
-    const data = filter==='전체' ? d.winning : d.winning.filter(c=>c.mgr===filter);
-    if (!data.length) return '<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';
-    return data.map(c => {
-      const iu = c.img ? `https://drive.google.com/thumbnail?id=${c.img}&sz=w400` : null;
-      const dT = c.roas_delta!=null ? `<span class="delta-tag ${c.roas_delta>0?'d-up':'d-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>` : `<span class="delta-tag d-new">신규</span>`;
-      return`<div class="wcard">
+  function winCards(filter){
+    const data=filter==='전체'?d.winning:d.winning.filter(c=>c.mgr===filter);
+    if(!data.length)return'<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';
+    return data.map(c=>{
+      const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
+      const dT=c.roas_delta!=null?`<span class="delta-tag ${c.roas_delta>0?'d-up':'d-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="delta-tag d-new">신규</span>`;
+      return`<div class="wcard" onclick="openModal('${c.key}')">
         <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wthumb-empty" style="display:${iu?'none':'flex'}"><i class="ti ti-photo" style="font-size:20px"></i>소재 없음</div>
           <div class="wthumb-tags"><span class="age-tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A">${fmtR(c.roas_pct)}</span></div>
+          <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
         </div>
         <div class="wbody">
           <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.key}</div>
@@ -307,58 +370,256 @@ function renderAll(d) {
     }).join('');
   }
 
-  const winSectionHtml = `<div class="sec" id="winSec">
+  const winHtml=`<div class="sec" id="winSec">
     <div class="sec-hdr"><i class="ti ti-trophy" style="font-size:15px;color:#854F0B"></i><span class="sec-title">이번 주 위닝소재</span><span class="sec-sub">ROAS 300% 이상 · 광고비 10만원 이상</span></div>
-    <div class="filter-row" id="filterRow">
+    <div class="filter-row">
       <button class="fbtn on" onclick="setFilter('전체')">전체</button>
       <button class="fbtn" onclick="setFilter('리지')"><span class="mgr-dot" style="background:#378ADD"></span>리지</button>
       <button class="fbtn" onclick="setFilter('콜리')"><span class="mgr-dot" style="background:#1D9E75"></span>콜리</button>
       <button class="fbtn" onclick="setFilter('세레나')"><span class="mgr-dot" style="background:#D4537E"></span>세레나</button>
       <button class="fbtn" onclick="setFilter('파트너스')"><span class="mgr-dot" style="background:#EF9F27"></span>파트너스</button>
     </div>
-    <div class="win-grid" id="winGrid">${winHtml('전체')}</div>
+    <div class="win-grid" id="winGrid">${winCards('전체')}</div>
   </div>`;
 
-  // 전체 테이블
-  const tbodyHtml = d.all_ads.map(r => {
-    const dT = r.roas_delta!=null ? `<span style="font-size:10px;padding:1px 5px;border-radius:4px;${r.roas_delta>0?'background:#EAF3DE;color:#27500A':'background:#FCEBEB;color:#791F1F'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>` : '<span style="color:var(--text3)">-</span>';
-    return`<tr><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:120px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2)">${r.key}</span></td><td style="color:${MC[r.mgr]};font-size:10px;font-weight:500;white-space:nowrap">${r.mgr}</td><td><span style="font-size:9px;padding:1px 4px;border-radius:3px;${mb(r.media)}">${r.media}</span></td><td>${r.age_days!=null?`<span class="age-tag ${ageCls(r.age_days)}" style="font-size:9px">D+${r.age_days}</span>`:'-'}</td><td style="white-space:nowrap">${fmtS(r.spend)}</td><td><span class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</span></td><td style="color:var(--text3);white-space:nowrap">${r.old_roas_pct?fmtR(r.old_roas_pct):'-'}</td><td>${dT}</td><td>${r.purchases>0?r.purchases+'건':'-'}</td><td style="color:var(--text2)">${r.ctr>0?r.ctr+'%':'-'}</td><td style="color:var(--text2)">${r.cvr>0?r.cvr+'%':'-'}</td></tr>`;
+  const tbodyHtml=d.all_ads.map(r=>{
+    const dT=r.roas_delta!=null?`<span style="font-size:10px;padding:1px 5px;border-radius:4px;${r.roas_delta>0?'background:#EAF3DE;color:#27500A':'background:#FCEBEB;color:#791F1F'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'<span style="color:var(--text3)">-</span>';
+    return`<tr style="cursor:pointer" onclick="openModal('${r.key}')"><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:120px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2)">${r.key}</span></td><td style="color:${MC[r.mgr]};font-size:10px;font-weight:500;white-space:nowrap">${r.mgr}</td><td><span style="font-size:9px;padding:1px 4px;border-radius:3px;${mb(r.media)}">${r.media}</span></td><td>${r.age_days!=null?`<span class="age-tag ${ageCls(r.age_days)}" style="font-size:9px">D+${r.age_days}</span>`:'-'}</td><td style="white-space:nowrap">${fmtS(r.spend)}</td><td><span class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</span></td><td style="color:var(--text3);white-space:nowrap">${r.old_roas_pct?fmtR(r.old_roas_pct):'-'}</td><td>${dT}</td><td>${r.purchases>0?r.purchases+'건':'-'}</td><td style="color:var(--text2)">${r.ctr>0?r.ctr+'%':'-'}</td><td style="color:var(--text2)">${r.cvr>0?r.cvr+'%':'-'}</td></tr>`;
   }).join('');
 
-  const tableHtml = `<div class="sec">
+  const tableHtml=`<div class="sec">
     <div class="sec-hdr"><i class="ti ti-table" style="font-size:15px;color:var(--text3)"></i><span class="sec-title">전체 소재 상세</span></div>
     <button class="detail-btn" id="dBtn" onclick="toggleDetail()"><i class="ti ti-chevron-down" id="dIco"></i>펼쳐서 전체 보기</button>
-    <div id="dWrap" style="display:none"><div class="tbl-wrap"><table><thead><tr>
-      <th>소재명</th><th>담당</th><th>유형</th><th>소재나이</th><th>광고비</th><th>ROAS</th><th>전주</th><th>변화</th><th>구매</th><th>CTR</th><th>CVR</th>
-    </tr></thead><tbody>${tbodyHtml}</tbody></table></div></div>
+    <div id="dWrap" style="display:none"><div class="tbl-wrap"><table><thead><tr><th>소재명</th><th>담당</th><th>유형</th><th>소재나이</th><th>광고비</th><th>ROAS</th><th>전주</th><th>변화</th><th>구매</th><th>CTR</th><th>CVR</th></tr></thead><tbody>${tbodyHtml}</tbody></table></div></div>
   </div>`;
 
-  document.getElementById('mainContent').innerHTML = kpiHtml + trendHtml + d7Html + winSectionHtml + tableHtml;
+  document.getElementById('mainContent').innerHTML=kpiHtml+trendHtml+d7Html+winHtml+tableHtml;
 }
 
-function setFilter(f) {
-  curFilter = f;
-  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('on'));
+function setFilter(f){
+  curFilter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
   event.currentTarget.classList.add('on');
-  const d = cache[curWeekId];
-  if (d) document.getElementById('winGrid').innerHTML = (() => {
-    const data = f==='전체' ? d.winning : d.winning.filter(c=>c.mgr===f);
-    if (!data.length) return '<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';
-    return data.map(c => {
-      const iu = c.img ? `https://drive.google.com/thumbnail?id=${c.img}&sz=w400` : null;
-      const dT = c.roas_delta!=null ? `<span class="delta-tag ${c.roas_delta>0?'d-up':'d-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>` : `<span class="delta-tag d-new">신규</span>`;
-      const rvC2=p=>p>=700?'rv-great':p>=400?'rv-good':p>=200?'rv-warn':p>0?'rv-bad':'rv-zero';
-      const ageCls2=d=>d===null||d===undefined?'age-old':d<=7?'age-d0':d<=14?'age-d7':d<=30?'age-d14':d<=60?'age-d30':'age-old';
-      return`<div class="wcard"><div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wthumb-empty" style="display:${iu?'none':'flex'}"><i class="ti ti-photo" style="font-size:20px"></i>소재 없음</div><div class="wthumb-tags"><span class="age-tag ${ageCls2(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A">${fmtR(c.roas_pct)}</span></div></div><div class="wbody"><div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.key}</div><div style="display:flex;align-items:baseline;gap:5px"><span class="${rvC2(c.roas_pct)}" style="font-size:15px;font-weight:600">${fmtR(c.roas_pct)}</span>${c.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(c.old_roas_pct)}</span>`:''}</div><div class="wmets"><span class="spend-chip"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span></div><div class="wmets"><span class="mc mc-ctr">CTR ${c.ctr}%</span><span class="mc mc-cvr">CVR ${c.cvr}%</span></div><div class="wdelta">전주 대비 ${dT}</div></div></div>`;
-    }).join('');
-  })();
+  const d=cache[curWeekId];
+  if(!d)return;
+  const data=f==='전체'?d.winning:d.winning.filter(c=>c.mgr===f);
+  const g=document.getElementById('winGrid');
+  if(!data.length){g.innerHTML='<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';return;}
+  g.innerHTML=data.map(c=>{
+    const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
+    const dT=c.roas_delta!=null?`<span class="delta-tag ${c.roas_delta>0?'d-up':'d-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="delta-tag d-new">신규</span>`;
+    return`<div class="wcard" onclick="openModal('${c.key}')"><div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wthumb-empty" style="display:${iu?'none':'flex'}"><i class="ti ti-photo" style="font-size:20px"></i>소재 없음</div><div class="wthumb-tags"><span class="age-tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A">${fmtR(c.roas_pct)}</span></div><div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div></div><div class="wbody"><div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.key}</div><div style="display:flex;align-items:baseline;gap:5px"><span class="${rvC(c.roas_pct)}" style="font-size:15px;font-weight:600">${fmtR(c.roas_pct)}</span>${c.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(c.old_roas_pct)}</span>`:''}</div><div class="wmets"><span class="spend-chip"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span></div><div class="wmets"><span class="mc mc-ctr">CTR ${c.ctr}%</span><span class="mc mc-cvr">CVR ${c.cvr}%</span></div><div class="wdelta">전주 대비 ${dT}</div></div></div>`;
+  }).join('');
 }
 
-function toggleDetail() {
-  detailOpen = !detailOpen;
-  document.getElementById('dWrap').style.display = detailOpen ? 'block' : 'none';
-  document.getElementById('dIco').className = detailOpen ? 'ti ti-chevron-up' : 'ti ti-chevron-down';
-  document.getElementById('dBtn').childNodes[1].nodeValue = ' ' + (detailOpen ? '접기' : '펼쳐서 전체 보기');
+function toggleDetail(){
+  detailOpen=!detailOpen;
+  document.getElementById('dWrap').style.display=detailOpen?'block':'none';
+  document.getElementById('dIco').className=detailOpen?'ti ti-chevron-up':'ti ti-chevron-down';
+  document.getElementById('dBtn').childNodes[1].nodeValue=' '+(detailOpen?'접기':'펼쳐서 전체 보기');
+}
+
+// ── 팝업 ──
+function openModal(key){
+  modalKey=key;
+  // 모든 주차에서 이 소재 데이터 수집
+  const weekData=[];
+  for(const w of weeks){
+    if(cache[w.id]){
+      const row=cache[w.id].all_ads.find(r=>r.key===key);
+      if(row) weekData.push({week:w.label,weekId:w.id,...row});
+    }
+  }
+
+  // 현재 주차 데이터 우선
+  const cur=weekData.find(r=>r.weekId===curWeekId)||weekData[0];
+  if(!cur)return;
+
+  // 제목 + 신규 여부 판별
+  const allWeeksSortedForBadge=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
+  const firstAppearWeekId=(()=>{
+    for(const w of allWeeksSortedForBadge){
+      if(cache[w.id]?.all_ads?.find(r=>r.key===key)) return w.id;
+    }
+    return curWeekId;
+  })();
+  const isFirstThisWeek=firstAppearWeekId===curWeekId;
+  const liveBadgeTitle=isFirstThisWeek?`<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:#E6F1FB;color:#0C447C;border:.5px solid #85B7EB">🔴 LIVE</span>`:'';
+
+  document.getElementById('modalTitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${key} ${liveBadgeTitle}`;
+
+  // 이미지
+  const iw=document.getElementById('modalImgWrap');
+  if(cur.img){
+    iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w800" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div class=modal-img-empty><i class=ti style=font-size:32px>&#xe3fc;</i><span>이미지 없음</span></div>'">`;
+  } else {
+    iw.innerHTML=`<div class="modal-img-empty"><i class="ti ti-photo" style="font-size:32px"></i><span>이미지 없음</span></div>`;
+  }
+
+  // 태그
+  document.getElementById('modalTags').innerHTML=`
+    <span class="age-tag ${ageCls(cur.age_days)}">${cur.age_days!=null?'D+'+cur.age_days:'-'}</span>
+    <span class="mc-media" style="${mb(cur.media)};padding:3px 8px;border-radius:6px;font-size:11px">${cur.media}</span>
+    <span style="font-size:11px;font-weight:500;color:${MC[cur.mgr]}">${cur.mgr}</span>`;
+
+  // KPI (현재 주차)
+  document.getElementById('modalKpis').innerHTML=`
+    <div class="modal-kpi"><div class="modal-kpi-l">ROAS</div><div class="modal-kpi-v ${rvC(cur.roas_pct)}">${cur.roas_pct>0?fmtR(cur.roas_pct):'-'}</div>${cur.old_roas_pct?`<div class="modal-kpi-sub">전주 ${fmtR(cur.old_roas_pct)}</div>`:''}</div>
+    <div class="modal-kpi"><div class="modal-kpi-l">광고비</div><div class="modal-kpi-v">${fmtS(cur.spend)}</div></div>
+    <div class="modal-kpi"><div class="modal-kpi-l">구매</div><div class="modal-kpi-v">${cur.purchases>0?cur.purchases+'건':'-'}</div></div>
+    <div class="modal-kpi"><div class="modal-kpi-l">CTR / CVR</div><div class="modal-kpi-v" style="font-size:13px">${cur.ctr>0?cur.ctr+'%':'-'} / ${cur.cvr>0?cur.cvr+'%':'-'}</div></div>`;
+
+  // 그래프 초기화
+  curMetric='roas';
+  document.querySelectorAll('.mtab').forEach((b,i)=>b.classList.toggle('on',i===0));
+  renderTrendChart(weekData);
+
+  // 팝업 표시
+  const overlay=document.getElementById('modalOverlay');
+  overlay.style.display='flex';
+  requestAnimationFrame(()=>overlay.classList.add('show'));
+  document.body.style.overflow='hidden';
+}
+
+function hideModal(){
+  const overlay=document.getElementById('modalOverlay');
+  overlay.classList.remove('show');
+  setTimeout(()=>{overlay.style.display='none';document.body.style.overflow='';},200);
+  if(trendChart){trendChart.destroy();trendChart=null;}
+}
+
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))hideModal();}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideModal();});
+
+function setMetric(m){
+  curMetric=m;
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('on'));
+  event.currentTarget.classList.add('on');
+  // 현재 팝업의 weekData 재수집
+  const weekData=[];
+  for(const w of weeks){
+    if(cache[w.id]){
+      const row=cache[w.id].all_ads.find(r=>r.key===modalKey);
+      if(row) weekData.push({week:w.label,weekId:w.id,...row});
+    }
+  }
+  renderTrendChart(weekData);
+}
+
+function renderTrendChart(weekData){
+  const cw=document.getElementById('chartWrap');
+  const rt=document.getElementById('rankTableWrap');
+
+  if(trendChart){trendChart.destroy();trendChart=null;}
+
+  // 주차 오름차순 정렬 (오래된 것 → 최신)
+  const sorted=[...weekData].sort((a,b)=>a.weekId>b.weekId?1:-1);
+
+  // 첫 등장 주차 판별 — 이전 주차 캐시에 없으면 신규 투입
+  const firstWeekId=(()=>{
+    // weeks 목록 전체에서 가장 오래된 주차부터 확인
+    const allWeeksSorted=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
+    for(const w of allWeeksSorted){
+      if(cache[w.id]?.all_ads?.find(r=>r.key===modalKey)) return w.id;
+    }
+    return sorted[0]?.weekId;
+  })();
+
+  const liveBadge=`<span style="font-size:10px;font-weight:600;padding:1px 6px;border-radius:5px;background:#E6F1FB;color:#0C447C;border:.5px solid #85B7EB;margin-left:5px">🔴 LIVE</span>`;
+
+  const labels=sorted.map(r=>r.weekId===firstWeekId?r.week+' ★':r.week);
+
+  if(curMetric==='rank'){
+    // 순위 테이블
+    cw.style.display='none';
+    rt.style.display='block';
+    const rows=sorted.map(r=>{
+      const weekAll=cache[r.weekId]?.all_ads||[];
+      const sorted2=[...weekAll].sort((a,b)=>b.spend-a.spend);
+      const rank=sorted2.findIndex(a=>a.key===modalKey)+1;
+      const isFirst=r.weekId===firstWeekId;
+      return{week:r.week,rank,total:weekAll.length,spend:r.spend,roas_pct:r.roas_pct,isFirst};
+    });
+    rt.innerHTML=`<table class="rank-table"><thead><tr><th>주차</th><th>순위</th><th>광고비</th><th>ROAS</th></tr></thead><tbody>${
+      rows.map(r=>`<tr style="${r.isFirst?'background:rgba(24,95,165,0.05)':''}"><td>${r.week}${r.isFirst?liveBadge:''}</td><td style="font-weight:500">${r.rank>0?r.rank+'위 / '+r.total+'개':'-'}</td><td>${fmtS(r.spend)}</td><td class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</td></tr>`).join('')
+    }</tbody></table>`;
+    return;
+  }
+
+  cw.style.display='block';
+  rt.style.display='none';
+
+  const metricMap={
+    roas:{key:'roas_pct',label:'ROAS (%)',fmt:v=>v+'%',color:'#378ADD'},
+    spend:{key:'spend',label:'광고비 (₩)',fmt:fmtS,color:'#1D9E75'},
+    ctr:{key:'ctr',label:'CTR (%)',fmt:v=>v+'%',color:'#D4537E'},
+    cvr:{key:'cvr',label:'CVR (%)',fmt:v=>v+'%',color:'#EF9F27'},
+  };
+  const m=metricMap[curMetric];
+  const values=sorted.map(r=>r[m.key]||0);
+
+  if(sorted.length<2){
+    cw.innerHTML=`<div class="no-data"><i class="ti ti-chart-line" style="font-size:24px;display:block;margin-bottom:8px"></i>주차 데이터가 2개 이상이어야 트렌드를 볼 수 있어요</div>`;
+    return;
+  }
+
+  // 첫 등장 주차 인덱스
+  const firstIdx=sorted.findIndex(r=>r.weekId===firstWeekId);
+
+  // 포인트별 크기·색상 — 첫 등장 주차는 강조
+  const pointRadii=sorted.map((_,i)=>i===firstIdx?9:5);
+  const pointBgColors=sorted.map((_,i)=>i===firstIdx?'#0C447C':m.color);
+  const pointBorderColors=sorted.map((_,i)=>i===firstIdx?'#fff':'#fff');
+  const pointBorderWidths=sorted.map((_,i)=>i===firstIdx?2.5:2);
+
+  cw.innerHTML='<canvas id="trendChart"></canvas>';
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  trendChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:m.label,
+        data:values,
+        borderColor:m.color,
+        backgroundColor:m.color+'22',
+        borderWidth:2.5,
+        pointRadius:pointRadii,
+        pointBackgroundColor:pointBgColors,
+        pointBorderColor:pointBorderColors,
+        pointBorderWidth:pointBorderWidths,
+        fill:true,
+        tension:0.3,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:items=>{
+              const i=items[0].dataIndex;
+              return sorted[i].week+(i===firstIdx?' 🔴 LIVE (첫 투입)':'');
+            },
+            label:ctx=>` ${m.fmt(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales:{
+        x:{
+          ticks:{
+            color:(ctx)=>ctx.index===firstIdx?'#0C447C':tc,
+            font:(ctx)=>ctx.index===firstIdx?{size:11,weight:'bold'}:{size:11},
+          },
+          grid:{color:gc}
+        },
+        y:{ticks:{color:tc,callback:v=>m.fmt(v)},grid:{color:gc}}
+      }
+    }
+  });
 }
 
 loadWeeks();
