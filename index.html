@@ -13,8 +13,6 @@
 body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
 .wrap{max-width:1100px;margin:0 auto;padding:0 1.25rem}
 .dash{padding:.75rem 0 3rem}
-
-/* 헤더·탭 */
 .hdr{padding:1rem 0 0}
 .hdr-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-bottom:.75rem}
 .hdr-title{font-size:17px;font-weight:500}
@@ -22,51 +20,40 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .wtab{padding:8px 18px;font-size:13px;font-weight:500;color:var(--text3);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap}
 .wtab.on{color:#185FA5;border-bottom-color:#378ADD}
 .wtab:hover:not(.on){color:var(--text2)}
-
-/* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-bottom:1.25rem}
 .kpi{background:var(--bg);border:.5px solid var(--border);border-radius:var(--r);padding:8px 10px;position:relative;cursor:default}
 .kpi-l{font-size:10px;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:3px}
-.kpi-l i{font-size:11px;color:var(--text3)}
 .kpi-v{font-size:16px;font-weight:500;margin-bottom:3px}
 .kpi-delta{font-size:10px;font-weight:500;padding:1px 6px;border-radius:6px;display:inline-block}
 .kd-up{background:#EAF3DE;color:#27500A}.kd-dn{background:#FCEBEB;color:#791F1F}.kd-neu{background:var(--bg2);color:var(--text3)}
-
 /* 툴팁 */
 .tip{position:relative;display:inline-block}
-.tip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);border-radius:var(--r);padding:8px 10px;font-size:11px;line-height:1.5;width:200px;z-index:999;pointer-events:none;white-space:normal}
+.tip-box{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);border-radius:var(--r);padding:8px 10px;font-size:11px;line-height:1.5;width:200px;z-index:9999;pointer-events:none;white-space:normal}
 .tip-box::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--text)}
 .tip:hover .tip-box,.kpi:hover .tip-box{display:block}
 .tip-title{font-weight:500;margin-bottom:3px;font-size:12px}
 .tip-quote{font-style:italic;color:rgba(255,255,255,0.75);margin-top:2px;font-size:10px}
 .tip-avg{color:rgba(255,255,255,0.6);margin-top:4px;font-size:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:4px}
-
-/* 섹션 */
 .sec{margin-bottom:1.75rem}
 .sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:10px}
 .sec-title{font-size:13px;font-weight:500}
 .sec-sub{font-size:11px;color:var(--text3)}
-
-/* 필터바 */
 .filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
 .fg{display:flex;gap:4px;flex-wrap:wrap}
 .fdiv{width:.5px;height:20px;background:var(--border);margin:0 4px;align-self:center}
 .fbtn{padding:4px 11px;font-size:11px;font-weight:500;border-radius:14px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:3px}
 .fbtn.on{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
 .fbtn:hover:not(.on){background:var(--bg3)}
-
-/* 위닝 그리드 */
 .win-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px}
 .wcard{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:border-color .15s}
 .wcard:hover{border-color:var(--border2)}
-.wcard.score5{border-color:#1D9E75}
-.wcard.score3{border-color:#EF9F27}
+.wcard.s5{border-color:#1D9E75}.wcard.s3{border-color:#EF9F27}
 .wthumb{width:100%;padding-top:60%;position:relative;background:var(--bg2);overflow:hidden}
 .wthumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .2s}
 .wcard:hover .wthumb img{transform:scale(1.04)}
-.wno-thumb{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;text-align:center}
-.wno-thumb-name{font-size:9px;color:var(--text3);line-height:1.4;word-break:break-all}
-.wno-thumb-msg{font-size:9px;color:#854F0B;font-weight:500;background:#FAEEDA;padding:2px 6px;border-radius:4px}
+.wno-thumb{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;text-align:center}
+.wno-name{font-size:9px;color:var(--text3);line-height:1.4;word-break:break-all}
+.wno-msg{font-size:9px;color:#854F0B;font-weight:500;background:#FAEEDA;padding:2px 6px;border-radius:4px}
 .wthumb-tl{position:absolute;top:5px;left:5px;right:5px;display:flex;justify-content:space-between;align-items:flex-start;gap:3px}
 .wthumb-zoom{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;background:rgba(0,0,0,.3);transition:opacity .15s}
 .wcard:hover .wthumb-zoom{opacity:1}
@@ -78,11 +65,8 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .wmets{display:flex;gap:4px;flex-wrap:wrap}
 .wdots{display:flex;gap:2px;margin-top:1px}
 .wdot{width:7px;height:7px;border-radius:50%;background:var(--bg2)}
-.wdot.on{background:#1D9E75}
-.wdot.warn{background:#EF9F27}
+.wdot.on{background:#1D9E75}.wdot.wn{background:#EF9F27}
 .wfail{font-size:9px;color:#A32D2D;margin-top:1px}
-
-/* 트렌드 */
 .tcols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tcol{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);overflow:hidden}
 .tcol-hdr{padding:9px 12px;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500}
@@ -100,8 +84,6 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .trow-l2{display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
 .trow-l3{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .trow-name{font-size:11px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* D+7 */
 .d7w{background:var(--bg2);border-radius:var(--rl);padding:1rem 1.1rem}
 .d7sum{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .d7st{background:var(--bg);border:.5px solid var(--border);border-radius:var(--r);padding:6px 12px;font-size:12px;color:var(--text2)}
@@ -122,34 +104,21 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .d7body{flex:1;min-width:0;padding:7px 9px;display:flex;flex-direction:column;gap:4px}
 .d7l1{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .d7name{font-size:11px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* 공통 태그 */
 .mgr-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
 .tag{font-size:10px;padding:1px 6px;border-radius:5px;font-weight:500;white-space:nowrap}
-.tp-전환{background:#E6F1FB;color:#0C447C}
-.tp-트래픽{background:#EAF3DE;color:#27500A}
-.tp-콘조{background:#FAEEDA;color:#633806}
-.tp-기타{background:var(--bg2);color:var(--text3)}
-.tm-영상{background:#F1EFE8;color:#444441}
-.tm-배너{background:#E1F5EE;color:#085041}
-.td-up{background:#EAF3DE;color:#27500A}
-.td-dn{background:#FCEBEB;color:#791F1F}
-.td-new{background:#E6F1FB;color:#0C447C}
-.ta-d0{background:#E6F1FB;color:#0C447C;border:.5px solid #85B7EB}
-.ta-d7{background:#EAF3DE;color:#3B6D11;border:.5px solid #C0DD97}
-.ta-d14{background:#FAEEDA;color:#633806;border:.5px solid #FAC775}
-.ta-d30{background:#F1EFE8;color:#444441;border:.5px solid #D3D1C7}
+.tp-전환{background:#E6F1FB;color:#0C447C}.tp-트래픽{background:#EAF3DE;color:#27500A}.tp-콘조{background:#FAEEDA;color:#633806}.tp-기타{background:var(--bg2);color:var(--text3)}
+.tm-영상{background:#F1EFE8;color:#444441}.tm-배너{background:#E1F5EE;color:#085041}
+.td-up{background:#EAF3DE;color:#27500A}.td-dn{background:#FCEBEB;color:#791F1F}.td-new{background:#E6F1FB;color:#0C447C}
+.ta-d0{background:#E6F1FB;color:#0C447C;border:.5px solid #85B7EB}.ta-d7{background:#EAF3DE;color:#3B6D11;border:.5px solid #C0DD97}
+.ta-d14{background:#FAEEDA;color:#633806;border:.5px solid #FAC775}.ta-d30{background:#F1EFE8;color:#444441;border:.5px solid #D3D1C7}
 .ta-old{background:var(--bg2);color:var(--text3);border:.5px solid var(--border)}
-.tag-live{background:#E6F1FB;color:#0C447C;border:.5px solid #85B7EB}
+.tag-new{background:#E6F1FB;color:#0C447C;border:.5px solid #85B7EB}
 .roas-arr{font-size:11px;color:var(--text3);margin:0 2px}
 .roas-prev{font-size:11px;color:var(--text3)}
 .rv-great{color:#27500A}.rv-good{color:#0C447C}.rv-warn{color:#633806}.rv-bad{color:#A32D2D}.rv-zero{color:var(--text3)}
 .sc{font-size:10px;color:var(--text3);display:inline-flex;align-items:center;gap:2px}
 .mc{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-flex;align-items:center}
-.mc-ctr{background:#F1EFE8;color:#444441}
-.mc-cvr{background:#EAF3DE;color:#27500A}
-
-/* 테이블 */
+.mc-ctr{background:#F1EFE8;color:#444441}.mc-cvr{background:#EAF3DE;color:#27500A}
 .dtl-btn{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);background:none;border:.5px solid var(--border2);border-radius:var(--r);padding:5px 12px;cursor:pointer;margin-bottom:8px}
 .dtl-btn:hover{background:var(--bg2)}
 .tbl-wrap{overflow-x:auto}
@@ -158,11 +127,10 @@ th{font-size:10px;font-weight:500;color:var(--text3);padding:5px 7px;border-bott
 td{padding:6px 7px;border-bottom:.5px solid var(--border);vertical-align:middle;background:var(--bg)}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg2)}
-
 /* 팝업 */
 .mov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity .2s}
 .mov.show{opacity:1}
-.modal{background:var(--bg);border-radius:var(--rl);width:100%;max-width:820px;max-height:90vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s}
+.modal{background:var(--bg);border-radius:var(--rl);width:100%;max-width:840px;max-height:90vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s}
 .mov.show .modal{transform:translateY(0)}
 .mhdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:.5px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1}
 .mtitle{font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -174,37 +142,33 @@ tr:hover td{background:var(--bg2)}
 .mimg img{width:100%;height:auto;object-fit:contain;display:block}
 .mimg-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:12px;padding:2rem;text-align:center}
 .mmeta{display:flex;flex-direction:column;gap:10px}
+/* KPI 카드 (팝업) */
 .mkpis{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
 .mkpi{background:var(--bg2);border-radius:var(--r);padding:8px 10px}
 .mkpi-l{font-size:10px;color:var(--text3);margin-bottom:3px;display:flex;align-items:center;gap:3px}
-.mkpi-v{font-size:15px;font-weight:500}
-.mkpi-s{font-size:10px;color:var(--text3);margin-top:1px}
-
-/* 위닝 점수 상세 */
+.mkpi-v{font-size:15px;font-weight:500;margin-bottom:2px}
+.mkpi-prev{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.mpd-up{color:#27500A;font-weight:500}.mpd-dn{color:#A32D2D;font-weight:500}
+/* 위닝 점수 */
 .wscore-detail{background:var(--bg2);border-radius:var(--r);padding:10px 12px}
 .wscore-ttl{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
 .wscore-row{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:.5px solid var(--border);font-size:11px}
 .wscore-row:last-child{border-bottom:none}
-.wscore-lbl{color:var(--text2)}
-.wscore-thr{color:var(--text3);font-size:10px;text-align:right}
-.wscore-val{font-weight:500;text-align:right}
-.wscore-chk{font-size:13px;text-align:center;width:20px}
+.wscore-lbl{color:var(--text2)}.wscore-thr{color:var(--text3);font-size:10px;text-align:right}.wscore-val{font-weight:500;text-align:right}.wscore-chk{font-size:13px;text-align:center;width:20px}
 .wscore-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:2px;grid-column:1/-1}
 .wscore-bar{height:100%;border-radius:2px;transition:width .3s}
-
 /* 트렌드 차트 */
 .csec-title{font-size:13px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .mtabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .mtab{padding:4px 12px;font-size:11px;font-weight:500;border-radius:14px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer}
 .mtab.on{background:#E6F1FB;border-color:#85B7EB;color:#0C447C}
-.cwrap{position:relative;height:220px;background:var(--bg2);border-radius:var(--r);padding:1rem}
+.cwrap{position:relative;height:240px;background:var(--bg2);border-radius:var(--r);padding:1rem}
 .rtbl{width:100%;border-collapse:collapse;font-size:12px}
 .rtbl th{font-size:10px;font-weight:500;color:var(--text3);padding:5px 8px;border-bottom:.5px solid var(--border);text-align:left}
 .rtbl td{padding:6px 8px;border-bottom:.5px solid var(--border)}
 .rtbl tr:last-child td{border-bottom:none}
 .no-data{text-align:center;padding:2rem;color:var(--text3);font-size:12px}
 .loading{text-align:center;padding:3rem;color:var(--text3);font-size:13px}
-
 @media(max-width:600px){.tcols,.d7cols{grid-template-columns:1fr}.win-grid{grid-template-columns:repeat(2,1fr)}.kpi-row{grid-template-columns:repeat(2,1fr)}.mtop{grid-template-columns:1fr}}
 </style>
 </head>
@@ -235,12 +199,13 @@ tr:hover td{background:var(--bg2)}
       </div>
       <div>
         <div class="csec-title"><i class="ti ti-chart-line" style="font-size:14px;color:#185FA5"></i>주차별 성과 트렌드</div>
-        <div class="mtabs">
-          <button class="mtab on" onclick="setMetric('roas',this)">ROAS</button>
+        <div class="mtabs" id="mtabs">
+          <button class="mtab on" onclick="setMetric('all',this)">종합</button>
+          <button class="mtab" onclick="setMetric('roas',this)">ROAS</button>
           <button class="mtab" onclick="setMetric('spend',this)">광고비</button>
           <button class="mtab" onclick="setMetric('ctr',this)">CTR</button>
           <button class="mtab" onclick="setMetric('cvr',this)">CVR</button>
-          <button class="mtab" onclick="setMetric('rank',this)">소재 순위</button>
+          <button class="mtab" onclick="setMetric('rank',this)">순위</button>
         </div>
         <div class="cwrap" id="cwrap"><canvas id="trendChart"></canvas></div>
         <div id="rtblWrap" style="display:none;margin-top:8px"></div>
@@ -254,8 +219,9 @@ const MC={'리지':'#378ADD','콜리':'#1D9E75','세레나':'#D4537E','파트너
 const PC={'전환':'tp-전환','트래픽':'tp-트래픽','콘조':'tp-콘조','기타':'tp-기타'};
 const isDark=matchMedia('(prefers-color-scheme:dark)').matches;
 const tc=isDark?'#B4B2A9':'#5F5E5A',gc=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
+const CHART_COLORS=['#378ADD','#1D9E75','#D4537E','#EF9F27'];
 
-const TOOLTIPS={
+const TIPS={
   roas:{title:'ROAS',desc:'광고비 대비 발생한 전환 매출 비중',quote:'광고비 몇 배의 돈을 벌어왔는지'},
   ctr:{title:'CTR (클릭률)',desc:'광고 노출 수 대비 클릭한 비율',quote:'이 광고를 본 사람이 클릭할 확률'},
   cvr:{title:'CVR (전환율)',desc:'광고를 클릭한 사람 중 구매한 비율',quote:'클릭한 사람이 구매할 확률'},
@@ -264,10 +230,8 @@ const TOOLTIPS={
   revenue:{title:'전환 매출',desc:'광고를 통해 발생한 총 구매 금액'},
   purchases:{title:'구매 건수',desc:'광고를 통해 발생한 구매 횟수'},
 };
-
-function tipHtml(key,extra=''){
-  const t=TOOLTIPS[key];
-  if(!t)return'';
+function tipHtml(k,extra=''){
+  const t=TIPS[k];if(!t)return'';
   return`<div class="tip-box"><div class="tip-title">${t.title}</div><div>${t.desc}</div>${t.quote?`<div class="tip-quote">"${t.quote}"</div>`:''}${extra?`<div class="tip-avg">${extra}</div>`:''}</div>`;
 }
 
@@ -276,20 +240,30 @@ const fmtR=p=>Math.round(p).toLocaleString()+'%';
 const rvC=p=>p>=700?'rv-great':p>=400?'rv-good':p>=200?'rv-warn':p>0?'rv-bad':'rv-zero';
 const ageCls=d=>d===null||d===undefined?'ta-old':d<=7?'ta-d0':d<=14?'ta-d7':d<=30?'ta-d14':d<=60?'ta-d30':'ta-old';
 const pctD=(c,p)=>(!p||p===0)?null:((c-p)/Math.abs(p)*100);
-function dTag(pct,inv=false){
+function kdTag(pct,inv=false){
   if(pct===null)return'';
   const g=inv?pct<=0:pct>=0,cls=Math.abs(pct)<0.5?'kd-neu':g?'kd-up':'kd-dn';
   return`<span class="kpi-delta ${cls}">${pct>0?'+':''}${pct.toFixed(1)}%</span>`;
 }
-function tImg(img,ec,ov='',nameForEmpty='',showUpload=false){
-  if(img)return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:16px"></i></div>${ov}`;
-  if(showUpload)return`<div class="${ec}"><div style="font-size:9px;color:var(--text3);line-height:1.4;word-break:break-all;margin-bottom:4px">${nameForEmpty}</div><div style="font-size:9px;color:#854F0B;font-weight:500;background:#FAEEDA;padding:2px 6px;border-radius:4px">썸네일 업로드 필요</div></div>${ov}`;
-  return`<div class="${ec}"><i class="ti ti-photo" style="font-size:16px"></i></div>${ov}`;
+// 팝업 KPI 전주 비교 태그 (모두 증가=좋음)
+function prevDeltaHtml(cur,prev,fmt){
+  if(!prev||prev===0)return'';
+  const pct=((cur-prev)/Math.abs(prev)*100);
+  const cls=pct>=0?'mpd-up':'mpd-dn';
+  const arrow=pct>=0?'▲':'▼';
+  return`<span style="color:var(--text3)">전주 ${fmt(prev)}</span> <span class="${cls}">${arrow}${Math.abs(pct).toFixed(1)}%</span>`;
+}
+
+function tThumb(img,ecE,ecT,ov,name=''){
+  const ovH=ov?`<div class="${ov}"><i class="ti ti-zoom-in" style="color:#fff;font-size:${ecT==='trow-te'?'18':'16'}px"></i></div>`:'';
+  if(img)return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ecE}" style="display:none"><i class="ti ti-photo" style="font-size:16px"></i></div>${ovH}`;
+  if(name)return`<div class="${ecE}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 업로드 필요</div></div>${ovH}`;
+  return`<div class="${ecE}"><i class="ti ti-photo" style="font-size:16px"></i></div>${ovH}`;
 }
 
 let weeks=[],curWeekId=null,curFilter={purpose:'전체',sort:'revenue'},detailOpen=false;
 const cache={};
-let tChart=null,curMetric='roas',mKey=null;
+let tChart=null,curMetric='all',mKey=null;
 
 async function loadWeeks(){
   try{const r=await fetch('data/weeks.json');weeks=await r.json();renderTabs();if(weeks.length)switchWeek(weeks[0].id);}
@@ -309,20 +283,17 @@ async function switchWeek(id){
 
 function renderAll(d){
   const s=d.summary,ps=d.prev_summary||{},thr=s.winning_thresholds||{};
-
-  // KPI
   const kpis=[
-    {k:'spend',  l:'총 광고비',  v:fmtS(s.spend),    dv:pctD(s.spend,ps.spend),    inv:true,  tip:'spend'},
-    {k:'revenue',l:'전환값',     v:fmtS(s.revenue),  dv:pctD(s.revenue,ps.revenue),            tip:'revenue'},
-    {k:'roas',   l:'ROAS',      v:fmtR(s.roas_pct), dv:pctD(s.roas_pct,ps.roas_pct),          tip:'roas', avg:`이번 주 전환캠페인 평균 ${fmtR(thr.avg_roas_pct||0)}`},
-    {k:'purchases',l:'구매',    v:s.purchases.toLocaleString()+'건',dv:pctD(s.purchases,ps.purchases), tip:'purchases'},
-    {k:'impr',   l:'노출',      v:(s.impressions/10000).toFixed(0)+'만',dv:pctD(s.impressions,ps.impressions)},
-    {k:'clicks', l:'클릭',      v:(s.clicks/10000).toFixed(1)+'만', dv:pctD(s.clicks,ps.clicks)},
-    {k:'ads',    l:'활성 소재', v:s.active_ads+'개', dv:pctD(s.active_ads,ps.active_ads)},
+    {k:'spend',  l:'총 광고비', v:fmtS(s.spend),    dv:pctD(s.spend,ps.spend),    inv:true, tip:'spend'},
+    {k:'revenue',l:'전환값',    v:fmtS(s.revenue),  dv:pctD(s.revenue,ps.revenue),           tip:'revenue'},
+    {k:'roas',   l:'ROAS',     v:fmtR(s.roas_pct), dv:pctD(s.roas_pct,ps.roas_pct),         tip:'roas',avg:`이번 주 전환 평균 ${fmtR(thr.avg_roas_pct||0)}`},
+    {k:'pur',    l:'구매',     v:s.purchases.toLocaleString()+'건',dv:pctD(s.purchases,ps.purchases),tip:'purchases'},
+    {k:'impr',   l:'노출',     v:(s.impressions/10000).toFixed(0)+'만',dv:pctD(s.impressions,ps.impressions)},
+    {k:'clk',    l:'클릭',     v:(s.clicks/10000).toFixed(1)+'만',dv:pctD(s.clicks,ps.clicks)},
+    {k:'ads',    l:'활성 소재',v:s.active_ads+'개', dv:pctD(s.active_ads,ps.active_ads)},
   ];
-  const kpiH=`<div class="kpi-row">${kpis.map(k=>`<div class="kpi">${k.tip?`<div class="kpi-l"><span>${k.l}</span><i class="ti ti-info-circle" aria-hidden="true"></i>${tipHtml(k.tip,k.avg||'')}</div>`:`<div class="kpi-l">${k.l}</div>`}<div class="kpi-v">${k.v}</div>${k.dv!==null?dTag(k.dv,k.inv||false):''}</div>`).join('')}</div>`;
+  const kpiH=`<div class="kpi-row">${kpis.map(k=>`<div class="kpi">${k.tip?`<div class="kpi-l"><span>${k.l}</span><i class="ti ti-info-circle" aria-hidden="true"></i>${tipHtml(k.tip,k.avg||'')}</div>`:`<div class="kpi-l">${k.l}</div>`}<div class="kpi-v">${k.v}</div>${k.dv!==null?kdTag(k.dv,k.inv||false):''}</div>`).join('')}</div>`;
 
-  // 위닝 기준 바
   const thrH=thr.avg_roas?`<div style="font-size:10px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:var(--bg2);border-radius:6px;display:flex;gap:10px;flex-wrap:wrap">
     <span>이번 주 위닝 기준</span>
     <span class="tip" style="cursor:default">ROAS &gt; ${fmtR(thr.avg_roas_pct||0)}${tipHtml('roas')}</span>
@@ -330,59 +301,67 @@ function renderAll(d){
     <span class="tip" style="cursor:default">CVR &gt; ${thr.avg_cvr}%${tipHtml('cvr')}</span>
     <span>CPC &lt; ₩${Math.round(thr.avg_cpc||0).toLocaleString()}</span>
     <span>구매 &gt; ${thr.avg_purchases}건</span>
-    <span style="color:#185FA5;font-weight:500">5개 중 3개↑ 충족 시 위닝</span>
+    <span style="color:#185FA5;font-weight:500">5개 중 3개↑ 충족</span>
   </div>`:'';
 
-  function sortWin(data,sort){
-    if(sort==='revenue') return [...data].sort((a,b)=>b.revenue-a.revenue);
-    if(sort==='ctr') return [...data].sort((a,b)=>b.ctr-a.ctr);
-    if(sort==='roas') return [...data].sort((a,b)=>b.roas_pct-a.roas_pct);
-    if(sort==='cvr') return [...data].sort((a,b)=>b.cvr-a.cvr);
-    return data;
+  // ── 위닝 카드 렌더 함수 ──
+  function buildWinCard(c,thr){
+    const sc=c.win_score||0,flags=c.win_flags||{};
+    const failKeys=Object.entries(flags).filter(([,v])=>!v).map(([k])=>({roas:'ROAS',ctr:'CTR',cvr:'CVR',cpc:'CPC',purchases:'구매'}[k]||k));
+    const dots=Array.from({length:5},(_,i)=>`<div class="wdot${i<sc?(sc<=3?' wn':' on'):''}"></div>`).join('');
+    const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
+    const dT=c.roas_delta!=null?`<span class="tag ${c.roas_delta>0?'td-up':'td-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="tag td-new">🆕 NEW</span>`;
+    const sClass=sc>=5?'s5':sc<=3?'s3':'';
+    return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')">
+      <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div>
+        <div class="wthumb-tl">
+          <span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
+          <span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)} 대비`)}</span>
+        </div>
+        <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
+      </div>
+      <div class="wbody">
+        <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div>
+        <div class="wlabels"><span class="tag ${PC[c.purpose]||'tp-기타'}">${c.purpose}</span><span class="tag tm-${c.media}">${c.media}</span></div>
+        <div class="wroas"><span class="${rvC(c.roas_pct)}" style="font-size:15px;font-weight:600">${fmtR(c.roas_pct)}</span>${c.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(c.old_roas_pct)}</span>`:''}</div>
+        <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span><span class="tip mc mc-ctr" style="cursor:default">CTR ${c.ctr}%${tipHtml('ctr')}</span></div>
+        <div class="wdots">${dots}</div>
+        ${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}
+        <div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div>
+      </div>
+    </div>`;
   }
 
-  function winCards(purpose,sort){
-    let data=d.winning||[];
-    if(purpose!=='전체'&&purpose!=='트래픽/콘조'){
-      if(purpose==='전환') data=data.filter(c=>c.purpose==='전환');
-      else data=data.filter(c=>c.purpose===purpose);
-    } else if(purpose==='트래픽/콘조') data=data.filter(c=>['트래픽','콘조'].includes(c.purpose));
-    // 캠페인별 자동 정렬
-    const autoSort=(purpose==='트래픽'||purpose==='콘조'||purpose==='트래픽/콘조')?'ctr':sort;
-    data=sortWin(data,autoSort);
-    if(!data.length)return'<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';
-    return data.map(c=>{
-      const sc=c.win_score||0,scoreClass=sc===5?'score5':sc===3?'score3':'';
-      const flags=c.win_flags||{};
-      const failKeys=Object.entries(flags).filter(([,v])=>!v).map(([k])=>({roas:'ROAS',ctr:'CTR',cvr:'CVR',cpc:'CPC',purchases:'구매'}[k]||k));
-      const dots=Array.from({length:5},(_,i)=>`<div class="wdot${i<sc?(sc<=3?' warn':' on'):''}"></div>`).join('');
-      const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
-      const dT=c.roas_delta!=null?`<span class="tag ${c.roas_delta>0?'td-up':'td-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="tag td-new">신규</span>`;
-      const roasTip=`${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)} 대비 이 소재`)}`;
-      return`<div class="wcard ${scoreClass}" onclick="openModal('${c.key}')">
-        <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-thumb-name">${c.base_key||c.key}</div><div class="wno-thumb-msg">썸네일 업로드 필요</div></div>
-          <div class="wthumb-tl"><span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
-            <span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${roasTip}</span>
-          </div>
-          <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
-        </div>
-        <div class="wbody">
-          <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div>
-          <div class="wlabels"><span class="tag ${PC[c.purpose]||'tp-기타'}">${c.purpose}</span><span class="tag tm-${c.media}">${c.media}</span></div>
-          <div class="wroas"><span class="${rvC(c.roas_pct)}" style="font-size:15px;font-weight:600">${fmtR(c.roas_pct)}</span>${c.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(c.old_roas_pct)}</span>`:''}</div>
-          <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span>
-            <span class="tip mc mc-ctr" style="cursor:default">CTR ${c.ctr}%${tipHtml('ctr')}</span>
-          </div>
-          <div class="wdots">${dots}</div>
-          ${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}
-          <div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div>
-        </div>
-      </div>`;
-    }).join('');
+  function getWinData(purpose,sort){
+    let all=d.winning||[];
+    // 필터별 10개 제한
+    if(purpose==='전체'){
+      // 전환 우선 최대 10개
+      const conv=all.filter(c=>c.purpose==='전환');
+      const tc=all.filter(c=>['트래픽','콘조'].includes(c.purpose));
+      const sortFn=getSortFn(sort);
+      const convSorted=[...conv].sort(sortFn).slice(0,10);
+      // 10개 미만이면 트래픽/콘조로 채우되 전체 10개 초과 안 함
+      const remain=10-convSorted.length;
+      const tcSorted=[...tc].sort(getSortFn('ctr')).slice(0,remain>0?remain:0);
+      return[...convSorted,...tcSorted];
+    } else if(purpose==='트래픽/콘조'){
+      return[...(all.filter(c=>['트래픽','콘조'].includes(c.purpose)))].sort(getSortFn('ctr')).slice(0,10);
+    } else {
+      return[...(all.filter(c=>c.purpose===purpose))].sort(getSortFn(sort)).slice(0,10);
+    }
+  }
+  function getSortFn(s){
+    if(s==='revenue')return(a,b)=>b.revenue-a.revenue;
+    if(s==='roas')return(a,b)=>b.roas_pct-a.roas_pct;
+    if(s==='ctr')return(a,b)=>b.ctr-a.ctr;
+    if(s==='cvr')return(a,b)=>b.cvr-a.cvr;
+    return(a,b)=>b.revenue-a.revenue;
   }
 
+  const initData=getWinData('전체','revenue');
   const winH=`<div class="sec" id="winSec">
-    <div class="sec-hdr"><i class="ti ti-trophy" style="font-size:15px;color:#854F0B"></i><span class="sec-title">이번 주 위닝소재</span><span class="sec-sub">전환 3점+ (매출순) · 트래픽/콘조 CTR순 상위 10개</span></div>
+    <div class="sec-hdr"><i class="ti ti-trophy" style="font-size:15px;color:#854F0B"></i><span class="sec-title">이번 주 위닝소재</span><span class="sec-sub">필터별 최대 10개 · 전환 우선 노출</span></div>
     ${thrH}
     <div class="filter-bar">
       <div class="fg" id="purposeFilter">
@@ -398,14 +377,14 @@ function renderAll(d){
         <button class="fbtn" onclick="setF('sort','cvr',this)"><span class="tip" style="cursor:default">CVR순${tipHtml('cvr')}</span></button>
       </div>
     </div>
-    <div class="win-grid" id="winGrid">${winCards('전체','revenue')}</div>
+    <div class="win-grid" id="winGrid">${initData.map(c=>buildWinCard(c,thr)).join('')||'<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>'}</div>
   </div>`;
 
-  // 트렌드
+  // ── 트렌드 ──
   function mkTrow(r,up){
     const dv=Math.round(r.roas_delta);
     return`<div class="trow" onclick="openModal('${r.key}')">
-      <div class="trow-th">${tImg(r.img,'trow-te',`<div class="trow-ov"><i class="ti ti-zoom-in"></i></div>`,r.base_key||r.key,false)}</div>
+      <div class="trow-th">${tThumb(r.img,'trow-te','trow-te','trow-ov')}</div>
       <div class="trow-body">
         <div class="trow-l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="trow-name">${r.base_key||r.key}</span><span class="tag ${up?'td-up':'td-dn'}">${dv>0?'+':''}${dv}%</span>${r.age_days!=null?`<span class="tag ${ageCls(r.age_days)}">D+${r.age_days}</span>`:''}</div>
         <div class="trow-l2"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${fmtR(r.roas_pct)}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
@@ -421,11 +400,11 @@ function renderAll(d){
     </div>
   </div>`;
 
-  // D+7
-  function mkD7Row(r){
-    const eT=r.is_new?`<span class="tag td-new">신규</span>`:r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
+  // ── D+7 ──
+  function mkD7(r){
+    const eT=r.is_new?`<span class="tag td-new">🆕 NEW</span>`:r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
     return`<div class="d7row" onclick="openModal('${r.key}')">
-      <div class="d7th">${tImg(r.img,'d7te',`<div class="d7ov"><i class="ti ti-zoom-in"></i></div>`,r.base_key||r.key,false)}</div>
+      <div class="d7th">${tThumb(r.img,'d7te','d7te','d7ov')}</div>
       <div class="d7body">
         <div class="d7l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7name">${r.base_key||r.key}</span>${eT}${r.age_days!=null?`<span class="tag ta-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
         <div style="display:flex;align-items:center;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
@@ -444,13 +423,13 @@ function renderAll(d){
         <div class="d7st">위닝 평균 ROAS <strong>${dw.length?fmtR(dw.reduce((s,r)=>s+r.roas_pct,0)/dw.length):'–'}</strong></div>
       </div>
       <div class="d7cols">
-        <div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span style="font-size:11px;color:var(--text3)">${dw.length}개</span></div>${dw.length?dw.map(mkD7Row).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
-        <div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span style="font-size:11px;color:var(--text3)">${dl.length}개</span></div>${dl.length?dl.map(mkD7Row).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
+        <div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span style="font-size:11px;color:var(--text3)">${dw.length}개</span></div>${dw.length?dw.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
+        <div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span style="font-size:11px;color:var(--text3)">${dl.length}개</span></div>${dl.length?dl.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
       </div>
     </div>
   </div>`;
 
-  // 전체 테이블
+  // ── 테이블 ──
   const tbH=(d.all_ads||[]).map(r=>{
     const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'<span style="color:var(--text3)">-</span>';
     const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
@@ -483,40 +462,39 @@ function renderAll(d){
 
 function setF(type,val,btn){
   curFilter[type]=val;
-  const gid=type==='purpose'?'purposeFilter':'sortFilter';
-  document.getElementById(gid).querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById(type==='purpose'?'purposeFilter':'sortFilter').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  const d=cache[curWeekId];if(!d)return;
-  // 트래픽/콘조 선택 시 sort를 CTR로 자동 전환
   if(type==='purpose'&&(val==='트래픽/콘조')){
     curFilter.sort='ctr';
-    document.getElementById('sortFilter').querySelectorAll('.fbtn').forEach((b,i)=>{b.classList.toggle('on',i===2);});
+    document.getElementById('sortFilter').querySelectorAll('.fbtn').forEach((b,i)=>b.classList.toggle('on',i===2));
   }
-  refreshWinGrid();
-}
-
-function refreshWinGrid(){
   const d=cache[curWeekId];if(!d)return;
   const thr=d.summary.winning_thresholds||{};
-  let data=d.winning||[];
-  const p=curFilter.purpose,s=curFilter.sort;
-  if(p!=='전체'&&p!=='트래픽/콘조') data=data.filter(c=>c.purpose===p);
-  else if(p==='트래픽/콘조') data=data.filter(c=>['트래픽','콘조'].includes(c.purpose));
-  const autoSort=(p==='트래픽'||p==='콘조'||p==='트래픽/콘조')?'ctr':s;
-  if(autoSort==='revenue') data=[...data].sort((a,b)=>b.revenue-a.revenue);
-  else if(autoSort==='roas') data=[...data].sort((a,b)=>b.roas_pct-a.roas_pct);
-  else if(autoSort==='ctr') data=[...data].sort((a,b)=>b.ctr-a.ctr);
-  else if(autoSort==='cvr') data=[...data].sort((a,b)=>b.cvr-a.cvr);
-  if(!data.length){document.getElementById('winGrid').innerHTML='<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';return;}
-  document.getElementById('winGrid').innerHTML=data.map(c=>{
-    const sc=c.win_score||0,flags=c.win_flags||{};
-    const failKeys=Object.entries(flags).filter(([,v])=>!v).map(([k])=>({roas:'ROAS',ctr:'CTR',cvr:'CVR',cpc:'CPC',purchases:'구매'}[k]||k));
-    const dots=Array.from({length:5},(_,i)=>`<div class="wdot${i<sc?(sc<=3?' warn':' on'):''}"></div>`).join('');
-    const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
-    const dT=c.roas_delta!=null?`<span class="tag ${c.roas_delta>0?'td-up':'td-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="tag td-new">신규</span>`;
-    const scoreClass=sc===5?'score5':sc===3?'score3':'';
-    return`<div class="wcard ${scoreClass}" onclick="openModal('${c.key}')"><div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-thumb-name">${c.base_key||c.key}</div><div class="wno-thumb-msg">썸네일 업로드 필요</div></div><div class="wthumb-tl"><span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span><span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)} 대비`)}</span></div><div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div></div><div class="wbody"><div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div><div class="wlabels"><span class="tag ${PC[c.purpose]||'tp-기타'}">${c.purpose}</span><span class="tag tm-${c.media}">${c.media}</span></div><div class="wroas"><span class="${rvC(c.roas_pct)}" style="font-size:15px;font-weight:600">${fmtR(c.roas_pct)}</span>${c.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(c.old_roas_pct)}</span>`:''}</div><div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span><span class="tip mc mc-ctr" style="cursor:default">CTR ${c.ctr}%${tipHtml('ctr')}</span></div><div class="wdots">${dots}</div>${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}<div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div></div></div>`;
-  }).join('');
+  const data=getWinDataFromCache(d,curFilter.purpose,curFilter.sort);
+  document.getElementById('winGrid').innerHTML=data.map(c=>buildWinCardFromCache(c,thr)).join('')||'<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';
+}
+
+function getWinDataFromCache(d,purpose,sort){
+  const all=d.winning||[];
+  function sfn(s){if(s==='revenue')return(a,b)=>b.revenue-a.revenue;if(s==='roas')return(a,b)=>b.roas_pct-a.roas_pct;if(s==='ctr')return(a,b)=>b.ctr-a.ctr;if(s==='cvr')return(a,b)=>b.cvr-a.cvr;return(a,b)=>b.revenue-a.revenue;}
+  if(purpose==='전체'){
+    const conv=[...all.filter(c=>c.purpose==='전환')].sort(sfn(sort)).slice(0,10);
+    const remain=10-conv.length;
+    const tc=[...all.filter(c=>['트래픽','콘조'].includes(c.purpose))].sort(sfn('ctr')).slice(0,remain>0?remain:0);
+    return[...conv,...tc];
+  } else if(purpose==='트래픽/콘조'){
+    return[...all.filter(c=>['트래픽','콘조'].includes(c.purpose))].sort(sfn('ctr')).slice(0,10);
+  } else return[...all.filter(c=>c.purpose===purpose)].sort(sfn(sort)).slice(0,10);
+}
+
+function buildWinCardFromCache(c,thr){
+  const sc=c.win_score||0,flags=c.win_flags||{};
+  const failKeys=Object.entries(flags).filter(([,v])=>!v).map(([k])=>({roas:'ROAS',ctr:'CTR',cvr:'CVR',cpc:'CPC',purchases:'구매'}[k]||k));
+  const dots=Array.from({length:5},(_,i)=>`<div class="wdot${i<sc?(sc<=3?' wn':' on'):''}"></div>`).join('');
+  const iu=c.img?`https://drive.google.com/thumbnail?id=${c.img}&sz=w400`:null;
+  const dT=c.roas_delta!=null?`<span class="tag ${c.roas_delta>0?'td-up':'td-dn'}">${c.roas_delta>0?'+':''}${Math.round(c.roas_delta)}%</span>`:`<span class="tag td-new">🆕 NEW</span>`;
+  const sClass=sc>=5?'s5':sc<=3?'s3':'';
+  return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')"><div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div><div class="wthumb-tl"><span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span><span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)} 대비`)}</span></div><div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div></div><div class="wbody"><div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div><div class="wlabels"><span class="tag ${PC[c.purpose]||'tp-기타'}">${c.purpose}</span><span class="tag tm-${c.media}">${c.media}</span></div><div class="wroas"><span class="${rvC(c.roas_pct)}" style="font-size:15px;font-weight:600">${fmtR(c.roas_pct)}</span>${c.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(c.old_roas_pct)}</span>`:''}</div><div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span><span class="tip mc mc-ctr" style="cursor:default">CTR ${c.ctr}%${tipHtml('ctr')}</span></div><div class="wdots">${dots}</div>${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}<div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div></div></div>`;
 }
 
 function toggleDtl(){
@@ -536,49 +514,75 @@ function openModal(key){
 
   const allSorted=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
   const firstWId=(()=>{for(const w of allSorted){if(cache[w.id]?.all_ads?.find(r=>r.key===key))return w.id;}return curWeekId;})();
-  const isLive=firstWId===curWeekId;
+  const isNew=firstWId===curWeekId;
 
-  document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key}${isLive?` <span class="tag tag-live">🔴 LIVE</span>`:''}`;
+  document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key}${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
 
+  // 이미지
   const iw=document.getElementById('mimg');
   if(cur.img){iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w800" style="width:100%;height:auto;object-fit:contain" onerror="this.parentElement.innerHTML='<div class=mimg-empty><i class=ti style=font-size:32px>&#xe3fc;</i><span>이미지 없음</span></div>'">`;}
-  else{iw.innerHTML=`<div class="mimg-empty"><i class="ti ti-photo" style="font-size:32px"></i><div style="font-size:11px;color:var(--text3);word-break:break-all;text-align:center">${cur.base_key||cur.key}</div><div style="font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;}
+  else{iw.innerHTML=`<div class="mimg-empty"><i class="ti ti-photo" style="font-size:32px"></i><div style="font-size:11px;color:var(--text3);word-break:break-all;text-align:center">${cur.base_key||cur.key}</div><div style="margin-top:4px;font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;}
 
   document.getElementById('mtags').innerHTML=`<span class="tag ${PC[cur.purpose]||'tp-기타'}">${cur.purpose}</span><span class="tag tm-${cur.media}">${cur.media}</span><span style="font-size:11px;font-weight:500;color:${MC[cur.mgr]}">${cur.mgr}</span>${cur.age_days!=null?`<span class="tag ${ageCls(cur.age_days)}">D+${cur.age_days}</span>`:''}`;
 
   const thr=cache[curWeekId]?.summary?.winning_thresholds||{};
+
+  // 전주 데이터 찾기
+  const prevWd=wd.find(r=>r.weekId!==curWeekId&&r.weekId<curWeekId)||null;
+
+  // KPI 카드 (전주 비교 포함)
   document.getElementById('mkpis').innerHTML=`
-    <div class="mkpi"><div class="mkpi-l"><span>ROAS</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)}`)}</div><div class="mkpi-v ${rvC(cur.roas_pct)}">${cur.roas_pct>0?fmtR(cur.roas_pct):'-'}</div>${cur.old_roas_pct?`<div class="mkpi-s">전주 ${fmtR(cur.old_roas_pct)}</div>`:''}</div>
-    <div class="mkpi"><div class="mkpi-l">광고비</div><div class="mkpi-v">${fmtS(cur.spend)}</div></div>
-    <div class="mkpi"><div class="mkpi-l">구매</div><div class="mkpi-v">${cur.purchases>0?cur.purchases+'건':'-'}</div></div>
-    <div class="mkpi"><div class="mkpi-l"><span>CTR / CVR</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml('ctr')}</div><div class="mkpi-v" style="font-size:13px">${cur.ctr>0?cur.ctr+'%':'-'} / ${cur.cvr>0?cur.cvr+'%':'-'}</div></div>`;
+    <div class="mkpi">
+      <div class="mkpi-l"><span>ROAS</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)}`)}</div>
+      <div class="mkpi-v ${rvC(cur.roas_pct)}">${cur.roas_pct>0?fmtR(cur.roas_pct):'-'}</div>
+      <div class="mkpi-prev">${prevWd?prevDeltaHtml(cur.roas_pct,prevWd.roas_pct,fmtR):cur.old_roas_pct?`<span style="color:var(--text3)">전주 ${fmtR(cur.old_roas_pct)}</span>`:''}</div>
+    </div>
+    <div class="mkpi">
+      <div class="mkpi-l"><span>광고비</span></div>
+      <div class="mkpi-v">${fmtS(cur.spend)}</div>
+      <div class="mkpi-prev">${prevWd?prevDeltaHtml(cur.spend,prevWd.spend,fmtS):''}</div>
+    </div>
+    <div class="mkpi">
+      <div class="mkpi-l"><span>구매</span></div>
+      <div class="mkpi-v">${cur.purchases>0?cur.purchases+'건':'-'}</div>
+      <div class="mkpi-prev">${prevWd?prevDeltaHtml(cur.purchases,prevWd.purchases,v=>v+'건'):''}</div>
+    </div>
+    <div class="mkpi">
+      <div class="mkpi-l"><span>CTR / CVR</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml('ctr')}</div>
+      <div class="mkpi-v" style="font-size:13px">${cur.ctr>0?cur.ctr+'%':'-'} / ${cur.cvr>0?cur.cvr+'%':'-'}</div>
+      <div class="mkpi-prev" style="flex-direction:column;align-items:flex-start;gap:1px">
+        ${prevWd&&prevWd.ctr?`<span>CTR ${prevDeltaHtml(cur.ctr,prevWd.ctr,v=>v+'%')}</span>`:''}
+        ${prevWd&&prevWd.cvr?`<span>CVR ${prevDeltaHtml(cur.cvr,prevWd.cvr,v=>v+'%')}</span>`:''}
+      </div>
+    </div>`;
 
   // 위닝 점수 상세
   const wsEl=document.getElementById('mwinscore');
   if(cur.win_score!=null&&cur.win_flags&&cur.win_type==='전환'){
     const fl=cur.win_flags;
-    const flagDef=[
-      {k:'roas',  l:'ROAS',   thr:`> ${fmtR(thr.avg_roas_pct||0)}`, val:`${fmtR(cur.roas_pct)}`,  pct:thr.avg_roas_pct?Math.min(100,cur.roas_pct/thr.avg_roas_pct*100):0, color:'#185FA5'},
-      {k:'ctr',   l:'CTR',    thr:`> ${thr.avg_ctr||0}%`,            val:`${cur.ctr}%`,             pct:thr.avg_ctr?Math.min(100,cur.ctr/thr.avg_ctr*100):0,              color:'#D4537E'},
-      {k:'cvr',   l:'CVR',    thr:`> ${thr.avg_cvr||0}%`,            val:`${cur.cvr}%`,             pct:thr.avg_cvr?Math.min(100,cur.cvr/thr.avg_cvr*100):0,              color:'#EF9F27'},
-      {k:'cpc',   l:'CPC',    thr:`< ₩${Math.round(thr.avg_cpc||0).toLocaleString()}`, val:`₩${Math.round(cur.cpc||0).toLocaleString()}`, pct:thr.avg_cpc&&cur.cpc?Math.min(100,(1-(cur.cpc-thr.avg_cpc)/thr.avg_cpc)*100+50):50, color:'#1D9E75'},
-      {k:'purchases',l:'구매', thr:`> ${thr.avg_purchases||0}건`,    val:`${cur.purchases}건`,      pct:thr.avg_purchases?Math.min(100,cur.purchases/thr.avg_purchases*100):0, color:'#378ADD'},
+    const fd=[
+      {k:'roas',l:'ROAS',thr:`> ${fmtR(thr.avg_roas_pct||0)}`,val:fmtR(cur.roas_pct),pct:thr.avg_roas_pct?Math.min(100,cur.roas_pct/(thr.avg_roas_pct||1)*100):0,color:'#185FA5'},
+      {k:'ctr',l:'CTR',thr:`> ${thr.avg_ctr||0}%`,val:`${cur.ctr}%`,pct:thr.avg_ctr?Math.min(100,cur.ctr/(thr.avg_ctr||1)*100):0,color:'#D4537E'},
+      {k:'cvr',l:'CVR',thr:`> ${thr.avg_cvr||0}%`,val:`${cur.cvr}%`,pct:thr.avg_cvr?Math.min(100,cur.cvr/(thr.avg_cvr||1)*100):0,color:'#EF9F27'},
+      {k:'cpc',l:'CPC',thr:`< ₩${Math.round(thr.avg_cpc||0).toLocaleString()}`,val:`₩${Math.round(cur.cpc||0).toLocaleString()}`,pct:thr.avg_cpc&&cur.cpc?Math.min(100,Math.max(0,(1-(cur.cpc-thr.avg_cpc)/thr.avg_cpc)*100)):50,color:'#1D9E75'},
+      {k:'purchases',l:'구매',thr:`> ${thr.avg_purchases||0}건`,val:`${cur.purchases}건`,pct:thr.avg_purchases?Math.min(100,cur.purchases/(thr.avg_purchases||1)*100):0,color:'#378ADD'},
     ];
     wsEl.innerHTML=`<div class="wscore-detail">
       <div class="wscore-ttl"><span>위닝 점수 ${cur.win_score}/5점 ${cur.win_score>=3?'✅ 위닝':'❌ 미달'}</span></div>
-      ${flagDef.map(f=>`<div class="wscore-row">
+      ${fd.map(f=>`<div class="wscore-row">
         <span class="wscore-lbl">${f.l}</span>
         <span class="wscore-thr">기준 ${f.thr}</span>
         <span class="wscore-val ${fl[f.k]?rvC(cur.roas_pct):'rv-zero'}">${f.val}</span>
         <span class="wscore-chk">${fl[f.k]?'✓':'–'}</span>
-        <div class="wscore-bar-wrap"><div class="wscore-bar" style="width:${Math.max(0,Math.min(100,f.pct)).toFixed(0)}%;background:${fl[f.k]?f.color:'#D3D1C7'}"></div></div>
+        <div class="wscore-bar-wrap"><div class="wscore-bar" style="width:${Math.max(0,f.pct).toFixed(0)}%;background:${fl[f.k]?f.color:'#D3D1C7'}"></div></div>
       </div>`).join('')}
     </div>`;
   } else wsEl.innerHTML='';
 
-  curMetric='roas';
+  curMetric='all';
   document.querySelectorAll('.mtab').forEach((b,i)=>b.classList.toggle('on',i===0));
-  renderTrendChart(wd);
+  renderTChart(wd);
+
   const ov=document.getElementById('mov');
   ov.style.display='flex';requestAnimationFrame(()=>ov.classList.add('show'));
   document.body.style.overflow='hidden';
@@ -599,10 +603,10 @@ function setMetric(m,btn){
   btn.classList.add('on');
   const wd=[];
   for(const w of weeks){if(cache[w.id]){const r=cache[w.id].all_ads?.find(r=>r.key===mKey);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
-  renderTrendChart(wd);
+  renderTChart(wd);
 }
 
-function renderTrendChart(wd){
+function renderTChart(wd){
   const cw=document.getElementById('cwrap'),rt=document.getElementById('rtblWrap');
   if(tChart){tChart.destroy();tChart=null;}
   const sorted=[...wd].sort((a,b)=>a.weekId>b.weekId?1:-1);
@@ -610,10 +614,10 @@ function renderTrendChart(wd){
   const fId=(()=>{for(const w of allS){if(cache[w.id]?.all_ads?.find(r=>r.key===mKey))return w.id;}return sorted[0]?.weekId;})();
   const fIdx=sorted.findIndex(r=>r.weekId===fId);
   const labels=sorted.map((r,i)=>r.week+(i===fIdx?' ★':''));
-  const lb=`<span class="tag tag-live" style="font-size:9px;margin-left:4px">🔴 LIVE</span>`;
 
   if(curMetric==='rank'){
     cw.style.display='none';rt.style.display='block';
+    const lb=`<span class="tag tag-new" style="font-size:9px;margin-left:4px">🆕 NEW</span>`;
     rt.innerHTML=`<table class="rtbl"><thead><tr><th>주차</th><th>순위</th><th>광고비</th><th>ROAS</th></tr></thead><tbody>${
       sorted.map((r,i)=>{
         const wa=cache[r.weekId]?.all_ads||[];
@@ -623,20 +627,52 @@ function renderTrendChart(wd){
     }</tbody></table>`;
     return;
   }
+
   cw.style.display='block';rt.style.display='none';
-  const mm={roas:{key:'roas_pct',label:'ROAS',fmt:fmtR,color:'#378ADD'},spend:{key:'spend',label:'광고비',fmt:fmtS,color:'#1D9E75'},ctr:{key:'ctr',label:'CTR (%)',fmt:v=>v+'%',color:'#D4537E'},cvr:{key:'cvr',label:'CVR (%)',fmt:v=>v+'%',color:'#EF9F27'}};
-  const m=mm[curMetric];
   if(sorted.length<2){cw.innerHTML=`<div class="no-data">주차 데이터가 2개 이상이어야 트렌드를 볼 수 있어요</div>`;return;}
   cw.innerHTML='<canvas id="trendChart"></canvas>';
-  tChart=new Chart(document.getElementById('trendChart').getContext('2d'),{
-    type:'line',
-    data:{labels,datasets:[{label:m.label,data:sorted.map(r=>r[m.key]||0),borderColor:m.color,backgroundColor:m.color+'22',borderWidth:2.5,
-      pointRadius:sorted.map((_,i)=>i===fIdx?9:5),pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':m.color),
-      pointBorderColor:'#fff',pointBorderWidth:2,fill:true,tension:0.3}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>{const i=items[0].dataIndex;return sorted[i].week+(i===fIdx?' 🔴 LIVE':'');},label:ctx=>` ${m.fmt(ctx.parsed.y)}`}}},
-      scales:{x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc,font:(_,i)=>i===fIdx?{size:11,weight:'bold'}:{size:11}},grid:{color:gc}},y:{ticks:{color:tc,callback:v=>m.fmt(v)},grid:{color:gc}}}}
-  });
+  const ctx=document.getElementById('trendChart').getContext('2d');
+
+  if(curMetric==='all'){
+    // 종합: 4개 라인
+    const metrics=[
+      {key:'roas_pct',label:'ROAS (%)',fmt:fmtR,yId:'yR',color:CHART_COLORS[0]},
+      {key:'ctr',label:'CTR (%)',fmt:v=>v+'%',yId:'yC',color:CHART_COLORS[2]},
+      {key:'cvr',label:'CVR (%)',fmt:v=>v+'%',yId:'yC',color:CHART_COLORS[3]},
+    ];
+    tChart=new Chart(ctx,{
+      type:'line',
+      data:{labels,datasets:metrics.map((m,i)=>({
+        label:m.label,data:sorted.map(r=>r[m.key]||0),
+        borderColor:m.color,backgroundColor:m.color+'18',borderWidth:2,
+        pointRadius:sorted.map((_,j)=>j===fIdx?8:4),pointBackgroundColor:sorted.map((_,j)=>j===fIdx?'#0C447C':m.color),
+        pointBorderColor:'#fff',pointBorderWidth:1.5,fill:false,tension:0.3,
+        yAxisID:m.yId
+      }))},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,position:'top',labels:{font:{size:11},color:tc,boxWidth:12,padding:12}},
+          tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.dataset.label.includes('ROAS')?fmtR(ctx.parsed.y):ctx.parsed.y+'%'}`}}},
+        scales:{
+          x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc,font:(_,i)=>({size:11,weight:i===fIdx?'bold':'normal'})},grid:{color:gc}},
+          yR:{position:'left',title:{display:true,text:'ROAS',color:tc,font:{size:10}},ticks:{color:tc,callback:v=>fmtR(v)},grid:{color:gc}},
+          yC:{position:'right',title:{display:true,text:'CTR / CVR (%)',color:tc,font:{size:10}},ticks:{color:tc,callback:v=>v+'%'},grid:{display:false}}
+        }}
+    });
+  } else {
+    const mm={roas:{key:'roas_pct',label:'ROAS',fmt:fmtR,color:CHART_COLORS[0]},spend:{key:'spend',label:'광고비',fmt:fmtS,color:CHART_COLORS[1]},ctr:{key:'ctr',label:'CTR (%)',fmt:v=>v+'%',color:CHART_COLORS[2]},cvr:{key:'cvr',label:'CVR (%)',fmt:v=>v+'%',color:CHART_COLORS[3]}};
+    const m=mm[curMetric];
+    tChart=new Chart(ctx,{
+      type:'line',
+      data:{labels,datasets:[{label:m.label,data:sorted.map(r=>r[m.key]||0),borderColor:m.color,backgroundColor:m.color+'22',borderWidth:2.5,
+        pointRadius:sorted.map((_,i)=>i===fIdx?9:5),pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':m.color),
+        pointBorderColor:'#fff',pointBorderWidth:2,fill:true,tension:0.3}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>{const i=items[0].dataIndex;return sorted[i].week+(i===fIdx?' 🆕 NEW':'');},label:ctx=>` ${m.fmt(ctx.parsed.y)}`}}},
+        scales:{x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc,font:(_,i)=>({size:11,weight:i===fIdx?'bold':'normal'})},grid:{color:gc}},y:{ticks:{color:tc,callback:v=>m.fmt(v)},grid:{color:gc}}}}
+    });
+  }
 }
+
 loadWeeks();
 </script>
 </body>
