@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<!-- saved from url=(0045)file:///Users/antaejun/Downloads/index_2.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>메타 광고 소재 갤러리</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f4f0; --bg3: #efede8;
+  --text: #1a1a18; --text2: #5f5e5a; --text3: #9c9a92;
+  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.2);
+  --blue-bg: #e6f1fb; --blue: #185fa5; --blue-border: #85b7eb;
+  --green-bg: #e1f5ee; --green: #0f6e56; --green-border: #5dcaa5;
+  --pink: #d4537e;
+  --radius-md: 8px; --radius-lg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --bg2: #242422; --bg3: #2c2c2a;
+    --text: #e8e6de; --text2: #b4b2a9; --text3: #6e6d67;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+    --blue-bg: #0c2a4a; --blue: #85b7eb; --blue-border: #185fa5;
+    --green-bg: #04342c; --green: #5dcaa5; --green-border: #0f6e56;
+  }
+}
+body { background: var(--bg3); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+/* Header */
+.header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.header-title { font-size: 15px; font-weight: 500; }
+.header-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.week-badges { display: flex; gap: 6px; }
+.week-badge { font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 0.5px solid var(--border); background: var(--bg2); color: var(--text2); }
+.week-badge.cur { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); }
+
+/* Filter bar */
+.filter-bar { padding: 0.75rem 1.5rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--bg); border-bottom: 0.5px solid var(--border); }
+.filter-btn { padding: 5px 14px; font-size: 12px; font-weight: 500; border-radius: 20px; border: 0.5px solid var(--border2); background: var(--bg2); color: var(--text2); cursor: pointer; transition: background 0.15s; display: flex; align-items: center; gap: 4px; }
+.filter-btn:hover { background: var(--bg3); }
+.filter-btn.active { background: var(--blue-bg); border-color: var(--blue-border); color: var(--blue); }
+.mgr-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.sort-label { font-size: 12px; color: var(--text3); }
+.sort-select { font-size: 12px; border: 0.5px solid var(--border2); border-radius: 6px; padding: 4px 8px; background: var(--bg2); color: var(--text); cursor: pointer; }
+
+/* Stats bar */
+.stats-bar { padding: 0.75rem 1.5rem; display: flex; gap: 10px; flex-wrap: wrap; }
+.stat-chip { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 6px 12px; font-size: 12px; color: var(--text2); }
+.stat-chip strong { color: var(--text); font-weight: 500; }
+
+/* Gallery */
+.gallery-wrap { padding: 1rem 1.5rem 2rem; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
+.card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.thumb-wrap { position: relative; width: 100%; padding-top: 75%; background: var(--bg2); overflow: hidden; }
+.thumb-wrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+.thumb-fallback { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--text3); font-size: 11px; }
+.media-tag { position: absolute; top: 6px; left: 6px; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 6px; }
+.roas-tag { position: absolute; top: 6px; right: 6px; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 6px; }
+.card-body { padding: 8px 10px; }
+.card-name { font-size: 11px; color: var(--text2); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.metric { background: var(--bg2); border-radius: 4px; padding: 4px 6px; }
+.metric-label { font-size: 9px; color: var(--text3); margin-bottom: 1px; }
+.metric-val { font-size: 12px; font-weight: 500; color: var(--text); }
+.empty { text-align: center; padding: 3rem; color: var(--text3); font-size: 13px; grid-column: 1/-1; }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .header, .filter-bar, .stats-bar, .gallery-wrap { padding-left: 1rem; padding-right: 1rem; }
+  .gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .sort-wrap { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">메타 광고 소재 갤러리</div>
+    <div class="header-sub">구글 드라이브 연동 · 이번 주 6/1~6/7</div>
+  </div>
+  <div class="week-badges">
+    <span class="week-badge">이전 주 5/25~31</span>
+    <span class="week-badge cur">이번 주 6/1~7</span>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="setFilter(&#39;전체&#39;)" id="btn-전체">전체 <span id="cnt-전체">26</span></button>
+  <button class="filter-btn" onclick="setFilter(&#39;콜리&#39;)" id="btn-콜리"><span class="mgr-dot" style="background:#1D9E75"></span>콜리 <span id="cnt-콜리">15</span></button>
+  <button class="filter-btn" onclick="setFilter(&#39;세레나&#39;)" id="btn-세레나"><span class="mgr-dot" style="background:#D4537E"></span>세레나 <span id="cnt-세레나">11</span></button>
+  <div class="sort-wrap">
+    <span class="sort-label">정렬</span>
+    <select class="sort-select" onchange="setSort(this.value)">
+      <option value="spend">지출 높은순</option>
+      <option value="roas">ROAS 높은순</option>
+      <option value="ctr">CTR 높은순</option>
+      <option value="purchases">구매 높은순</option>
+    </select>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar">
+    <div class="stat-chip">소재 <strong>26개</strong></div>
+    <div class="stat-chip">총 지출 <strong>₩86만</strong></div>
+    <div class="stat-chip">총 구매 <strong>25건</strong></div>
+    <div class="stat-chip">평균 ROAS <strong>3327.51x</strong></div>
+  </div>
+<div class="gallery-wrap"><div class="gallery" id="gallery"><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1YJtD37P9mg0zi-dDAkFRmpfu0ilpO__5/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_상시02_콜리.jpg" alt="상시02_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:#e6f1fb;color:#0c447c">ROAS 7.53</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시02_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩51만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">14건</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">2.3%</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1oHY7NOxwAJPQD0IdTVnqrLDPyZMXFwpt/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_배너_플랩_상시01_콜리.png" alt="상시01_콜리(배너)" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e1f5ee;color:#085041">배너</span>
+        <span class="roas-tag" style="background:#eaf3de;color:#27500a">ROAS 19.41</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시01_콜리(배너)
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩1만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">4건</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">1.9%</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1konkZQb3dQKIdPxAx_4sXxn5KXGuW3tJ/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_핑크프로모션_추가투입06_콜리.jpg" alt="추가투입06_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:#e6f1fb;color:#0c447c">ROAS 6.74</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입06_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩14만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">3건</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">1.6%</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1YJtD37P9mg0zi-dDAkFRmpfu0ilpO__5/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_상시02_콜리.jpg" alt="상시02_콜리(DT)" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:#eaf3de;color:#27500a">ROAS 14.54</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시02_콜리(DT)
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩2만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">2건</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1TnaJTQkF9AQ3xmk_HEBKKgwfMynU37Wf/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_배너_핑크프로모션_추가투입01_콜리.png" alt="추가투입01_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e1f5ee;color:#085041">배너</span>
+        <span class="roas-tag" style="background:#eaf3de;color:#27500a">ROAS 8,644</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입01_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩34</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">1건</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1kDrYKnAYzr_5e7zR_uxOxx53Rn9_55D2/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_배너_핑크프로모션_추가투입02_콜리.png" alt="추가투입02_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e1f5ee;color:#085041">배너</span>
+        <span class="roas-tag" style="background:#eaf3de;color:#27500a">ROAS 11,273</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입02_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩165</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">1건</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1qpwPbBy-_iv07nuGtMvsULa13ImmOD4h/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_핑크프로모션_추가투입03_콜리.jpg" alt="추가투입03_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입03_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/17YycFRRC_Ii-Gv_b9H0aorFzCxAbJb3V/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_핑크프로모션_추가투입04_콜리.jpg" alt="추가투입04_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입04_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1GI17QoDngMgOKUvw6xM602MFVXyC-4gB/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_핑크프로모션_추가투입05_콜리.jpg" alt="추가투입05_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입05_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩2만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1HKqOyqiyF2Iwly7JgGFyhd703OrlKNpQ/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_콘조_배너_핑크프로모션_추가투입07_콜리.png" alt="추가투입07_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e1f5ee;color:#085041">배너</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입07_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩8</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1vXZfvXhw6PMT__WQ-yhW8adV-ie5kIGZ/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_콘조_배너_핑크프로모션_추가투입08_콜리.png" alt="추가투입08_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e1f5ee;color:#085041">배너</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          추가투입08_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩19</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1tFKTps9Ei7JHw3cgRK8jE0O4CXCCtLjA/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_배너_플랩_상시02_콜리.png" alt="상시03_콜리(배너)" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e1f5ee;color:#085041">배너</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시03_콜리(배너)
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩7,306</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/18rzTmbSikLIlm6pCvQm1J71iqX-eU33N/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_플랩_상시03_콜리.jpg" alt="상시03_콜리(영상)" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시03_콜리(영상)
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩3만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1CEQMHr9qQb-1TsxYHIPbBzqRPQi1DhzZ/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/DT_영상_오딧_전환_상시05_콜리.jpg" alt="상시05_콜리" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시05_콜리
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩3만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1fI2zpZPgIf9rgNjNcM7M7B9I1YpY8-m6/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_상시01_콜리.jpg" alt="상시01_콜리(영상)" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#1D9E75"></span>
+          상시01_콜리(영상)
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩4만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#1D9E75">콜리</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1cdoHq8IRoJDr2oMn3JAf9Zmy8Gi9GVZb/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_2차활용_zeonzyoung_바퀴01_세레나.jpg" alt="zeonzyoung_바퀴01_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          zeonzyoung_바퀴01_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩1,205</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/14yRlyIebQC2ruXHrJCP45qn_60ltLftX/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_2차활용_zeonzyoung_바퀴02_세레나.jpg" alt="zeonzyoung_바퀴02_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          zeonzyoung_바퀴02_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩2,696</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1gZnsMVfXIpuqsUJ8OISRm2RbT4bElkjg/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_2차활용_zeonzyoung_바퀴03_세레나.jpg" alt="zeonzyoung_바퀴03_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          zeonzyoung_바퀴03_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩1,586</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1jWw6aURbDq66FEkuN-Sf99fnloqwonib/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_2차활용_zeonzyoung_바퀴04_세레나.jpg" alt="zeonzyoung_바퀴04_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          zeonzyoung_바퀴04_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩9,814</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1BIdBMXgewkL3alhmOv4bKSXrhuAcrdlR/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_2차활용_zeonzyoung_바퀴05_세레나.jpg" alt="zeonzyoung_바퀴05_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          zeonzyoung_바퀴05_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩5,584</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1gUGYVoTpcVG0m5hXfCM-ClMONeGEvpE2/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_오딧_전환_2차활용_zeonzyoung_바퀴06_세레나.jpg" alt="zeonzyoung_바퀴06_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          zeonzyoung_바퀴06_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">₩1만</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/14hxM-LQkHr2jb8UyM0x1hzVGvza8Rwcl/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/DT_영상_플랩_전환_2차활용_rucygray_브레이크01_세레나.jpg" alt="rucygray_브레이크01_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          rucygray_브레이크01_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1bG49LYZNgM0f2J3prKLhN2TQ1M24-bU9/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/DT_영상_플랩_전환_2차활용_rucygray_브레이크02_세레나.jpg" alt="rucygray_브레이크02_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          rucygray_브레이크02_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1KbDddFHlh8TDOURfVG-bRyKH-2OYw1h1/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_플랩_전환_2차활용_rucygray_브레이크03_세레나.jpg" alt="rucygray_브레이크03_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          rucygray_브레이크03_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1jt0w0tyfla7pZ_akJJfhkia2hkRUg73B/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_플랩_전환_2차활용_rucygray_브레이크04_세레나.jpg" alt="rucygray_브레이크04_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          rucygray_브레이크04_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div><div class="card" onclick="window.open(&#39;https://drive.google.com/file/d/1T35_yzxYBUWbiAvKVZbzGIo17PYoGLWK/view&#39;,&#39;_blank&#39;)">
+      <div class="thumb-wrap">
+        <img src="./메타 광고 소재 갤러리_files/공식_영상_플랩_전환_2차활용_rucygray_브레이크05_세레나.jpg" alt="rucygray_브레이크05_세레나" loading="lazy" onerror="this.style.display=&#39;none&#39;;this.nextElementSibling.style.display=&#39;flex&#39;">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:#e6f1fb;color:#0c447c">영상</span>
+        <span class="roas-tag" style="background:rgba(0,0,0,0.06);color:#9c9a92">ROAS -</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:#D4537E"></span>
+          rucygray_브레이크05_세레나
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">-</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:#D4537E">세레나</div></div>
+        </div>
+      </div>
+    </div></div></div>
+
+<script>
+const CREATIVES = [
+  { key:'추가투입01_콜리', mgr:'콜리', media:'배너', spend:34, roas:8644.12, purchases:1, ctr:0, img:'1TnaJTQkF9AQ3xmk_HEBKKgwfMynU37Wf' },
+  { key:'추가투입02_콜리', mgr:'콜리', media:'배너', spend:165, roas:11272.73, purchases:1, ctr:0, img:'1kDrYKnAYzr_5e7zR_uxOxx53Rn9_55D2' },
+  { key:'추가투입03_콜리', mgr:'콜리', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'1qpwPbBy-_iv07nuGtMvsULa13ImmOD4h' },
+  { key:'추가투입04_콜리', mgr:'콜리', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'17YycFRRC_Ii-Gv_b9H0aorFzCxAbJb3V' },
+  { key:'추가투입05_콜리', mgr:'콜리', media:'영상', spend:24260, roas:0, purchases:0, ctr:0, img:'1GI17QoDngMgOKUvw6xM602MFVXyC-4gB' },
+  { key:'추가투입06_콜리', mgr:'콜리', media:'영상', spend:136136, roas:6.74, purchases:3, ctr:1.63, img:'1konkZQb3dQKIdPxAx_4sXxn5KXGuW3tJ' },
+  { key:'추가투입07_콜리', mgr:'콜리', media:'배너', spend:8, roas:0, purchases:0, ctr:0, img:'1HKqOyqiyF2Iwly7JgGFyhd703OrlKNpQ' },
+  { key:'추가투입08_콜리', mgr:'콜리', media:'배너', spend:19, roas:0, purchases:0, ctr:0, img:'1vXZfvXhw6PMT__WQ-yhW8adV-ie5kIGZ' },
+  { key:'상시01_콜리(배너)', mgr:'콜리', media:'배너', spend:14834, roas:19.41, purchases:4, ctr:1.89, img:'1oHY7NOxwAJPQD0IdTVnqrLDPyZMXFwpt' },
+  { key:'상시02_콜리', mgr:'콜리', media:'영상', spend:514777, roas:7.53, purchases:14, ctr:2.31, img:'1YJtD37P9mg0zi-dDAkFRmpfu0ilpO__5' },
+  { key:'상시02_콜리(DT)', mgr:'콜리', media:'영상', spend:24764, roas:14.54, purchases:2, ctr:0, img:'1YJtD37P9mg0zi-dDAkFRmpfu0ilpO__5' },
+  { key:'상시03_콜리(배너)', mgr:'콜리', media:'배너', spend:7306, roas:0, purchases:0, ctr:0, img:'1tFKTps9Ei7JHw3cgRK8jE0O4CXCCtLjA' },
+  { key:'상시03_콜리(영상)', mgr:'콜리', media:'영상', spend:33127, roas:0, purchases:0, ctr:0, img:'18rzTmbSikLIlm6pCvQm1J71iqX-eU33N' },
+  { key:'상시05_콜리', mgr:'콜리', media:'영상', spend:33862, roas:0, purchases:0, ctr:0, img:'1CEQMHr9qQb-1TsxYHIPbBzqRPQi1DhzZ' },
+  { key:'상시01_콜리(영상)', mgr:'콜리', media:'영상', spend:37949, roas:0, purchases:0, ctr:0, img:'1fI2zpZPgIf9rgNjNcM7M7B9I1YpY8-m6' },
+  { key:'zeonzyoung_바퀴01_세레나', mgr:'세레나', media:'영상', spend:1205, roas:0, purchases:0, ctr:0, img:'1cdoHq8IRoJDr2oMn3JAf9Zmy8Gi9GVZb' },
+  { key:'zeonzyoung_바퀴02_세레나', mgr:'세레나', media:'영상', spend:2696, roas:0, purchases:0, ctr:0, img:'14yRlyIebQC2ruXHrJCP45qn_60ltLftX' },
+  { key:'zeonzyoung_바퀴03_세레나', mgr:'세레나', media:'영상', spend:1586, roas:0, purchases:0, ctr:0, img:'1gZnsMVfXIpuqsUJ8OISRm2RbT4bElkjg' },
+  { key:'zeonzyoung_바퀴04_세레나', mgr:'세레나', media:'영상', spend:9814, roas:0, purchases:0, ctr:0, img:'1jWw6aURbDq66FEkuN-Sf99fnloqwonib' },
+  { key:'zeonzyoung_바퀴05_세레나', mgr:'세레나', media:'영상', spend:5584, roas:0, purchases:0, ctr:0, img:'1BIdBMXgewkL3alhmOv4bKSXrhuAcrdlR' },
+  { key:'zeonzyoung_바퀴06_세레나', mgr:'세레나', media:'영상', spend:12394, roas:0, purchases:0, ctr:0, img:'1gUGYVoTpcVG0m5hXfCM-ClMONeGEvpE2' },
+  { key:'rucygray_브레이크01_세레나', mgr:'세레나', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'14hxM-LQkHr2jb8UyM0x1hzVGvza8Rwcl' },
+  { key:'rucygray_브레이크02_세레나', mgr:'세레나', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'1bG49LYZNgM0f2J3prKLhN2TQ1M24-bU9' },
+  { key:'rucygray_브레이크03_세레나', mgr:'세레나', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'1KbDddFHlh8TDOURfVG-bRyKH-2OYw1h1' },
+  { key:'rucygray_브레이크04_세레나', mgr:'세레나', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'1jt0w0tyfla7pZ_akJJfhkia2hkRUg73B' },
+  { key:'rucygray_브레이크05_세레나', mgr:'세레나', media:'영상', spend:0, roas:0, purchases:0, ctr:0, img:'1T35_yzxYBUWbiAvKVZbzGIo17PYoGLWK' },
+];
+
+const mgrColor = { '콜리':'#1D9E75', '세레나':'#D4537E' };
+const mediaBg  = { '영상':'#e6f1fb', '배너':'#e1f5ee' };
+const mediaFg  = { '영상':'#0c447c', '배너':'#085041' };
+
+function roasStyle(r) {
+  if (r >= 10) return 'background:#eaf3de;color:#27500a';
+  if (r >= 5)  return 'background:#e6f1fb;color:#0c447c';
+  if (r >= 2)  return 'background:#faeeda;color:#633806';
+  if (r > 0)   return 'background:#fcebeb;color:#791f1f';
+  return 'background:rgba(0,0,0,0.06);color:#9c9a92';
+}
+
+let currentFilter = '전체';
+let currentSort = 'spend';
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + f).classList.add('active');
+  render();
+}
+function setSort(s) { currentSort = s; render(); }
+
+function fmt(n) {
+  if (n >= 10000) return '₩' + Math.round(n/10000) + '만';
+  if (n > 0) return '₩' + n.toLocaleString();
+  return '-';
+}
+
+function render() {
+  const mgrs = ['전체','콜리','세레나'];
+  mgrs.forEach(m => {
+    const cnt = m === '전체' ? CREATIVES.length : CREATIVES.filter(c => c.mgr === m).length;
+    document.getElementById('cnt-' + m).textContent = cnt;
+  });
+
+  let data = currentFilter === '전체' ? CREATIVES : CREATIVES.filter(c => c.mgr === currentFilter);
+  data = [...data].sort((a, b) => {
+    if (currentSort === 'roas') return b.roas - a.roas;
+    if (currentSort === 'ctr') return b.ctr - a.ctr;
+    if (currentSort === 'purchases') return b.purchases - a.purchases;
+    return b.spend - a.spend;
+  });
+
+  const totalSpend = data.reduce((s, c) => s + c.spend, 0);
+  const totalPurchases = data.reduce((s, c) => s + c.purchases, 0);
+  const avgRoas = data.filter(c => c.roas > 0).reduce((s,c,_,a) => s + c.roas/a.length, 0);
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-chip">소재 <strong>${data.length}개</strong></div>
+    <div class="stat-chip">총 지출 <strong>${fmt(totalSpend)}</strong></div>
+    <div class="stat-chip">총 구매 <strong>${totalPurchases}건</strong></div>
+    <div class="stat-chip">평균 ROAS <strong>${avgRoas > 0 ? avgRoas.toFixed(2) + 'x' : '-'}</strong></div>
+  `;
+
+  const gallery = document.getElementById('gallery');
+  if (!data.length) {
+    gallery.innerHTML = '<div class="empty">해당 소재가 없어요</div>';
+    return;
+  }
+
+  gallery.innerHTML = data.map(c => {
+    const imgUrl = `https://drive.google.com/thumbnail?id=${c.img}&sz=w400`;
+    const driveUrl = `https://drive.google.com/file/d/${c.img}/view`;
+    const roasDisp = c.roas > 100 ? Math.round(c.roas).toLocaleString() : c.roas > 0 ? c.roas.toFixed(2) : '-';
+    return `<div class="card" onclick="window.open('${driveUrl}','_blank')">
+      <div class="thumb-wrap">
+        <img src="${imgUrl}" alt="${c.key}" loading="lazy"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="thumb-fallback">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          미리보기 없음
+        </div>
+        <span class="media-tag" style="background:${mediaBg[c.media]};color:${mediaFg[c.media]}">${c.media}</span>
+        <span class="roas-tag" style="${roasStyle(c.roas)}">ROAS ${roasDisp}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-name">
+          <span class="mgr-dot" style="background:${mgrColor[c.mgr]}"></span>
+          ${c.key}
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">지출</div><div class="metric-val">${fmt(c.spend)}</div></div>
+          <div class="metric"><div class="metric-label">구매</div><div class="metric-val">${c.purchases > 0 ? c.purchases + '건' : '-'}</div></div>
+          <div class="metric"><div class="metric-label">CTR</div><div class="metric-val">${c.ctr > 0 ? c.ctr.toFixed(1) + '%' : '-'}</div></div>
+          <div class="metric"><div class="metric-label">담당자</div><div class="metric-val" style="color:${mgrColor[c.mgr]}">${c.mgr}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+render();
+</script>
+
+
+</body></html>
