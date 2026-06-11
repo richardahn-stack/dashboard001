@@ -300,7 +300,7 @@ const SORT_METRIC={
   revenue:{primary:c=>fmtS(c.revenue),primaryLabel:'전환매출',secondary:c=>fmtR(c.roas_pct),secondaryLabel:'ROAS',primaryClass:c=>rvC(c.roas_pct)},
   roas:{primary:c=>fmtR(c.roas_pct),primaryLabel:'ROAS',secondary:c=>fmtS(c.revenue),secondaryLabel:'전환매출',primaryClass:c=>rvC(c.roas_pct)},
   ctr:{primary:c=>`${c.ctr}%`,primaryLabel:'CTR',secondary:c=>`₩${Math.round(c.cpc||0).toLocaleString()}`,secondaryLabel:'CPC',primaryClass:()=>'rv-good'},
-  cvr:{primary:c=>`${c.cvr}%`,primaryLabel:'CVR',secondary:c=>`${c.purchases}건`,secondaryLabel:'구매',primaryClass:()=>'rv-good'},
+  cpc:{primary:c=>`₩${Math.round(c.cpc||0).toLocaleString()}`,primaryLabel:'CPC',secondary:c=>`${c.ctr}%`,secondaryLabel:'CTR',primaryClass:()=>'rv-good'},
 };
 
 function buildWinCard(c,thr,sort='revenue'){
@@ -316,7 +316,7 @@ function buildWinCard(c,thr,sort='revenue'){
   if(sort==='revenue'&&c.prev_revenue!=null)prevVal=`전주 ${fmtS(c.prev_revenue)}`;
   else if(sort==='roas'&&c.old_roas_pct!=null)prevVal=`전주 ${fmtR(c.old_roas_pct)}`;
   else if(sort==='ctr'&&c.prev_ctr!=null)prevVal=`전주 ${c.prev_ctr}%`;
-  else if(sort==='cvr'&&c.prev_cvr!=null)prevVal=`전주 ${c.prev_cvr}%`;
+  else if(sort==='cpc'&&c.prev_cpc!=null)prevVal=`전주 ₩${Math.round(c.prev_cpc).toLocaleString()}`;
   return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')">
     <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div>
       <div class="wthumb-tl"><span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
@@ -337,7 +337,7 @@ function buildWinCard(c,thr,sort='revenue'){
   </div>`;
 }
 
-function sfn(s){if(s==='revenue')return(a,b)=>b.revenue-a.revenue;if(s==='roas')return(a,b)=>b.roas_pct-a.roas_pct;if(s==='ctr')return(a,b)=>b.ctr-a.ctr;if(s==='cvr')return(a,b)=>b.cvr-a.cvr;return(a,b)=>b.revenue-a.revenue;}
+function sfn(s){if(s==='revenue')return(a,b)=>b.revenue-a.revenue;if(s==='roas')return(a,b)=>b.roas_pct-a.roas_pct;if(s==='ctr')return(a,b)=>b.ctr-a.ctr;if(s==='cpc')return(a,b)=>(a.cpc||9999)-(b.cpc||9999);return(a,b)=>b.revenue-a.revenue;}
 function getWinData(d,purpose,sort){
   const all=d.winning||[];
   if(purpose==='전체'){
@@ -389,7 +389,7 @@ function renderAll(d){
         <button class="fbtn on" onclick="setF('sort','revenue',this)">전환매출순</button>
         <button class="fbtn" onclick="setF('sort','roas',this)"><span class="tip" style="cursor:default">ROAS순${tipHtml('roas')}</span></button>
         <button class="fbtn" onclick="setF('sort','ctr',this)"><span class="tip" style="cursor:default">CTR순${tipHtml('ctr')}</span></button>
-        <button class="fbtn" onclick="setF('sort','cvr',this)"><span class="tip" style="cursor:default">CVR순${tipHtml('cvr')}</span></button>
+        <button class="fbtn" onclick="setF('sort','cpc',this)"><span class="tip" style="cursor:default">CPC순${tipHtml('cpc')}</span></button>
       </div>
     </div>
     <div class="win-grid" id="winGrid">${initData.map(c=>buildWinCard(c,thr,'revenue')).join('')||'<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>'}</div>
