@@ -399,27 +399,27 @@ function renderAll(d){
   const trends=d.trends||{};
   const trendH=`<div class="sec" id="trendSec">
     <div class="sec-hdr"><i class="ti ti-trending-up" style="font-size:15px;color:#3B6D11"></i><span class="sec-title">주간 트렌드</span><span class="sec-sub">전주(${d.prev_label}) 대비 · 필터별 상위 8개</span></div>
-    <div class="tcols">
-      <div class="tcol">
-        <div class="tcol-hdr" style="color:#27500A">
-          <span style="display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-up-right" style="font-size:14px"></i>상승 소재</span>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:500;color:#27500A;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-up-right" style="font-size:13px"></i>상승 소재</span>
           <div style="display:flex;gap:4px;margin-left:auto">
             <button class="fbtn on" id="up-spend_up" onclick="setTrend('up','spend_up',this)" style="padding:2px 8px;font-size:10px">광고비↑</button>
             <button class="fbtn" id="up-rev_up" onclick="setTrend('up','rev_up',this)" style="padding:2px 8px;font-size:10px">매출↑</button>
             <button class="fbtn" id="up-cpc_eff_up" onclick="setTrend('up','cpc_eff_up',this)" style="padding:2px 8px;font-size:10px">CPC효율↑</button>
           </div>
         </div>
-        <div id="trendUpList"></div>
+        <div class="win-grid" id="trendUpList"></div>
       </div>
-      <div class="tcol">
-        <div class="tcol-hdr" style="color:#A32D2D">
-          <span style="display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-down-right" style="font-size:14px"></i>하락 소재</span>
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:500;color:#A32D2D;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-down-right" style="font-size:13px"></i>하락 소재</span>
           <div style="display:flex;gap:4px;margin-left:auto">
             <button class="fbtn on" id="dn-conv_dn" onclick="setTrend('dn','conv_dn',this)" style="padding:2px 8px;font-size:10px">전환효율↓</button>
             <button class="fbtn" id="dn-cpc_eff_dn" onclick="setTrend('dn','cpc_eff_dn',this)" style="padding:2px 8px;font-size:10px">CPC효율↓</button>
           </div>
         </div>
-        <div id="trendDnList"></div>
+        <div class="win-grid" id="trendDnList"></div>
       </div>
     </div>
   </div>`;
@@ -519,18 +519,44 @@ function toggleDtl(){
 // 트렌드
 function mkTrow2(r,type){
   const isUp=type.endsWith('up');
-  let badge='',sub='';
-  if(type==='spend_up'){badge=`<span class="tag td-up">+${fmtS(r._v||0)}</span>`;sub=`광고비 ${fmtS(r.prev_spend||0)}→${fmtS(r.spend)}`;}
-  else if(type==='rev_up'){badge=`<span class="tag td-up">+${fmtS(r._v||0)} (+${(r._p||0).toFixed(0)}%)</span>`;sub=`매출 ${fmtS(r.prev_revenue||0)}→${fmtS(r.revenue)}`;}
-  else if(type==='cpc_eff_up'){badge=`<span class="tag td-up">CPC -${(r._drop||0).toFixed(0)}%</span>`;sub=`CPC ₩${Math.round(r.prev_cpc||0).toLocaleString()}→₩${Math.round(r.cpc||0).toLocaleString()}`;}
-  else if(type==='conv_dn'){badge=`<span class="tag td-dn">ROAS -${(r._roas_drop||0).toFixed(0)}% CVR -${(r._cvr_drop||0).toFixed(0)}%</span>`;sub='전환효율 동반 하락';}
-  else if(type==='cpc_eff_dn'){badge=`<span class="tag td-dn">CPC +${(r._rise||0).toFixed(0)}%</span>`;sub=`CPC ₩${Math.round(r.prev_cpc||0).toLocaleString()}→₩${Math.round(r.cpc||0).toLocaleString()}`;}
-  return`<div class="trow" onclick="openModal('${r.key}')">
-    <div class="trow-th">${tThumb(r.img,'trow-te','trow-ov')}</div>
-    <div class="trow-body">
-      <div class="trow-l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="trow-name">${r.base_key||r.key}</span>${badge}${r.age_days!=null?`<span class="tag ${ageCls(r.age_days)}">D+${r.age_days}</span>`:''}</div>
-      <div class="trow-l2"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${fmtR(r.roas_pct)}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
-      <div class="trow-l3">${labelBadges(r)}<span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(r.spend)}</span><span style="font-size:10px;color:var(--text3)">${sub}</span></div>
+  // 핵심 지표 (필터별)
+  let primVal='',primLabel='',secVal='',badge='',badgeCls='';
+  if(type==='spend_up'){
+    primVal=`+${fmtS(r._v||0)}`;primLabel='광고비 증가';
+    secVal=`${((r._p||0).toFixed(0))}% 증가`;
+    badge=`+${fmtS(r._v||0)}`;badgeCls='td-up';
+  } else if(type==='rev_up'){
+    primVal=`+${fmtS(r._v||0)}`;primLabel='매출 증가';
+    secVal=`${((r._p||0).toFixed(0))}% 증가`;
+    badge=`+${fmtS(r._v||0)}`;badgeCls='td-up';
+  } else if(type==='cpc_eff_up'){
+    primVal=`-${(r._drop||0).toFixed(0)}%`;primLabel='CPC 하락률';
+    secVal=`₩${Math.round(r.cpc||0).toLocaleString()}`;
+    badge=`CPC -${(r._drop||0).toFixed(0)}%`;badgeCls='td-up';
+  } else if(type==='conv_dn'){
+    primVal=`-${(r._roas_drop||0).toFixed(0)}%`;primLabel='ROAS 하락';
+    secVal=`CVR -${(r._cvr_drop||0).toFixed(0)}%`;
+    badge=`ROAS-${(r._roas_drop||0).toFixed(0)}%`;badgeCls='td-dn';
+  } else if(type==='cpc_eff_dn'){
+    primVal=`+${(r._rise||0).toFixed(0)}%`;primLabel='CPC 상승률';
+    secVal=`₩${Math.round(r.cpc||0).toLocaleString()}`;
+    badge=`CPC +${(r._rise||0).toFixed(0)}%`;badgeCls='td-dn';
+  }
+  const iu=r.img?`https://drive.google.com/thumbnail?id=${r.img}&sz=w400`:null;
+  return`<div class="wcard" onclick="openModal('${r.key}')" style="border-color:${isUp?'rgba(39,80,10,0.2)':'rgba(163,45,45,0.2)'}">
+    <div class="wthumb">
+      ${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${r.base_key||r.key}</div></div>
+      <div class="wthumb-tl"><span class="tag ${ageCls(r.age_days)}" style="font-size:9px">${r.age_days!=null?'D+'+r.age_days:'-'}</span><span class="tag ${badgeCls}" style="font-size:9px">${badge}</span></div>
+      <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
+    </div>
+    <div class="wbody">
+      <div class="wname"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span>${r.base_key||r.key}</div>
+      <div class="wlabels">${labelBadges(r)}</div>
+      <div class="wroas">
+        <span class="${isUp?'rv-good':'rv-bad'}" style="font-size:16px;font-weight:600">${primVal}</span>
+        <span style="font-size:10px;color:var(--text3)">${secVal}</span>
+      </div>
+      <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(r.spend)}</span><span class="mc mc-ctr">ROAS ${fmtR(r.roas_pct)}</span></div>
     </div>
   </div>`;
 }
@@ -595,8 +621,18 @@ function openModal(key){
   const isNew=fId===curWeekId;
   document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key}${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
-  if(cur.img)iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w800" style="width:100%;height:auto;object-fit:contain" onerror="this.parentElement.innerHTML='<div class=mimg-empty><i class=ti style=font-size:32px>&#xe3fc;</i><span>이미지 없음</span></div>'">`;
-  else iw.innerHTML=`<div class="mimg-empty"><i class="ti ti-photo" style="font-size:32px"></i><div style="font-size:11px;word-break:break-all;text-align:center">${cur.base_key||cur.key}</div><div style="margin-top:4px;font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;
+  if(cur.ad_id){
+    // Meta 광고 iframe 미리보기
+    const metaUrl=`https://www.facebook.com/ads/archive/render_ad/?id=${cur.ad_id}`;
+    iw.innerHTML=`<div style="width:100%;position:relative">
+      <iframe src="${metaUrl}" style="width:100%;min-height:400px;border:none;border-radius:var(--r)" scrolling="no" allowfullscreen></iframe>
+      <a href="${metaUrl}" target="_blank" style="display:block;text-align:center;font-size:11px;color:var(--text3);margin-top:6px;text-decoration:none">↗ Meta에서 열기</a>
+    </div>`;
+  } else if(cur.img){
+    iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w800" style="width:100%;height:auto;object-fit:contain" onerror="this.parentElement.innerHTML='<div class=mimg-empty><i class=ti style=font-size:32px>&#xe3fc;</i><span>이미지 없음</span></div>'">`;
+  } else {
+    iw.innerHTML=`<div class="mimg-empty"><i class="ti ti-photo" style="font-size:32px"></i><div style="font-size:11px;word-break:break-all;text-align:center">${cur.base_key||cur.key}</div><div style="margin-top:4px;font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;
+  }
   document.getElementById('mtags').innerHTML=labelBadges(cur)+`${cur.age_days!=null?`<span class="tag ${ageCls(cur.age_days)}">D+${cur.age_days}</span>`:''}<span style="font-size:11px;font-weight:500;color:${MC[cur.mgr]}">${cur.mgr}</span>`;
   const thr=cache[curWeekId]?.summary?.winning_thresholds||{};
   document.getElementById('mkpis').innerHTML=`
