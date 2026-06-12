@@ -288,7 +288,10 @@ function prevDeltaHtml(cur,prev,fmt){
 }
 function tThumb(img,ec,ov,name=''){
   const ovH=ov?`<div class="${ov}"><i class="ti ti-zoom-in" style="color:#fff;font-size:16px"></i></div>`:'';
-  if(img)return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
+  if(img){
+    const isVidThumb=(c&&c.img_type==='video');
+    return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${isVidThumb?`<div style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border-radius:4px;padding:1px 5px;font-size:9px;color:#fff;display:flex;align-items:center;gap:2px"><i class="ti ti-player-play" style="font-size:9px"></i>영상</div>`:''}${ovH}`;
+  }
   if(name)return`<div class="${ec}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 업로드 필요</div></div>${ovH}`;
   return`<div class="${ec}"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
 }
@@ -312,7 +315,7 @@ function renderTabs(){
   document.getElementById('weekTabs').innerHTML=weeks.map(w=>`<button class="wtab${w.id===curWeekId?' on':''}" onclick="switchWeek('${w.id}')">${w.label}</button>`).join('');
 }
 async function switchWeek(id){
-  curWeekId=id;curFilter={purpose:'전체',sort:'revenue'};detailOpen=false;curTrendFilter={up:'spend_up',dn:'conv_dn'};
+  curWeekId=id; curRefDate=d.ref_date||null;curFilter={purpose:'전체',sort:'revenue'};detailOpen=false;curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTabs();
   if(cache[id]){renderAll(cache[id]);return;}
   document.getElementById('mainContent').innerHTML='<div class="loading">데이터 불러오는 중...</div>';
@@ -349,7 +352,7 @@ function buildWinCard(c,thr,sort='revenue'){
       <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
     </div>
     <div class="wbody">
-      <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div>
+      <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${(()=>{const n=fmtCreativeName(c,curRefDate);return n.name+(n.date?` <span style="font-size:9px;color:var(--text3);font-weight:400">${n.date}</span>`:'')})()} </div>
       <div class="wlabels">${labelBadges(c)}</div>
       <div class="wroas"><span class="${primCls}" style="font-size:16px;font-weight:600">${primVal}</span><span style="font-size:10px;color:var(--text3)">${sm.secondaryLabel} ${secVal}</span></div>
       ${prevVal?`<div style="font-size:10px;color:var(--text3)">${prevVal}</div>`:''}
@@ -503,7 +506,7 @@ function renderAll(d){
     const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'–';
     const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
     return`<tr style="cursor:pointer" onclick="openModal('${r.key}')">
-      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${r.base_key||r.key}</span></td>
+      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${(()=>{const n=fmtCreativeName(r,curRefDate);return n.name+(n.date?` <span style="color:var(--text3)">${n.date}</span>`:'')})()} </span></td>
       <td><span class="tag ${PC[r.objective||r.purpose]||'tp-기타'}" style="font-size:9px">${r.objective||r.purpose}</span></td>
       <td>${r.pa_type&&r.pa_type!=='-'?`<span class="tag pa-${r.pa_type}" style="font-size:9px">${r.pa_type}</span>`:''}</td>
       <td>${r.landing&&r.landing!=='기타'?`<span class="tag tl-${r.landing}" style="font-size:9px">${r.landing}</span>`:''}</td>
@@ -520,11 +523,24 @@ function renderAll(d){
     </tr>`;
   }).join('');
   const tblH=`<div class="sec">
-    <div class="sec-hdr"><div class="sec-icon" style="background:var(--bg3)"><i class="ti ti-table" style="font-size:15px;color:var(--text2)"></i></div><div><span class="sec-title">전체 소재 상세</span><div class="sec-sub">지출 기준 정렬</div></div></div>
+    <div class="sec-hdr"><div class="sec-icon" style="background:var(--bg3)"><i class="ti ti-table" style="font-size:15px;color:var(--text2)"></i></div><div><span class="sec-title">전체 소재 상세</span><div class="sec-sub">헤더 클릭으로 정렬</div></div></div>
     <button class="dtl-btn" id="dBtn" onclick="toggleDtl()"><i class="ti ti-chevron-down" id="dIco"></i>펼쳐서 전체 보기</button>
     <div id="dWrap" style="display:none"><div class="tbl-wrap"><table><thead><tr>
-      <th style="min-width:110px">소재명</th><th>목적</th><th>PA</th><th>랜딩</th><th>유형</th><th>나이</th><th>광고비</th><th>ROAS</th><th>전주</th><th>변화</th><th>구매</th><th>CTR</th><th>CVR</th><th>점수</th>
-    </tr></thead><tbody>${tbH}</tbody></table></div></div>
+      <th class="th-sort" style="min-width:110px" onclick="sortTbl('name',this)">소재명<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('objective',this)">목적<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('pa_type',this)">PA<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('landing',this)">랜딩<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('media',this)">유형<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('age_days',this)">나이<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('spend',this)">광고비<span class="sort-ico desc"></span></th>
+      <th class="th-sort" onclick="sortTbl('roas_pct',this)">ROAS<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('old_roas_pct',this)">전주<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('roas_delta',this)">변화<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('purchases',this)">구매<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('ctr',this)">CTR<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('cvr',this)">CVR<span class="sort-ico"></span></th>
+      <th class="th-sort" onclick="sortTbl('win_score',this)">점수<span class="sort-ico"></span></th>
+    </tr></thead><tbody id="tblBody">${tbH}</tbody></table></div></div>
   </div>`;
 
   document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
@@ -544,6 +560,75 @@ function setF(type,val,btn){
   document.getElementById('winGrid').innerHTML=getWinData(d,curFilter.purpose,curFilter.sort).map(c=>buildWinCard(c,thr,es)).join('')||'<div style="color:var(--text3);font-size:12px;padding:.5rem">해당 소재 없음</div>';
 }
 
+
+// 테이블 정렬
+let tblSortCol = 'spend';
+let tblSortDir = 'desc';
+
+function sortTbl(col, thEl){
+  const d = cache[curWeekId]; if(!d) return;
+  if(tblSortCol === col){
+    tblSortDir = tblSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    tblSortCol = col;
+    // 숫자형 기본 desc, 문자형 기본 asc
+    const numCols = ['spend','roas_pct','old_roas_pct','roas_delta','purchases','ctr','cvr','win_score','age_days'];
+    tblSortDir = numCols.includes(col) ? 'desc' : 'asc';
+  }
+  // 헤더 클래스 업데이트
+  document.querySelectorAll('.th-sort').forEach(th=>{
+    th.classList.remove('asc','desc');
+  });
+  thEl.classList.add(tblSortDir);
+
+  const rows = [...(d.all_ads||[])];
+  const numCols2 = ['spend','roas_pct','old_roas_pct','roas_delta','purchases','ctr','cvr','win_score','age_days'];
+  
+  rows.sort((a,b)=>{
+    let av, bv;
+    if(col === 'name'){
+      av = fmtCreativeName(a,curRefDate).name.toLowerCase();
+      bv = fmtCreativeName(b,curRefDate).name.toLowerCase();
+    } else {
+      av = a[col]; bv = b[col];
+    }
+    // null/undefined 처리 → 항상 뒤로
+    if(av == null && bv == null) return 0;
+    if(av == null) return 1;
+    if(bv == null) return -1;
+    
+    let cmp;
+    if(numCols2.includes(col)){
+      cmp = av - bv;
+    } else {
+      cmp = String(av).localeCompare(String(bv), 'ko');
+    }
+    return tblSortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const tbody = document.getElementById('tblBody');
+  if(!tbody) return;
+  tbody.innerHTML = rows.map(r=>{
+    const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'–';
+    const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
+    return`<tr style="cursor:pointer" onclick="openModal('${r.key}')">
+      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${(()=>{const n=fmtCreativeName(r,curRefDate);return n.name+(n.date?` <span style="color:var(--text3)">${n.date}</span>`:'')})()} </span></td>
+      <td><span class="tag ${PC[r.objective||r.purpose]||'tp-기타'}" style="font-size:9px">${r.objective||r.purpose}</span></td>
+      <td>${r.pa_type&&r.pa_type!=='-'?`<span class="tag pa-${r.pa_type}" style="font-size:9px">${r.pa_type}</span>`:''}</td>
+      <td>${r.landing&&r.landing!=='기타'?`<span class="tag tl-${r.landing}" style="font-size:9px">${r.landing}</span>`:''}</td>
+      <td><span class="tag tm-${r.media}" style="font-size:9px">${r.media}</span></td>
+      <td>${r.age_days!=null?`<span class="tag ${ageCls(r.age_days)}" style="font-size:9px">D+${r.age_days}</span>`:'-'}</td>
+      <td>${fmtS(r.spend)}</td>
+      <td><span class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</span></td>
+      <td style="color:var(--text3)">${r.old_roas_pct?fmtR(r.old_roas_pct):'-'}</td>
+      <td>${dT}</td>
+      <td>${r.purchases>0?r.purchases+'건':'-'}</td>
+      <td><span class="tip" style="cursor:default">${r.ctr>0?r.ctr+'%':'-'}${tipHtml('ctr')}</span></td>
+      <td><span class="tip" style="cursor:default">${r.cvr>0?r.cvr+'%':'-'}${tipHtml('cvr')}</span></td>
+      <td>${ws}</td>
+    </tr>`;
+  }).join('');
+}
 function toggleDtl(){
   detailOpen=!detailOpen;
   document.getElementById('dWrap').style.display=detailOpen?'block':'none';
@@ -695,10 +780,12 @@ function openModal(key){
   const allS=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
   const fId=(()=>{for(const w of allS){if(cache[w.id]?.all_ads?.find(r=>r.key===key))return w.id;}return curWeekId;})();
   const isNew=fId===curWeekId;
-  document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key}${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
+  document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${(()=>{const n=fmtCreativeName(cur,curRefDate);return n.name+(n.date?` <span style="font-size:11px;color:var(--text3);font-weight:400">${n.date}</span>`:'')})()} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
-  if(cur.video){
-    const vidUrl=`https://drive.google.com/file/d/${cur.video}/preview`;
+  // video 필드 있으면 영상 재생, 없고 img_type이 video면 img ID로 영상 재생
+  const vidId = cur.video || (cur.img_type==='video' ? cur.img : null);
+  if(vidId){
+    const vidUrl=`https://drive.google.com/file/d/${vidId}/preview`;
     iw.innerHTML=`<div style="position:relative;width:100%;padding-top:100%;border-radius:var(--r);overflow:hidden;background:#000"><iframe src="${vidUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>`;
   } else if(cur.img){
     iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w1200" style="width:100%;height:auto;max-height:480px;object-fit:contain;border-radius:var(--r);background:var(--bg2);display:block" onerror="this.parentElement.innerHTML='<div style=\\'height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r);color:var(--text3)\\'><span>이미지 없음</span></div>'">`;
