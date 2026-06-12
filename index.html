@@ -173,6 +173,30 @@ tr:hover td{background:var(--bg2)}
 .mtitle{font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .mclose{background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;padding:2px;display:flex;align-items:center;border-radius:6px}
 .mclose:hover{background:var(--bg2);color:var(--text)}
+.board{margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1rem}
+.board-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.board-form{background:var(--bg2);border-radius:var(--r);padding:10px;margin-bottom:12px}
+.board-row{display:flex;gap:6px;margin-bottom:6px}
+.board-nick{width:90px;flex-shrink:0;padding:6px 8px;border:.5px solid var(--border);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);outline:none}
+.board-nick:focus{border-color:var(--text3)}
+.board-text{flex:1;padding:6px 8px;border:.5px solid var(--border);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);outline:none;resize:none;font-family:inherit;min-height:56px}
+.board-text:focus{border-color:var(--text3)}
+.board-submit{padding:0 14px;background:var(--text);color:var(--bg);border:none;border-radius:var(--r);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;height:32px;align-self:flex-end;flex-shrink:0}
+.board-submit:hover{opacity:0.85}
+.board-list{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding-right:2px}
+.board-list::-webkit-scrollbar{width:4px}
+.board-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.bpost{background:var(--bg2);border-radius:var(--r);padding:10px 12px}
+.bpost.reply{margin-left:20px;background:var(--bg3,var(--bg));border-left:2px solid var(--border)}
+.bpost-hdr{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.bpost-nick{font-size:12px;font-weight:600;color:var(--text)}
+.bpost-time{font-size:10px;color:var(--text3)}
+.bpost-body{font-size:12px;color:var(--text2);line-height:1.5;word-break:break-all;white-space:pre-wrap}
+.bpost-actions{margin-top:6px;display:flex;gap:8px}
+.bpost-reply-btn{font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0}
+.bpost-reply-btn:hover{color:var(--text)}
+.breply-form{margin-top:8px;display:flex;gap:5px}
+.board-empty{text-align:center;padding:1.5rem;font-size:12px;color:var(--text3)}
 .mbody{padding:1.25rem}
 .mtop{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
 .mimg{border-radius:var(--r);overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center;min-height:180px}
@@ -242,6 +266,21 @@ tr:hover td{background:var(--bg2)}
         </div>
         <div class="cwrap" id="cwrap"><canvas id="trendChart"></canvas></div>
         <div id="rtblWrap" style="display:none;margin-top:8px"></div>
+      </div>
+
+      <!-- 익명 게시판 -->
+      <div class="board">
+        <div class="board-title"><i class="ti ti-message-2" style="font-size:13px;color:var(--text3)"></i>소재 메모</div>
+        <div class="board-form">
+          <div class="board-row">
+            <input class="board-nick" id="bNick" placeholder="닉네임" maxlength="12">
+            <textarea class="board-text" id="bText" placeholder="이 소재에 대한 메모를 남겨보세요..." rows="2"></textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="board-submit" onclick="submitPost()">등록</button>
+          </div>
+        </div>
+        <div class="board-list" id="boardList"></div>
       </div>
     </div>
   </div>
@@ -820,6 +859,109 @@ function openModal(key){
   document.body.style.overflow='hidden';
 }
 
+
+// ─── 소재 메모 게시판 ───
+let boardKey = null;
+
+function timeAgo(ts){
+  const d = Date.now() - ts;
+  if(d < 60000) return '방금';
+  if(d < 3600000) return Math.floor(d/60000)+'분 전';
+  if(d < 86400000) return Math.floor(d/3600000)+'시간 전';
+  return Math.floor(d/86400000)+'일 전';
+}
+
+async function loadBoard(key){
+  boardKey = 'board:' + key;
+  renderBoard([]);
+  try {
+    const res = await window.storage.get(boardKey, true);
+    const posts = res ? JSON.parse(res.value) : [];
+    renderBoard(posts);
+  } catch(e){ renderBoard([]); }
+}
+
+function renderBoard(posts){
+  const el = document.getElementById('boardList');
+  if(!el) return;
+  if(!posts || posts.length === 0){
+    el.innerHTML = '<div class="board-empty">첫 번째 메모를 남겨보세요</div>';
+    return;
+  }
+  el.innerHTML = posts.map((p,i) => renderPost(p, i, false, posts)).join('');
+}
+
+function renderPost(p, idx, isReply, allPosts){
+  const replies = p.replies || [];
+  const replyHtml = replies.map((r,ri) => `
+    <div class="bpost reply">
+      <div class="bpost-hdr">
+        <span class="bpost-nick">${escHtml(r.nick)}</span>
+        <span class="bpost-time">${timeAgo(r.ts)}</span>
+      </div>
+      <div class="bpost-body">${escHtml(r.body)}</div>
+    </div>`).join('');
+  return `
+    <div class="bpost">
+      <div class="bpost-hdr">
+        <span class="bpost-nick">${escHtml(p.nick)}</span>
+        <span class="bpost-time">${timeAgo(p.ts)}</span>
+      </div>
+      <div class="bpost-body">${escHtml(p.body)}</div>
+      <div class="bpost-actions">
+        <button class="bpost-reply-btn" onclick="toggleReplyForm(${idx})"><i class="ti ti-corner-down-right" style="font-size:10px"></i> 답글</button>
+      </div>
+      <div id="replyForm_${idx}" style="display:none">
+        <div class="breply-form">
+          <input class="board-nick" id="rNick_${idx}" placeholder="닉네임" maxlength="12" style="width:80px">
+          <textarea class="board-text" id="rText_${idx}" placeholder="답글..." rows="1" style="min-height:32px"></textarea>
+          <button class="board-submit" onclick="submitReply(${idx})" style="height:auto;padding:6px 12px">등록</button>
+        </div>
+      </div>
+      ${replyHtml}
+    </div>`;
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleReplyForm(idx){
+  const el = document.getElementById('replyForm_'+idx);
+  if(el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+async function submitPost(){
+  const nick = (document.getElementById('bNick')?.value||'').trim() || '익명';
+  const body = (document.getElementById('bText')?.value||'').trim();
+  if(!body) return;
+  try {
+    const res = await window.storage.get(boardKey, true);
+    const posts = res ? JSON.parse(res.value) : [];
+    posts.unshift({nick, body, ts: Date.now(), replies:[]});
+    await window.storage.set(boardKey, JSON.stringify(posts), true);
+    document.getElementById('bText').value = '';
+    renderBoard(posts);
+    // 목록 맨 위로 스크롤
+    const list = document.getElementById('boardList');
+    if(list) list.scrollTop = 0;
+  } catch(e){ console.error(e); }
+}
+
+async function submitReply(idx){
+  const nick = (document.getElementById('rNick_'+idx)?.value||'').trim() || '익명';
+  const body = (document.getElementById('rText_'+idx)?.value||'').trim();
+  if(!body) return;
+  try {
+    const res = await window.storage.get(boardKey, true);
+    const posts = res ? JSON.parse(res.value) : [];
+    if(!posts[idx]) return;
+    if(!posts[idx].replies) posts[idx].replies = [];
+    posts[idx].replies.push({nick, body, ts: Date.now()});
+    await window.storage.set(boardKey, JSON.stringify(posts), true);
+    renderBoard(posts);
+  } catch(e){ console.error(e); }
+}
 function hideModal(){
   const ov=document.getElementById('mov');
   ov.classList.remove('show');
