@@ -33,10 +33,13 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .tip-title{font-weight:500;margin-bottom:3px;font-size:12px}
 .tip-quote{font-style:italic;color:rgba(255,255,255,0.75);margin-top:2px;font-size:10px}
 .tip-avg{color:rgba(255,255,255,0.6);margin-top:4px;font-size:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:4px}
-.sec{margin-bottom:1.75rem}
-.sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:10px}
-.sec-title{font-size:13px;font-weight:500}
-.sec-sub{font-size:11px;color:var(--text3)}
+.sec{margin-bottom:0;padding:1.5rem 0}
+.sec+.sec{border-top:1px solid var(--border)}
+.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sec-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sec-title{font-size:16px;font-weight:600;color:var(--text)}
+.sec-sub{font-size:11px;color:var(--text3);margin-left:2px}
+.perf-section{background:var(--bg2);border-radius:var(--rl);padding:1.25rem;margin-bottom:0}
 .filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
 .fg{display:flex;gap:4px;flex-wrap:wrap}
 .fdiv{width:.5px;height:20px;background:var(--border);margin:0 4px;align-self:center}
@@ -104,10 +107,12 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .d7l1{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .d7name{font-size:11px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 파이차트 */
-.pie-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.pie-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:1rem}
-.pie-title{font-size:12px;font-weight:500;margin-bottom:8px;color:var(--text2)}
-.pie-legend-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);margin-bottom:3px}
+.pie-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pie-card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--r);padding:12px;display:flex;flex-direction:column}
+.pie-title{font-size:11px;font-weight:500;margin-bottom:8px;color:var(--text2)}
+.pie-inner{display:flex;align-items:center;gap:10px}
+.pie-legend-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);margin-bottom:2px}
+@media(max-width:600px){.pie-grid{grid-template-columns:1fr}}
 /* 태그 */
 .mgr-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
 .tag{font-size:10px;padding:1px 6px;border-radius:5px;font-weight:500;white-space:nowrap}
@@ -362,7 +367,18 @@ function renderAll(d){
     {l:'클릭',v:(s.clicks/10000).toFixed(1)+'만',dv:pctD(s.clicks,ps.clicks)},
     {l:'활성 소재',v:s.active_ads+'개',dv:pctD(s.active_ads,ps.active_ads)},
   ];
-  const kpiH=`<div class="kpi-row">${kpis.map(k=>`<div class="kpi">${k.tip?`<div class="kpi-l"><span>${k.l}</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml(k.tip,k.avg||'')}</div>`:`<div class="kpi-l">${k.l}</div>`}<div class="kpi-v">${k.v}</div>${k.dv!=null?kdTag(k.dv,k.inv||false):''}</div>`).join('')}</div>`;
+  const kpiH=`<div class="perf-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sec-icon" style="background:#EAF3DE"><i class="ti ti-chart-bar" style="font-size:15px;color:#27500A"></i></div>
+        <div>
+          <div style="font-size:16px;font-weight:600">이번 주 성과</div>
+          <div style="font-size:11px;color:var(--text3)">${d.label} · 전주(${d.prev_label}) 대비</div>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-row">${kpis.map(k=>`<div class="kpi">${k.tip?`<div class="kpi-l"><span>${k.l}</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml(k.tip,k.avg||'')}</div>`:`<div class="kpi-l">${k.l}</div>`}<div class="kpi-v">${k.v}</div>${k.dv!=null?kdTag(k.dv,k.inv||false):''}</div>`).join('')}</div>
+  </div>`;
 
   const thrH=thr.avg_roas?`<div style="font-size:10px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:var(--bg2);border-radius:6px;display:flex;gap:10px;flex-wrap:wrap">
     <span>이번 주 위닝 기준</span>
@@ -376,7 +392,7 @@ function renderAll(d){
 
   const initData=getWinData(d,'전체','revenue');
   const winH=`<div class="sec" id="winSec">
-    <div class="sec-hdr"><i class="ti ti-trophy" style="font-size:15px;color:#854F0B"></i><span class="sec-title">이번 주 위닝소재</span><span class="sec-sub">필터별 최대 10개</span></div>
+    <div class="sec-hdr"><div class="sec-icon" style="background:#FAEEDA"><i class="ti ti-trophy" style="font-size:15px;color:#854F0B"></i></div><div><span class="sec-title">이번 주 위닝소재</span><div class="sec-sub">필터별 최대 10개 · 전환 우선 노출</div></div></div>
     ${thrH}
     <div class="filter-bar">
       <div class="fg" id="purposeFilter">
@@ -398,7 +414,7 @@ function renderAll(d){
   // 섹션2: 트렌드
   const trends=d.trends||{};
   const trendH=`<div class="sec" id="trendSec">
-    <div class="sec-hdr"><i class="ti ti-trending-up" style="font-size:15px;color:#3B6D11"></i><span class="sec-title">주간 트렌드</span><span class="sec-sub">전주(${d.prev_label}) 대비 · 필터별 상위 8개</span></div>
+    <div class="sec-hdr"><div class="sec-icon" style="background:#EAF3DE"><i class="ti ti-trending-up" style="font-size:15px;color:#3B6D11"></i></div><div><span class="sec-title">주간 트렌드</span><div class="sec-sub">전주(${d.prev_label}) 대비 · 필터별 상위 5개</div></div></div>
     <div style="display:flex;flex-direction:column;gap:14px">
       <div>
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
@@ -438,7 +454,7 @@ function renderAll(d){
   }
   const dw=d.d7_win||[],dl=d.d7_lose||[];
   const d7H=`<div class="sec">
-    <div class="sec-hdr"><i class="ti ti-test-pipe" style="font-size:15px;color:#854F0B"></i><span class="sec-title">신규 소재 초기 성과</span><span class="sec-sub">투입 7일 이내</span></div>
+    <div class="sec-hdr"><div class="sec-icon" style="background:#E6F1FB"><i class="ti ti-test-pipe" style="font-size:15px;color:#185FA5"></i></div><div><span class="sec-title">신규 소재 초기 성과</span><div class="sec-sub">투입 7일 이내 · D+7 기준</div></div></div>
     <div class="d7w">
       <div class="d7sum">
         <div class="d7st">7일 이내 <strong>${dw.length+dl.length}개</strong></div>
@@ -455,11 +471,11 @@ function renderAll(d){
 
   // 섹션4: 파이차트
   const pieH=`<div class="sec">
-    <div class="sec-hdr"><i class="ti ti-chart-pie" style="font-size:15px;color:#185FA5"></i><span class="sec-title">광고비 구성 분석</span><span class="sec-sub">이번 주 기준</span></div>
+    <div class="sec-hdr"><div class="sec-icon" style="background:#E6F1FB"><i class="ti ti-chart-pie" style="font-size:15px;color:#185FA5"></i></div><div><span class="sec-title">광고비 구성</span><div class="sec-sub">이번 주 기준</div></div></div>
     <div class="pie-grid">
-      <div class="pie-card"><div class="pie-title">① 목적별 광고비</div><canvas id="pieObj" height="180"></canvas><div id="pieObjLeg" style="margin-top:8px"></div></div>
-      <div class="pie-card"><div class="pie-title">② 전환 중 PA vs 자컨</div><canvas id="piePa" height="180"></canvas><div id="piePaLeg" style="margin-top:8px"></div></div>
-      <div class="pie-card"><div class="pie-title">③ 랜딩별 광고비</div><canvas id="pieLand" height="180"></canvas><div id="pieLandLeg" style="margin-top:8px"></div></div>
+      <div class="pie-card"><div class="pie-title">목적별</div><div class="pie-inner"><canvas id="pieObj" width="100" height="100" style="flex-shrink:0"></canvas><div id="pieObjLeg" style="flex:1;min-width:0"></div></div></div>
+      <div class="pie-card"><div class="pie-title">PA vs 자컨</div><div class="pie-inner"><canvas id="piePa" width="100" height="100" style="flex-shrink:0"></canvas><div id="piePaLeg" style="flex:1;min-width:0"></div></div></div>
+      <div class="pie-card"><div class="pie-title">랜딩별</div><div class="pie-inner"><canvas id="pieLand" width="100" height="100" style="flex-shrink:0"></canvas><div id="pieLandLeg" style="flex:1;min-width:0"></div></div></div>
     </div>
   </div>`;
 
@@ -485,14 +501,14 @@ function renderAll(d){
     </tr>`;
   }).join('');
   const tblH=`<div class="sec">
-    <div class="sec-hdr"><i class="ti ti-table" style="font-size:15px;color:var(--text3)"></i><span class="sec-title">전체 소재 상세</span></div>
+    <div class="sec-hdr"><div class="sec-icon" style="background:var(--bg3)"><i class="ti ti-table" style="font-size:15px;color:var(--text2)"></i></div><div><span class="sec-title">전체 소재 상세</span><div class="sec-sub">지출 기준 정렬</div></div></div>
     <button class="dtl-btn" id="dBtn" onclick="toggleDtl()"><i class="ti ti-chevron-down" id="dIco"></i>펼쳐서 전체 보기</button>
     <div id="dWrap" style="display:none"><div class="tbl-wrap"><table><thead><tr>
       <th style="min-width:110px">소재명</th><th>목적</th><th>PA</th><th>랜딩</th><th>유형</th><th>나이</th><th>광고비</th><th>ROAS</th><th>전주</th><th>변화</th><th>구매</th><th>CTR</th><th>CVR</th><th>점수</th>
     </tr></thead><tbody>${tbH}</tbody></table></div></div>
   </div>`;
 
-  document.getElementById('mainContent').innerHTML=kpiH+winH+trendH+d7H+pieH+tblH;
+  document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
   curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTrendSection(trends);
   setTimeout(()=>renderPieCharts(d.pie),50);
@@ -597,12 +613,15 @@ function renderPieCharts(pie){
     const colors=labels.map(l=>PIE_COLORS[l]||'#9CA3AF');
     pieCharts[canvasId]=new Chart(ctx,{
       type:'doughnut',
-      data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:2,borderColor:'var(--bg)'}]},
-      options:{responsive:true,maintainAspectRatio:true,cutout:'58%',
+      data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:1.5,borderColor:'var(--bg)'}]},
+      options:{responsive:false,maintainAspectRatio:false,cutout:'65%',
         plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const pct=(c.parsed/total*100).toFixed(1);return` ${c.label}: ${fmtS(c.parsed)} (${pct}%)`;}}}}}
     });
     const leg=document.getElementById(legId);
-    if(leg)leg.innerHTML=labels.map((l,i)=>`<div class="pie-legend-row"><span style="width:8px;height:8px;border-radius:50%;background:${colors[i]};flex-shrink:0"></span><span style="flex:1">${l}</span><span style="font-weight:500">${(values[i]/total*100).toFixed(1)}%</span><span style="color:var(--text3)">${fmtS(values[i])}</span></div>`).join('');
+    if(leg)leg.innerHTML=labels.map((l,i)=>{
+      const pct=(values[i]/total*100).toFixed(1);
+      return`<div class="pie-legend-row"><span style="width:7px;height:7px;border-radius:50%;background:${colors[i]};flex-shrink:0"></span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l}</span><span style="font-weight:600;color:var(--text);margin-left:4px">${pct}%</span></div>`;
+    }).join('');
   }
   mkPie('pieObj','pieObjLeg',pie.objective);
   mkPie('piePa','piePaLeg',pie.pa_type);
