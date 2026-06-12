@@ -113,6 +113,25 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .pie-inner{display:flex;align-items:center;gap:10px}
 .pie-legend-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2);margin-bottom:2px}
 @media(max-width:600px){.pie-grid{grid-template-columns:1fr}}
+.tcard{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:border-color .15s;margin-bottom:8px}
+.tcard:last-child{margin-bottom:0}
+.tcard:hover{border-color:var(--border2)}
+.tcard.up{border-left:3px solid #1D9E75}
+.tcard.dn{border-left:3px solid #E5484D}
+.tcard-body{padding:10px 12px;display:flex;gap:12px;align-items:flex-start}
+.tcard-thumb{width:52px;height:52px;border-radius:6px;background:var(--bg2);overflow:hidden;flex-shrink:0;position:relative}
+.tcard-thumb img{width:100%;height:100%;object-fit:cover}
+.tcard-info{flex:1;min-width:0}
+.tcard-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.tcard-delta{display:flex;align-items:baseline;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.tcard-big{font-size:20px;font-weight:700;line-height:1}
+.tcard-sub{font-size:11px;color:var(--text3)}
+.tcard-flow{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);margin-bottom:5px}
+.tcard-arrow{font-size:11px;color:var(--text3)}
+.tcard-insight{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:20px;font-weight:500;margin-top:2px}
+.tcard-insight.up{background:#EAF3DE;color:#27500A}
+.tcard-insight.dn{background:#FCEBEB;color:#791F1F}
+.tcard-insight.warn{background:#FAEEDA;color:#633806}
 /* 태그 */
 .mgr-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
 .tag{font-size:10px;padding:1px 6px;border-radius:5px;font-weight:500;white-space:nowrap}
@@ -415,27 +434,27 @@ function renderAll(d){
   const trends=d.trends||{};
   const trendH=`<div class="sec" id="trendSec">
     <div class="sec-hdr"><div class="sec-icon" style="background:#EAF3DE"><i class="ti ti-trending-up" style="font-size:15px;color:#3B6D11"></i></div><div><span class="sec-title">주간 트렌드</span><div class="sec-sub">전주(${d.prev_label}) 대비 · 필터별 상위 5개</div></div></div>
-    <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:500;color:#27500A;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-up-right" style="font-size:13px"></i>상승 소재</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;color:#1D9E75;display:flex;align-items:center;gap:4px"><i class="ti ti-trending-up" style="font-size:13px"></i>상승 소재</span>
           <div style="display:flex;gap:4px;margin-left:auto">
             <button class="fbtn on" id="up-spend_up" onclick="setTrend('up','spend_up',this)" style="padding:2px 8px;font-size:10px">광고비↑</button>
             <button class="fbtn" id="up-rev_up" onclick="setTrend('up','rev_up',this)" style="padding:2px 8px;font-size:10px">매출↑</button>
             <button class="fbtn" id="up-cpc_eff_up" onclick="setTrend('up','cpc_eff_up',this)" style="padding:2px 8px;font-size:10px">CPC효율↑</button>
           </div>
         </div>
-        <div class="win-grid" id="trendUpList"></div>
+        <div id="trendUpList"></div>
       </div>
       <div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:500;color:#A32D2D;display:flex;align-items:center;gap:4px"><i class="ti ti-arrow-down-right" style="font-size:13px"></i>하락 소재</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;color:#E5484D;display:flex;align-items:center;gap:4px"><i class="ti ti-trending-down" style="font-size:13px"></i>하락 소재</span>
           <div style="display:flex;gap:4px;margin-left:auto">
             <button class="fbtn on" id="dn-conv_dn" onclick="setTrend('dn','conv_dn',this)" style="padding:2px 8px;font-size:10px">전환효율↓</button>
             <button class="fbtn" id="dn-cpc_eff_dn" onclick="setTrend('dn','cpc_eff_dn',this)" style="padding:2px 8px;font-size:10px">CPC효율↓</button>
           </div>
         </div>
-        <div class="win-grid" id="trendDnList"></div>
+        <div id="trendDnList"></div>
       </div>
     </div>
   </div>`;
@@ -533,46 +552,84 @@ function toggleDtl(){
 }
 
 // 트렌드
-function mkTrow2(r,type){
-  const isUp=type.endsWith('up');
-  // 핵심 지표 (필터별)
-  let primVal='',primLabel='',secVal='',badge='',badgeCls='';
+function getTrendInsight(r, type){
+  // 자동 분석 문구
+  const rd = r._roas_drop||0, cvd = r._cvr_drop||0;
+  const roasUp = r.roas_pct > (r.old_roas_pct||0);
+  const ctrUp = r.ctr > (r.prev_ctr||0);
+  const cvrUp = r.cvr > (r.prev_cvr||0);
   if(type==='spend_up'){
-    primVal=`+${fmtS(r._v||0)}`;primLabel='광고비 증가';
-    secVal=`${((r._p||0).toFixed(0))}% 증가`;
-    badge=`+${fmtS(r._v||0)}`;badgeCls='td-up';
-  } else if(type==='rev_up'){
-    primVal=`+${fmtS(r._v||0)}`;primLabel='매출 증가';
-    secVal=`${((r._p||0).toFixed(0))}% 증가`;
-    badge=`+${fmtS(r._v||0)}`;badgeCls='td-up';
-  } else if(type==='cpc_eff_up'){
-    primVal=`-${(r._drop||0).toFixed(0)}%`;primLabel='CPC 하락률';
-    secVal=`₩${Math.round(r.cpc||0).toLocaleString()}`;
-    badge=`CPC -${(r._drop||0).toFixed(0)}%`;badgeCls='td-up';
-  } else if(type==='conv_dn'){
-    primVal=`-${(r._roas_drop||0).toFixed(0)}%`;primLabel='ROAS 하락';
-    secVal=`CVR -${(r._cvr_drop||0).toFixed(0)}%`;
-    badge=`ROAS-${(r._roas_drop||0).toFixed(0)}%`;badgeCls='td-dn';
-  } else if(type==='cpc_eff_dn'){
-    primVal=`+${(r._rise||0).toFixed(0)}%`;primLabel='CPC 상승률';
-    secVal=`₩${Math.round(r.cpc||0).toLocaleString()}`;
-    badge=`CPC +${(r._rise||0).toFixed(0)}%`;badgeCls='td-dn';
+    if(roasUp) return {msg:'광고비 증가 + ROAS 동반 상승 → 확장 고려', cls:'up'};
+    if(r.roas_pct >= (r.old_roas_pct||0)*0.95) return {msg:'광고비 증가, 효율 유지 중', cls:'up'};
+    return {msg:'광고비 증가했지만 효율 하락 주의', cls:'warn'};
   }
-  const iu=r.img?`https://drive.google.com/thumbnail?id=${r.img}&sz=w400`:null;
-  return`<div class="wcard" onclick="openModal('${r.key}')" style="border-color:${isUp?'rgba(39,80,10,0.2)':'rgba(163,45,45,0.2)'}">
-    <div class="wthumb">
-      ${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${r.base_key||r.key}</div></div>
-      <div class="wthumb-tl"><span class="tag ${ageCls(r.age_days)}" style="font-size:9px">${r.age_days!=null?'D+'+r.age_days:'-'}</span><span class="tag ${badgeCls}" style="font-size:9px">${badge}</span></div>
-      <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
-    </div>
-    <div class="wbody">
-      <div class="wname"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span>${r.base_key||r.key}</div>
-      <div class="wlabels">${labelBadges(r)}</div>
-      <div class="wroas">
-        <span class="${isUp?'rv-good':'rv-bad'}" style="font-size:16px;font-weight:600">${primVal}</span>
-        <span style="font-size:10px;color:var(--text3)">${secVal}</span>
+  if(type==='rev_up'){
+    if(cvrUp) return {msg:'전환율 개선으로 매출 성장', cls:'up'};
+    if(ctrUp) return {msg:'클릭률 개선으로 매출 성장', cls:'up'};
+    return {msg:'지출 확대로 매출 증가, 효율 점검 필요', cls:'warn'};
+  }
+  if(type==='cpc_eff_up'){
+    if(roasUp) return {msg:'CPC 하락 + ROAS 상승 → 효율 개선', cls:'up'};
+    return {msg:'클릭 비용 절감, 전환 효율 추가 확인', cls:'up'};
+  }
+  if(type==='conv_dn'){
+    if(rd>=30) return {msg:'ROAS 급락, 소재 피로도 확인 필요', cls:'dn'};
+    if(cvd>=30) return {msg:'클릭은 되지만 전환 안됨, 랜딩 점검', cls:'dn'};
+    return {msg:'클릭률·전환율 동반 하락, 소재 교체 검토', cls:'dn'};
+  }
+  if(type==='cpc_eff_dn'){
+    if((r._rise||0)>=50) return {msg:'CPC 급등, 경쟁 심화 또는 타겟 문제', cls:'dn'};
+    return {msg:'클릭 비용 상승 중, 소재 점검 필요', cls:'warn'};
+  }
+  return null;
+}
+
+function mkTrow2(r, type){
+  const isUp = type.endsWith('up');
+  const iu = r.img ? `https://drive.google.com/thumbnail?id=${r.img}&sz=w200` : null;
+  const insight = getTrendInsight(r, type);
+
+  // 필터별 핵심 변동 수치
+  let bigNum='', bigCls='', flowHtml='', subLine='';
+  if(type==='spend_up'){
+    bigNum=`+${fmtS(r._v||0)}`;bigCls='rv-good';
+    flowHtml=`${fmtS(r.prev_spend||0)} <span class="tcard-arrow">→</span> ${fmtS(r.spend)} <span style="color:#1D9E75;font-weight:600">(+${(r._p||0).toFixed(0)}%)</span>`;
+    subLine=`ROAS ${r.old_roas_pct?fmtR(r.old_roas_pct):'–'} → ${fmtR(r.roas_pct)}`;
+  } else if(type==='rev_up'){
+    bigNum=`+${fmtS(r._v||0)}`;bigCls='rv-good';
+    flowHtml=`${fmtS(r.prev_revenue||0)} <span class="tcard-arrow">→</span> ${fmtS(r.revenue)} <span style="color:#1D9E75;font-weight:600">(+${(r._p||0).toFixed(0)}%)</span>`;
+    subLine=`광고비 ${fmtS(r.spend)} · ROAS ${fmtR(r.roas_pct)}`;
+  } else if(type==='cpc_eff_up'){
+    bigNum=`-${(r._drop||0).toFixed(0)}%`;bigCls='rv-good';
+    flowHtml=`CPC ₩${Math.round(r.prev_cpc||0).toLocaleString()} <span class="tcard-arrow">→</span> ₩${Math.round(r.cpc||0).toLocaleString()} <span style="color:#1D9E75;font-weight:600">(-${(r._drop||0).toFixed(0)}%)</span>`;
+    subLine=`광고비 ${fmtS(r.spend)} · CTR ${r.ctr}%`;
+  } else if(type==='conv_dn'){
+    bigNum=`-${(r._roas_drop||0).toFixed(0)}%`;bigCls='rv-bad';
+    flowHtml=`ROAS ${r.old_roas_pct?fmtR(r.old_roas_pct):'–'} <span class="tcard-arrow">→</span> ${fmtR(r.roas_pct)} <span style="color:#E5484D;font-weight:600">(-${(r._roas_drop||0).toFixed(0)}%)</span>`;
+    subLine=`CVR ${r.prev_cvr||'–'}% → ${r.cvr}% (-${(r._cvr_drop||0).toFixed(0)}%) · 광고비 ${fmtS(r.spend)}`;
+  } else if(type==='cpc_eff_dn'){
+    bigNum=`+${(r._rise||0).toFixed(0)}%`;bigCls='rv-bad';
+    flowHtml=`CPC ₩${Math.round(r.prev_cpc||0).toLocaleString()} <span class="tcard-arrow">→</span> ₩${Math.round(r.cpc||0).toLocaleString()} <span style="color:#E5484D;font-weight:600">(+${(r._rise||0).toFixed(0)}%)</span>`;
+    subLine=`광고비 ${fmtS(r.spend)} · ROAS ${fmtR(r.roas_pct)}`;
+  }
+
+  return`<div class="tcard ${isUp?'up':'dn'}" onclick="openModal('${r.key}')">
+    <div class="tcard-body">
+      <div class="tcard-thumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none'">`:''}</div>
+      <div class="tcard-info">
+        <div class="tcard-name">
+          <span class="mgr-dot" style="background:${MC[r.mgr]}"></span>
+          <span>${r.base_key||r.key}</span>
+          ${labelBadges(r)}
+          ${r.age_days!=null?`<span class="tag ${ageCls(r.age_days)}" style="font-size:9px">D+${r.age_days}</span>`:''}
+        </div>
+        <div class="tcard-delta">
+          <span class="tcard-big ${bigCls}">${bigNum}</span>
+        </div>
+        <div class="tcard-flow">${flowHtml}</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">${subLine}</div>
+        ${insight?`<span class="tcard-insight ${insight.cls}"><i class="ti ti-bulb" style="font-size:10px"></i>${insight.msg}</span>`:''}
       </div>
-      <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(r.spend)}</span><span class="mc mc-ctr">ROAS ${fmtR(r.roas_pct)}</span></div>
     </div>
   </div>`;
 }
@@ -582,8 +639,8 @@ function renderTrendSection(trends){
   const dnData=trends[curTrendFilter.dn]||[];
   const el1=document.getElementById('trendUpList');
   const el2=document.getElementById('trendDnList');
-  if(el1)el1.innerHTML=upData.length?upData.map(r=>mkTrow2(r,curTrendFilter.up)).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">해당 소재 없음</div>';
-  if(el2)el2.innerHTML=dnData.length?dnData.map(r=>mkTrow2(r,curTrendFilter.dn)).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">해당 소재 없음</div>';
+  if(el1)el1.innerHTML=upData.length?upData.map(r=>mkTrow2(r,curTrendFilter.up)).join(''):'<div style="padding:1.5rem;font-size:12px;color:var(--text3);text-align:center">해당 소재 없음</div>';
+  if(el2)el2.innerHTML=dnData.length?dnData.map(r=>mkTrow2(r,curTrendFilter.dn)).join(''):'<div style="padding:1.5rem;font-size:12px;color:var(--text3);text-align:center">해당 소재 없음</div>';
 }
 
 function setTrend(side,key,btn){
@@ -595,7 +652,7 @@ function setTrend(side,key,btn){
   const data=trends[key]||[];
   const elId=side==='up'?'trendUpList':'trendDnList';
   const el=document.getElementById(elId);
-  if(el)el.innerHTML=data.length?data.map(r=>mkTrow2(r,key)).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">해당 소재 없음</div>';
+  if(el)el.innerHTML=data.length?data.map(r=>mkTrow2(r,key)).join(''):'<div style="padding:1.5rem;font-size:12px;color:var(--text3);text-align:center">해당 소재 없음</div>';
 }
 
 // 파이차트
