@@ -328,8 +328,7 @@ function prevDeltaHtml(cur,prev,fmt){
 function tThumb(img,ec,ov,name=''){
   const ovH=ov?`<div class="${ov}"><i class="ti ti-zoom-in" style="color:#fff;font-size:16px"></i></div>`:'';
   if(img){
-    const isVidThumb=(c&&c.img_type==='video');
-    return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${isVidThumb?`<div style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,0.55);border-radius:4px;padding:1px 5px;font-size:9px;color:#fff;display:flex;align-items:center;gap:2px"><i class="ti ti-player-play" style="font-size:9px"></i>영상</div>`:''}${ovH}`;
+    return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
   }
   if(name)return`<div class="${ec}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 업로드 필요</div></div>${ovH}`;
   return`<div class="${ec}"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
@@ -391,7 +390,7 @@ function buildWinCard(c,thr,sort='revenue'){
       <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
     </div>
     <div class="wbody">
-      <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${(()=>{const n=fmtCreativeName(c,curRefDate);return n.name+(n.date?` <span style="font-size:9px;color:var(--text3);font-weight:400">${n.date}</span>`:'')})()} </div>
+      <div class="wname"><span class="mgr-dot" style="background:${MC[c.mgr]}"></span>${c.base_key||c.key}</div>
       <div class="wlabels">${labelBadges(c)}</div>
       <div class="wroas"><span class="${primCls}" style="font-size:16px;font-weight:600">${primVal}</span><span style="font-size:10px;color:var(--text3)">${sm.secondaryLabel} ${secVal}</span></div>
       ${prevVal?`<div style="font-size:10px;color:var(--text3)">${prevVal}</div>`:''}
@@ -438,7 +437,7 @@ function renderAll(d){
         </div>
       </div>
     </div>
-    <div class="kpi-row">${kpis.map(k=>`<div class="kpi">${k.tip?`<div class="kpi-l"><span>${k.l}</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml(k.tip,k.avg||'')}</div>`:`<div class="kpi-l">${k.l}</div>`}<div class="kpi-v">${k.v}</div>${k.dv!=null?kdTag(k.dv,k.inv||false):''}</div>`).join('')}</div>
+    <div class="kpi-row">${kpis.map(k=>'<div class="kpi">'+(k.tip?'<div class="kpi-l"><span>'+k.l+'</span><i class="ti ti-info-circle" style="font-size:11px"></i>'+tipHtml(k.tip,k.avg||'')+'</div>':'<div class="kpi-l">'+k.l+'</div>')+'<div class="kpi-v">'+k.v+'</div>'+(k.dv!=null?kdTag(k.dv,k.inv||false):'')+'</div>').join('')}</div>
   </div>`;
 
   const thrH=thr.avg_roas?`<div style="font-size:10px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:var(--bg2);border-radius:6px;display:flex;gap:10px;flex-wrap:wrap">
@@ -545,7 +544,7 @@ function renderAll(d){
     const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'–';
     const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
     return`<tr style="cursor:pointer" onclick="openModal('${r.key}')">
-      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${(()=>{const n=fmtCreativeName(r,curRefDate);return n.name+(n.date?` <span style="color:var(--text3)">${n.date}</span>`:'')})()} </span></td>
+      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${r.base_key||r.key}</span></td>
       <td><span class="tag ${PC[r.objective||r.purpose]||'tp-기타'}" style="font-size:9px">${r.objective||r.purpose}</span></td>
       <td>${r.pa_type&&r.pa_type!=='-'?`<span class="tag pa-${r.pa_type}" style="font-size:9px">${r.pa_type}</span>`:''}</td>
       <td>${r.landing&&r.landing!=='기타'?`<span class="tag tl-${r.landing}" style="font-size:9px">${r.landing}</span>`:''}</td>
@@ -626,8 +625,8 @@ function sortTbl(col, thEl){
   rows.sort((a,b)=>{
     let av, bv;
     if(col === 'name'){
-      av = fmtCreativeName(a,curRefDate).name.toLowerCase();
-      bv = fmtCreativeName(b,curRefDate).name.toLowerCase();
+      av = (a.base_key||a.key||'').toLowerCase();
+      bv = (b.base_key||b.key||'').toLowerCase();
     } else {
       av = a[col]; bv = b[col];
     }
@@ -651,7 +650,7 @@ function sortTbl(col, thEl){
     const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'–';
     const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
     return`<tr style="cursor:pointer" onclick="openModal('${r.key}')">
-      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${(()=>{const n=fmtCreativeName(r,curRefDate);return n.name+(n.date?` <span style="color:var(--text3)">${n.date}</span>`:'')})()} </span></td>
+      <td style="min-width:110px"><span class="mgr-dot" style="background:${MC[r.mgr]};margin-right:4px"></span><span style="color:var(--text2);font-size:10px">${r.base_key||r.key}</span></td>
       <td><span class="tag ${PC[r.objective||r.purpose]||'tp-기타'}" style="font-size:9px">${r.objective||r.purpose}</span></td>
       <td>${r.pa_type&&r.pa_type!=='-'?`<span class="tag pa-${r.pa_type}" style="font-size:9px">${r.pa_type}</span>`:''}</td>
       <td>${r.landing&&r.landing!=='기타'?`<span class="tag tl-${r.landing}" style="font-size:9px">${r.landing}</span>`:''}</td>
@@ -819,7 +818,7 @@ function openModal(key){
   const allS=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
   const fId=(()=>{for(const w of allS){if(cache[w.id]?.all_ads?.find(r=>r.key===key))return w.id;}return curWeekId;})();
   const isNew=fId===curWeekId;
-  document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${(()=>{const n=fmtCreativeName(cur,curRefDate);return n.name+(n.date?` <span style="font-size:11px;color:var(--text3);font-weight:400">${n.date}</span>`:'')})()} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
+  document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
   // video 필드 있으면 영상 재생, 없고 img_type이 video면 img ID로 영상 재생
   const vidId = cur.video || (cur.img_type==='video' ? cur.img : null);
