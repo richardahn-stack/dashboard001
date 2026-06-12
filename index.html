@@ -341,7 +341,7 @@ function labelBadges(c){
   return`<span class="tag ${PC[obj]||'tp-기타'}">${obj}</span>${pa}${land}<span class="tag tm-${c.media}">${c.media}</span>`;
 }
 
-let weeks=[],curWeekId=null,curFilter={purpose:'전체',sort:'revenue'},detailOpen=false;
+let weeks=[],curWeekId=null,curRefDate=null,curFilter={purpose:'전체',sort:'revenue'},detailOpen=false;
 const cache={};
 let tChart=null,curMetric='all',mKey=null,curTrendFilter={up:'spend_up',dn:'conv_dn'};
 let pieCharts={};
@@ -354,11 +354,11 @@ function renderTabs(){
   document.getElementById('weekTabs').innerHTML=weeks.map(w=>`<button class="wtab${w.id===curWeekId?' on':''}" onclick="switchWeek('${w.id}')">${w.label}</button>`).join('');
 }
 async function switchWeek(id){
-  curWeekId=id; curRefDate=d.ref_date||null;curFilter={purpose:'전체',sort:'revenue'};detailOpen=false;curTrendFilter={up:'spend_up',dn:'conv_dn'};
+  curWeekId=id; curFilter={purpose:'전체',sort:'revenue'};detailOpen=false;curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTabs();
-  if(cache[id]){renderAll(cache[id]);return;}
+  if(cache[id]){curRefDate=cache[id].ref_date||null;renderAll(cache[id]);return;}
   document.getElementById('mainContent').innerHTML='<div class="loading">데이터 불러오는 중...</div>';
-  try{const r=await fetch(`data/${id}.json`);cache[id]=await r.json();renderAll(cache[id]);}
+  try{const r=await fetch(`data/${id}.json`);cache[id]=await r.json();curRefDate=cache[id].ref_date||null;renderAll(cache[id]);}
   catch(e){document.getElementById('mainContent').innerHTML=`<div class="loading" style="color:#A32D2D">${id}.json 로드 실패</div>`;}
 }
 
