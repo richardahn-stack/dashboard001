@@ -860,7 +860,47 @@ function openModal(key){
 
 
 // ─── 소재 메모 게시판 ───
+// localStorage 기반 (브라우저 로컬 저장, 팀 공유는 JSONBin API key 설정 시 활성화)
+const JSONBIN_API_KEY = '$2a$10$Ma9Mewe6lm2OO9cUDJ9hfOZ6N0R7KvD4XCc1.oyuWzTH0jsGsDUdy';
+const JSONBIN_BIN_ID = '6a2bc5fcf5f4af5e29e516d8';
+
 let boardKey = null;
+let boardCache = {}; // 로컬 캐시
+
+// 저장소 추상화 - localStorage 또는 JSONBin
+const Store = {
+  async get(key){
+    if(JSONBIN_API_KEY && JSONBIN_BIN_ID){
+      try{
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+          {headers:{'X-Master-Key': JSONBIN_API_KEY}});
+        const d = await r.json();
+        return (d.record||{})[key] || null;
+      }catch(e){ return null; }
+    }
+    // localStorage fallback
+    try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; }
+  },
+  async set(key, val){
+    if(JSONBIN_API_KEY && JSONBIN_BIN_ID){
+      try{
+        // 전체 bin 읽기 → 키 업데이트 → 저장
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+          {headers:{'X-Master-Key': JSONBIN_API_KEY}});
+        const d = await r.json();
+        const record = d.record || {};
+        record[key] = val;
+        await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+          method:'PUT',
+          headers:{'Content-Type':'application/json','X-Master-Key': JSONBIN_API_KEY},
+          body: JSON.stringify(record)
+        });
+      }catch(e){ console.error('JSONBin 저장 실패', e); }
+    }
+    // localStorage 항상 저장
+    try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+  }
+};
 
 function timeAgo(ts){
   const d = Date.now() - ts;
@@ -871,13 +911,11 @@ function timeAgo(ts){
 }
 
 async function loadBoard(key){
-  boardKey = 'board:' + key;
-  renderBoard([]);
-  try {
-    const res = await window.storage.get(boardKey, true);
-    const posts = res ? JSON.parse(res.value) : [];
-    renderBoard(posts);
-  } catch(e){ renderBoard([]); }
+  boardKey = key;
+  const el = document.getElementById('boardList');
+  if(el) el.innerHTML = '<div class="board-empty" style="color:var(--text3)">불러오는 중...</div>';
+  const posts = await Store.get('board:' + key) || [];
+  renderBoard(posts);
 }
 
 function renderBoard(posts){
@@ -887,38 +925,30 @@ function renderBoard(posts){
     el.innerHTML = '<div class="board-empty">첫 번째 메모를 남겨보세요</div>';
     return;
   }
-  el.innerHTML = posts.map((p,i) => renderPost(p, i, false, posts)).join('');
+  el.innerHTML = posts.map((p,i) => renderPost(p, i)).join('');
 }
 
-function renderPost(p, idx, isReply, allPosts){
+function renderPost(p, idx){
   const replies = p.replies || [];
-  const replyHtml = replies.map((r,ri) => `
-    <div class="bpost reply">
-      <div class="bpost-hdr">
-        <span class="bpost-nick">${escHtml(r.nick)}</span>
-        <span class="bpost-time">${timeAgo(r.ts)}</span>
-      </div>
-      <div class="bpost-body">${escHtml(r.body)}</div>
-    </div>`).join('');
-  return `
-    <div class="bpost">
-      <div class="bpost-hdr">
-        <span class="bpost-nick">${escHtml(p.nick)}</span>
-        <span class="bpost-time">${timeAgo(p.ts)}</span>
-      </div>
-      <div class="bpost-body">${escHtml(p.body)}</div>
-      <div class="bpost-actions">
-        <button class="bpost-reply-btn" onclick="toggleReplyForm(${idx})"><i class="ti ti-corner-down-right" style="font-size:10px"></i> 답글</button>
-      </div>
-      <div id="replyForm_${idx}" style="display:none">
-        <div class="breply-form">
-          <input class="board-nick" id="rNick_${idx}" placeholder="닉네임" maxlength="12" style="width:80px">
-          <textarea class="board-text" id="rText_${idx}" placeholder="답글..." rows="1" style="min-height:32px"></textarea>
-          <button class="board-submit" onclick="submitReply(${idx})" style="height:auto;padding:6px 12px">등록</button>
-        </div>
-      </div>
-      ${replyHtml}
-    </div>`;
+  const replyHtml = replies.map(r =>
+    '<div class="bpost reply">' +
+    '<div class="bpost-hdr"><span class="bpost-nick">'+escHtml(r.nick)+'</span><span class="bpost-time">'+timeAgo(r.ts)+'</span></div>' +
+    '<div class="bpost-body">'+escHtml(r.body)+'</div>' +
+    '</div>'
+  ).join('');
+  return '<div class="bpost">' +
+    '<div class="bpost-hdr"><span class="bpost-nick">'+escHtml(p.nick)+'</span><span class="bpost-time">'+timeAgo(p.ts)+'</span></div>' +
+    '<div class="bpost-body">'+escHtml(p.body)+'</div>' +
+    '<div class="bpost-actions"><button class="bpost-reply-btn" onclick="toggleReplyForm('+idx+')"><i class="ti ti-corner-down-right" style="font-size:10px"></i> 답글</button></div>' +
+    '<div id="replyForm_'+idx+'" style="display:none">' +
+      '<div class="breply-form">' +
+        '<input class="board-nick" id="rNick_'+idx+'" placeholder="닉네임" maxlength="12" style="width:80px">' +
+        '<textarea class="board-text" id="rText_'+idx+'" placeholder="답글..." rows="1" style="min-height:32px"></textarea>' +
+        '<button class="board-submit" onclick="submitReply('+idx+')" style="height:auto;padding:6px 12px">등록</button>' +
+      '</div>' +
+    '</div>' +
+    replyHtml +
+    '</div>';
 }
 
 function escHtml(s){
@@ -934,32 +964,26 @@ async function submitPost(){
   const nick = (document.getElementById('bNick')?.value||'').trim() || '익명';
   const body = (document.getElementById('bText')?.value||'').trim();
   if(!body) return;
-  try {
-    const res = await window.storage.get(boardKey, true);
-    const posts = res ? JSON.parse(res.value) : [];
-    posts.unshift({nick, body, ts: Date.now(), replies:[]});
-    await window.storage.set(boardKey, JSON.stringify(posts), true);
-    document.getElementById('bText').value = '';
-    renderBoard(posts);
-    // 목록 맨 위로 스크롤
-    const list = document.getElementById('boardList');
-    if(list) list.scrollTop = 0;
-  } catch(e){ console.error(e); }
+  const posts = await Store.get('board:' + boardKey) || [];
+  posts.unshift({nick, body, ts: Date.now(), replies:[]});
+  await Store.set('board:' + boardKey, posts);
+  const tb = document.getElementById('bText');
+  if(tb) tb.value = '';
+  renderBoard(posts);
+  const list = document.getElementById('boardList');
+  if(list) list.scrollTop = 0;
 }
 
 async function submitReply(idx){
   const nick = (document.getElementById('rNick_'+idx)?.value||'').trim() || '익명';
   const body = (document.getElementById('rText_'+idx)?.value||'').trim();
   if(!body) return;
-  try {
-    const res = await window.storage.get(boardKey, true);
-    const posts = res ? JSON.parse(res.value) : [];
-    if(!posts[idx]) return;
-    if(!posts[idx].replies) posts[idx].replies = [];
-    posts[idx].replies.push({nick, body, ts: Date.now()});
-    await window.storage.set(boardKey, JSON.stringify(posts), true);
-    renderBoard(posts);
-  } catch(e){ console.error(e); }
+  const posts = await Store.get('board:' + boardKey) || [];
+  if(!posts[idx]) return;
+  if(!posts[idx].replies) posts[idx].replies = [];
+  posts[idx].replies.push({nick, body, ts: Date.now()});
+  await Store.set('board:' + boardKey, posts);
+  renderBoard(posts);
 }
 function hideModal(){
   const ov=document.getElementById('mov');
