@@ -856,6 +856,7 @@ function openModal(key){
   const ov=document.getElementById('mov');
   ov.style.display='flex';requestAnimationFrame(()=>ov.classList.add('show'));
   document.body.style.overflow='hidden';
+  loadBoard(key);
 }
 
 
