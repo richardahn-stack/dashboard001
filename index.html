@@ -621,13 +621,14 @@ function openModal(key){
   const isNew=fId===curWeekId;
   document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key}${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
+  const mediaStyle='width:100%;height:320px;object-fit:contain;border-radius:var(--r);background:var(--bg2);display:block';
   if(cur.video){
     const vidUrl=`https://drive.google.com/file/d/${cur.video}/preview`;
-    iw.innerHTML=`<div style="width:100%;position:relative"><iframe src="${vidUrl}" style="width:100%;min-height:360px;border:none;border-radius:var(--r)" allowfullscreen></iframe><a href="https://drive.google.com/file/d/${cur.video}/view" target="_blank" style="display:block;text-align:center;font-size:11px;color:var(--text3);margin-top:6px;text-decoration:none">↗ 드라이브에서 열기</a></div>`;
+    iw.innerHTML=`<iframe src="${vidUrl}" style="${mediaStyle}" allowfullscreen></iframe>`;
   } else if(cur.img){
-    iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w800" style="width:100%;height:auto;object-fit:contain" onerror="this.parentElement.innerHTML='<div class=mimg-empty><i class=ti style=font-size:32px>&#xe3fc;</i><span>이미지 없음</span></div>'">`;
+    iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w800" style="${mediaStyle}" onerror="this.parentElement.innerHTML='<div style=\\'height:320px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r);color:var(--text3)\\'><span>이미지 없음</span></div>'">`;
   } else {
-    iw.innerHTML=`<div class="mimg-empty"><i class="ti ti-photo" style="font-size:32px"></i><div style="font-size:11px;word-break:break-all;text-align:center">${cur.base_key||cur.key}</div><div style="margin-top:4px;font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;
+    iw.innerHTML=`<div style="height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--bg2);border-radius:var(--r)"><i class="ti ti-photo" style="font-size:32px;color:var(--text3)"></i><div style="font-size:11px;color:var(--text3);word-break:break-all;text-align:center;padding:0 1rem">${cur.base_key||cur.key}</div><div style="font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;
   }
   document.getElementById('mtags').innerHTML=labelBadges(cur)+`${cur.age_days!=null?`<span class="tag ${ageCls(cur.age_days)}">D+${cur.age_days}</span>`:''}<span style="font-size:11px;font-weight:500;color:${MC[cur.mgr]}">${cur.mgr}</span>`;
   const thr=cache[curWeekId]?.summary?.winning_thresholds||{};
