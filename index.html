@@ -871,21 +871,25 @@ let boardCache = {}; // 로컬 캐시
 // 저장소 추상화 - localStorage 또는 JSONBin
 const Store = {
   async get(key){
+    // JSONBin 설정 시 항상 서버 우선 (팀 공유)
     if(JSONBIN_API_KEY && JSONBIN_BIN_ID){
       try{
         const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
           {headers:{'X-Master-Key': JSONBIN_API_KEY}});
         const d = await r.json();
         return (d.record||{})[key] || null;
-      }catch(e){ return null; }
+      }catch(e){
+        // JSONBin 실패 시 localStorage 폴백
+        try{ return JSON.parse(localStorage.getItem(key)); }catch(e2){ return null; }
+      }
     }
-    // localStorage fallback
+    // JSONBin 미설정 시 localStorage
     try{ return JSON.parse(localStorage.getItem(key)); }catch(e){ return null; }
   },
   async set(key, val){
     if(JSONBIN_API_KEY && JSONBIN_BIN_ID){
       try{
-        // 전체 bin 읽기 → 키 업데이트 → 저장
+        // 서버에서 최신 전체 record 읽기
         const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
           {headers:{'X-Master-Key': JSONBIN_API_KEY}});
         const d = await r.json();
@@ -896,9 +900,10 @@ const Store = {
           headers:{'Content-Type':'application/json','X-Master-Key': JSONBIN_API_KEY},
           body: JSON.stringify(record)
         });
+        return; // JSONBin 성공하면 localStorage는 불필요
       }catch(e){ console.error('JSONBin 저장 실패', e); }
     }
-    // localStorage 항상 저장
+    // JSONBin 미설정이거나 실패 시 localStorage
     try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
   }
 };
