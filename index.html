@@ -35,7 +35,7 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .tip-avg{color:rgba(255,255,255,0.6);margin-top:4px;font-size:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:4px}
 .sec{margin-bottom:0;padding:1.5rem 0}
 .sec+.sec{border-top:1px solid var(--border)}
-.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .sec-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .sec-title{font-size:16px;font-weight:600;color:var(--text)}
 .sec-sub{font-size:11px;color:var(--text3);margin-left:2px}
@@ -311,6 +311,7 @@ function tipHtml(k,extra=''){
 
 const fmtS=n=>n>=10000000?'₩'+(n/10000000).toFixed(1)+'천만':n>=100000?'₩'+(n/10000).toFixed(0)+'만':n>0?'₩'+n.toLocaleString():'-';
 const fmtR=p=>Math.round(p).toLocaleString()+'%';
+const fmtW=n=>n>0?'₩'+n.toLocaleString():'-';
 const rvC=p=>p>=700?'rv-great':p>=400?'rv-good':p>=200?'rv-warn':p>0?'rv-bad':'rv-zero';
 const ageCls=d=>d===null||d===undefined?'ta-old':d<=7?'ta-d0':d<=14?'ta-d7':d<=30?'ta-d14':d<=60?'ta-d30':'ta-old';
 const pctD=(c,p)=>(!p||p===0)?null:((c-p)/Math.abs(p)*100);
@@ -508,24 +509,52 @@ function renderAll(d){
       <div class="d7body">
         <div class="d7l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7name">${r.base_key||r.key}</span>${eT}${r.age_days!=null?`<span class="tag ta-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
         <div style="display:flex;align-items:center;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
-        <div style="display:flex;gap:3px;flex-wrap:wrap">${labelBadges(r)}<span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(r.spend)}</span></div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">${labelBadges(r)}<span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtW(r.spend)}</span></div>
       </div>
     </div>`;
   }
+  let d7Sort='spend';
+  function sortD7(key,btn){
+    d7Sort=key;
+    document.querySelectorAll('.d7fbtn').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    renderD7Section(d);
+  }
+  function sortD7List(arr){
+    return [...arr].sort((a,b)=>d7Sort==='impressions'?(b.impressions||0)-(a.impressions||0):d7Sort==='clicks'?(b.clicks||0)-(a.clicks||0):(b.spend||0)-(a.spend||0));
+  }
+  function renderD7Section(d){
+    const dw=d.d7_win||[],dl=d.d7_lose||[];
+    const swDw=sortD7List(dw), swDl=sortD7List(dl);
+    const container=document.getElementById('d7Container');
+    if(!container)return;
+    container.innerHTML=
+      '<div class="d7cols">'+
+      '<div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span style="font-size:11px;color:var(--text3)">'+dw.length+'개</span></div>'+(swDw.length?swDw.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>')+'</div>'+
+      '<div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span style="font-size:11px;color:var(--text3)">'+dl.length+'개</span></div>'+(swDl.length?swDl.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>')+'</div>'+
+      '</div>';
+  }
   const dw=d.d7_win||[],dl=d.d7_lose||[];
   const d7H=`<div class="sec">
-    <div class="sec-hdr"><div class="sec-icon" style="background:#E6F1FB"><i class="ti ti-test-pipe" style="font-size:15px;color:#185FA5"></i></div><div><span class="sec-title">신규 소재 초기 성과</span><div class="sec-sub">투입 7일 이내 · D+7 기준</div></div></div>
+    <div class="sec-hdr">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sec-icon" style="background:#E6F1FB"><i class="ti ti-test-pipe" style="font-size:15px;color:#185FA5"></i></div>
+        <div><span class="sec-title">이번 주 신규 소재 성과</span><div class="sec-sub">투입 7일 이내</div></div>
+      </div>
+      <div style="display:flex;gap:4px">
+        <button class="d7fbtn fbtn on" onclick="sortD7('spend',this)">광고비순</button>
+        <button class="d7fbtn fbtn" onclick="sortD7('impressions',this)">노출순</button>
+        <button class="d7fbtn fbtn" onclick="sortD7('clicks',this)">클릭순</button>
+      </div>
+    </div>
     <div class="d7w">
       <div class="d7sum">
         <div class="d7st">7일 이내 <strong>${dw.length+dl.length}개</strong></div>
-        <div class="d7st">위닝 광고비 <strong>${fmtS(dw.reduce((s,r)=>s+r.spend,0))}</strong></div>
-        <div class="d7st">루징 광고비 <strong>${fmtS(dl.reduce((s,r)=>s+r.spend,0))}</strong></div>
+        <div class="d7st">위닝 광고비 <strong>${fmtW(dw.reduce((s,r)=>s+r.spend,0))}</strong></div>
+        <div class="d7st">루징 광고비 <strong>${fmtW(dl.reduce((s,r)=>s+r.spend,0))}</strong></div>
         <div class="d7st">위닝 평균 ROAS <strong>${dw.length?fmtR(dw.reduce((s,r)=>s+r.roas_pct,0)/dw.length):'–'}</strong></div>
       </div>
-      <div class="d7cols">
-        <div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span style="font-size:11px;color:var(--text3)">${dw.length}개</span></div>${dw.length?dw.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
-        <div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span style="font-size:11px;color:var(--text3)">${dl.length}개</span></div>${dl.length?dl.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>'}</div>
-      </div>
+      <div id="d7Container"></div>
     </div>
   </div>`;
 
@@ -582,6 +611,7 @@ function renderAll(d){
   </div>`;
 
   document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
+  d7Sort='spend'; renderD7Section(d);
   curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTrendSection(trends);
   setTimeout(()=>renderPieCharts(d.pie),50);
