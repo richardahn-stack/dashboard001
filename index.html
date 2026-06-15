@@ -594,17 +594,47 @@ function renderAll(d){
     </div>
   </div>`;
 
+  // 피라미드 차트 변수
+  const pyAds = d.all_ads||[];
+  const tc_ads   = pyAds.filter(function(r){return r.objective==='트래픽'||r.objective==='콘조';});
+  const ptr_ads  = pyAds.filter(function(r){return r.mgr==='파트너스';});
+  const std_ads  = pyAds.filter(function(r){return r.objective==='전환' && r.mgr!=='파트너스';});
+  const tc_spend  = tc_ads.reduce(function(s,r){return s+r.spend;},0);
+  const ptr_spend = ptr_ads.reduce(function(s,r){return s+r.spend;},0);
+  const std_spend = std_ads.reduce(function(s,r){return s+r.spend;},0);
+  const py_total_spend = (tc_spend+ptr_spend+std_spend)||1;
+  const py_total_cnt   = (tc_ads.length+ptr_ads.length+std_ads.length)||1;
+  const PYC = ['#5EA3D0','#F0A04B','#6DB87A'];
+  const PYN = ['콘조/트래픽','파트너스','상시전환'];
+  const PYW = [60,80,100];
+  function mkPyramid(vals, total, fmt){
+    return [0,1,2].map(function(i){
+      var pct = total>0 ? Math.round(vals[i]/total*100) : 0;
+      return '<div class="pyramid-row">'+
+        '<span class="pyramid-side">'+PYN[i]+'</span>'+
+        '<div class="pyramid-bar-wrap">'+
+          '<div class="pyramid-bar" style="width:'+PYW[i]+'%;background:'+PYC[i]+'">'+
+            '<span class="pyramid-label">'+fmt(vals[i])+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<span class="pyramid-side right">'+pct+'%</span>'+
+      '</div>';
+    }).join('');
+  }
+  var pyLegend = PYN.map(function(n,i){
+    return '<div class="pyramid-legend-item"><div class="pyramid-legend-dot" style="background:'+PYC[i]+'"></div>'+n+'</div>';
+  }).join('');
   const pieH='<div class="sec">'+
     '<div class="sec-hdr"><div class="sec-icon" style="background:#E6F1FB"><i class="ti ti-chart-bar" style="font-size:15px;color:#185FA5"></i></div><div><span class="sec-title">광고비 구성</span><div class="sec-sub">소재 유형별 분포</div></div></div>'+
     '<div class="pyramid-wrap">'+
       '<div class="pyramid-chart">'+
         '<div class="pyramid-title">💰 광고비 기준</div>'+
-        mkPyramid([tc_spend,ptr_spend,std_spend],total_spend,function(v){return fmtS(v);})+
+        mkPyramid([tc_spend,ptr_spend,std_spend],py_total_spend,function(v){return fmtS(v);})+
         '<div class="pyramid-legend">'+pyLegend+'</div>'+
       '</div>'+
       '<div class="pyramid-chart">'+
         '<div class="pyramid-title">📊 소재 수 기준</div>'+
-        mkPyramid([tc_ads.length,ptr_ads.length,std_ads.length],total_cnt,function(v){return v+'개';})+
+        mkPyramid([tc_ads.length,ptr_ads.length,std_ads.length],py_total_cnt,function(v){return v+'개';})+
         '<div class="pyramid-legend">'+pyLegend+'</div>'+
       '</div>'+
     '</div>'+
