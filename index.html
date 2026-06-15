@@ -617,7 +617,7 @@ function renderAll(d){
     </div>
   </div>`;
 
-  // 섹션4: 광고비 구성 (파이차트 + 신규 vs 기존 이중 막대)
+  // 섹션4: 광고비 구성 (파이차트 + 신규 vs 기존 이중 막대 + 툴팁)
   const pyAds = d.all_ads||[];
   const tc_ads  = pyAds.filter(function(r){return r.objective==='트래픽'||r.objective==='콘조';});
   const ptr_ads = pyAds.filter(function(r){return r.mgr==='파트너스';});
@@ -625,97 +625,181 @@ function renderAll(d){
 
   function isNew(r){return r.is_new===true;}
   function sumSpend(arr){return arr.reduce(function(s,r){return s+(r.spend||0);},0);}
+  function pct2(a,b){return b>0?Math.round(a/b*100):0;}
+  function fmtSp(v){
+    if(v>=10000000) return Math.round(v/10000000)+'천만';
+    if(v>=10000) return Math.round(v/10000)+'만';
+    return v.toLocaleString();
+  }
 
-  const totalSpend = sumSpend(pyAds)||1;
-  const totalCnt   = pyAds.length||1;
+  var typeNames  = ['콘조/트래픽','파트너스','상시전환'];
+  var typeColors = ['#5EA3D0','#F0A04B','#6DB87A'];
+  var typeDark   = ['#185FA5','#854F0B','#27500A'];
+  var typeLight  = ['#B5D4F4','#FAC775','#C0DD97'];
+  var typeLText  = ['#0C447C','#633806','#27500A'];
+  var typeAds    = [tc_ads, ptr_ads, std_ads];
 
-  // 파이차트 SVG 생성
-  function mkDonut(slices){
-    var cx=50,cy=50,r=38,ir=22,svg='<svg viewBox="0 0 100 100" width="90" height="90">',s=-Math.PI/2;
-    slices.forEach(function(sl){
+  var spendVals  = typeAds.map(sumSpend);
+  var cntVals    = typeAds.map(function(a){return a.length;});
+  var newCntVals = typeAds.map(function(a){return a.filter(isNew).length;});
+  var newSpVals  = typeAds.map(function(a){return sumSpend(a.filter(isNew));});
+  var totalSpend = spendVals.reduce(function(s,v){return s+v;},0)||1;
+  var totalCnt   = cntVals.reduce(function(s,v){return s+v;},0)||1;
+  var spendPcts  = spendVals.map(function(v){return pct2(v,totalSpend);});
+  var cntPcts    = cntVals.map(function(v){return pct2(v,totalCnt);});
+
+  // 파이차트 SVG (인터랙티브 - canvas 대신 SVG로 직접 구현)
+  function mkInteractivePie(chartId, ttId, values, total, sliceData){
+    var cx=45,cy=45,r=36,ir=22;
+    var paths='',s=-Math.PI/2;
+    sliceData.forEach(function(sl,i){
       var a=sl.pct/100*Math.PI*2,e=s+a;
       var x1=(cx+r*Math.cos(s)).toFixed(2),y1=(cy+r*Math.sin(s)).toFixed(2);
       var x2=(cx+r*Math.cos(e)).toFixed(2),y2=(cy+r*Math.sin(e)).toFixed(2);
-      svg+='<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+(a>Math.PI?1:0)+',1 '+x2+','+y2+' Z" fill="'+sl.color+'"/>';
+      var lg=a>Math.PI?1:0;
+      paths+='<path d="M'+cx+','+cy+' L'+x1+','+y1+' A'+r+','+r+' 0 '+lg+',1 '+x2+','+y2+' Z"'+
+        ' fill="'+sl.color+'"'+
+        ' data-i="'+i+'"'+
+        ' style="cursor:pointer;transition:opacity .15s"'+
+        ' onmouseenter="showPieTT(\''+ttId+'\','+i+')"'+
+        ' onmouseleave="hideTT(\''+ttId+'\')"'+
+        '/>';
       s=e;
     });
-    svg+='<circle cx="'+cx+'" cy="'+cy+'" r="'+ir+'" fill="var(--color-background-primary)"/></svg>';
-    return svg;
+    return '<svg id="'+chartId+'" viewBox="0 0 90 90" width="90" height="90" style="overflow:visible">'+
+      paths+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="'+ir+'" fill="var(--color-background-primary)" style="pointer-events:none"/>'+
+    '</svg>';
   }
 
-  function pct(a,b){return b>0?Math.round(a/b*100):0;}
+  // 범례 HTML
+  function mkPieLeg(pcts){
+    return typeNames.map(function(n,i){
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-secondary)">'+
+        '<div style="width:8px;height:8px;border-radius:2px;background:'+typeColors[i]+';flex-shrink:0"></div>'+
+        n+'<span style="margin-left:auto;font-weight:500;color:var(--color-text-primary)">'+pcts[i]+'%</span></div>';
+    }).join('');
+  }
 
-  var spendSlices=[
-    {pct:pct(sumSpend(tc_ads),totalSpend),color:'#5EA3D0'},
-    {pct:pct(sumSpend(ptr_ads),totalSpend),color:'#F0A04B'},
-    {pct:pct(sumSpend(std_ads),totalSpend),color:'#6DB87A'}
-  ];
-  var cntSlices=[
-    {pct:pct(tc_ads.length,totalCnt),color:'#5EA3D0'},
-    {pct:pct(ptr_ads.length,totalCnt),color:'#F0A04B'},
-    {pct:pct(std_ads.length,totalCnt),color:'#6DB87A'}
-  ];
+  // 툴팁 HTML
+  function mkTT(ttId){
+    return '<div id="'+ttId+'" style="display:none;position:absolute;background:var(--color-background-primary);'+
+      'border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 11px;'+
+      'font-size:12px;color:var(--color-text-primary);pointer-events:none;z-index:99;'+
+      'white-space:nowrap;min-width:130px;top:-80px;left:50%;transform:translateX(-50%)">'+
+      '<div id="'+ttId+'-title" style="font-weight:500;margin-bottom:4px;font-size:12px"></div>'+
+      '<div id="'+ttId+'-r1" style="display:flex;justify-content:space-between;gap:14px;font-size:11px;color:var(--color-text-secondary)"></div>'+
+      '<div id="'+ttId+'-r2" style="display:flex;justify-content:space-between;gap:14px;font-size:11px;color:var(--color-text-secondary)"></div>'+
+      '<div style="position:absolute;bottom:-5px;left:50%;width:8px;height:8px;background:var(--color-background-primary);'+
+      'border-right:0.5px solid var(--color-border-secondary);border-bottom:0.5px solid var(--color-border-secondary);'+
+      'transform:translateX(-50%) rotate(45deg)"></div>'+
+    '</div>';
+  }
 
-  // 이중 막대 한 블록 생성
-  // newCntPct: 신규 소재 수 비율, newSpendPct: 신규 광고비 비율
-  var TYPE_COLORS=['#5EA3D0','#F0A04B','#6DB87A'];
-  var TYPE_DARK=['#185FA5','#854F0B','#27500A'];
-  var TYPE_LIGHT=['#B5D4F4','#FAC775','#C0DD97'];
-  var TYPE_LTEXT=['#0C447C','#633806','#27500A'];
+  // 이중 막대 한 타입
+  function mkDblBarRow(i){
+    var newCntP = pct2(newCntVals[i], cntVals[i]);
+    var newSpP  = pct2(newSpVals[i], spendVals[i]);
+    var oldCntP = 100-newCntP, oldSpP = 100-newSpP;
+    var diff = newSpP - newCntP;
+    var ins = Math.abs(diff)<=5
+      ? {t:'신규·기존 균형',bg:'#E6F1FB',c:'#0C447C'}
+      : diff>5
+        ? {t:'신규 집중 투자',bg:'#FAEEDA',c:'#633806'}
+        : {t:'신규 테스트 단계',bg:'#EAF3DE',c:'#27500A'};
 
-  function mkDblBar(typeIdx, typeName, newCntPct, newSpendPct){
-    var col=TYPE_COLORS[typeIdx], dark=TYPE_DARK[typeIdx], light=TYPE_LIGHT[typeIdx], ltext=TYPE_LTEXT[typeIdx];
-    var diff=newSpendPct-newCntPct;
-    var tag='', tagStyle='';
-    if(Math.abs(diff)<=5){
-      tag='신규·기존 비율 균형'; tagStyle='background:#E6F1FB;color:#0C447C';
-    } else if(diff>5){
-      tag='신규 소재 집중 투자'; tagStyle='background:#FAEEDA;color:#633806';
-    } else {
-      tag='신규 소재 테스트 단계'; tagStyle='background:#EAF3DE;color:#27500A';
+    function seg(w, bg, textC, ttId, titleTxt, r1L, r1V, r2L, r2V){
+      var min=Math.max(w,2);
+      var innerTxt = w>=18 ? (w<30?'':titleTxt+' ')+w+'%' : '';
+      return '<div style="width:'+min+'%;background:'+bg+';display:flex;align-items:center;'+
+        'padding:0 5px;overflow:hidden;cursor:pointer;transition:filter .15s;border-radius:0"'+
+        ' onmouseenter="showBarTT(\''+ttId+'\')"'+
+        ' onmouseleave="hideTT(\''+ttId+'\')"'+
+        '>'+
+        '<span style="font-size:10px;font-weight:500;color:'+textC+';white-space:nowrap;overflow:hidden">'+innerTxt+'</span>'+
+        mkTT(ttId).replace(
+          '<div id="'+ttId+'-title"',
+          '<div id="'+ttId+'-title" style="font-weight:500;margin-bottom:4px;font-size:12px"'
+        ).replace(
+          '</div><div id="'+ttId+'-r1"',
+          '</div><div id="'+ttId+'-r1"'
+        )
+        // 직접 값 주입
+        +'</div>';
     }
-    var newCntW=Math.max(newCntPct,2), oldCntW=100-newCntW;
-    var newSpW=Math.max(newSpendPct,2), oldSpW=100-newSpW;
+
+    // 각 세그먼트별 고유 ID
+    var id0 = 'bt_'+i+'_nc', id1 = 'bt_'+i+'_oc', id2 = 'bt_'+i+'_ns', id3 = 'bt_'+i+'_os';
+
+    function mkSeg(w, bg, textC, elId, titleTxt, r1Label, r1Val, r2Label, r2Val){
+      var min=Math.max(w,2);
+      var inner = w>=18 ? w+'%' : '';
+      return '<div id="'+elId+'-wrap" style="position:relative;width:'+min+'%;display:flex">'+
+        '<div style="width:100%;background:'+bg+';display:flex;align-items:center;padding:0 5px;overflow:hidden;cursor:pointer;height:20px"'+
+          ' onmouseenter="document.getElementById(\''+elId+'\').style.display=\'block\'"'+
+          ' onmouseleave="document.getElementById(\''+elId+'\').style.display=\'none\'"'+
+        '><span style="font-size:10px;font-weight:500;color:'+textC+';white-space:nowrap;overflow:hidden">'+inner+'</span></div>'+
+        '<div id="'+elId+'" style="display:none;position:absolute;background:var(--color-background-primary);'+
+          'border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 11px;'+
+          'font-size:11px;color:var(--color-text-secondary);pointer-events:none;z-index:99;'+
+          'white-space:nowrap;min-width:140px;bottom:28px;left:50%;transform:translateX(-50%)">'+
+          '<div style="font-weight:500;color:var(--color-text-primary);margin-bottom:4px;font-size:12px">'+titleTxt+'</div>'+
+          '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:2px">'+r1Label+
+            '<span style="font-weight:500;color:var(--color-text-primary)">'+r1Val+'</span></div>'+
+          '<div style="display:flex;justify-content:space-between;gap:14px">'+r2Label+
+            '<span style="font-weight:500;color:var(--color-text-primary)">'+r2Val+'</span></div>'+
+          '<div style="position:absolute;bottom:-5px;left:50%;width:8px;height:8px;background:var(--color-background-primary);'+
+          'border-right:0.5px solid var(--color-border-secondary);border-bottom:0.5px solid var(--color-border-secondary);'+
+          'transform:translateX(-50%) rotate(45deg)"></div>'+
+        '</div>'+
+      '</div>';
+    }
+
+    var newCntSeg = mkSeg(newCntP, typeDark[i], '#fff', 'bt'+i+'nc',
+      '신규 소재', '소재 수', newCntVals[i]+'개 ('+newCntP+'%)',
+      '광고비', '₩'+fmtSp(newSpVals[i])+'원');
+    var oldCntSeg = mkSeg(oldCntP, typeLight[i], typeLText[i], 'bt'+i+'oc',
+      '기존 소재', '소재 수', (cntVals[i]-newCntVals[i])+'개 ('+oldCntP+'%)',
+      '광고비', '₩'+fmtSp(spendVals[i]-newSpVals[i])+'원');
+    var newSpSeg = mkSeg(newSpP, typeDark[i], '#fff', 'bt'+i+'ns',
+      '신규 소재', '광고비', '₩'+fmtSp(newSpVals[i])+'원 ('+newSpP+'%)',
+      '소재 수', newCntVals[i]+'개');
+    var oldSpSeg = mkSeg(oldSpP, typeLight[i], typeLText[i], 'bt'+i+'os',
+      '기존 소재', '광고비', '₩'+fmtSp(spendVals[i]-newSpVals[i])+'원 ('+oldSpP+'%)',
+      '소재 수', (cntVals[i]-newCntVals[i])+'개');
+
     return '<div style="margin-bottom:14px">'+
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'+
-        '<div style="width:8px;height:8px;border-radius:2px;background:'+col+';flex-shrink:0"></div>'+
-        '<div style="font-size:12px;font-weight:500;color:var(--color-text-primary)">'+typeName+'</div>'+
-        '<div style="font-size:10px;padding:2px 8px;border-radius:20px;margin-left:auto;'+tagStyle+'">'+tag+'</div>'+
+        '<div style="width:8px;height:8px;border-radius:2px;background:'+typeColors[i]+';flex-shrink:0"></div>'+
+        '<div style="font-size:12px;font-weight:500;color:var(--color-text-primary)">'+typeNames[i]+'</div>'+
+        '<div style="font-size:10px;padding:2px 8px;border-radius:20px;margin-left:auto;background:'+ins.bg+';color:'+ins.c+'">'+ins.t+'</div>'+
       '</div>'+
       '<div style="display:flex;flex-direction:column;gap:3px">'+
         '<div style="display:flex;align-items:center;gap:7px">'+
           '<div style="font-size:10px;color:var(--color-text-tertiary);width:36px;text-align:right;flex-shrink:0">소재 수</div>'+
-          '<div style="flex:1;height:20px;border-radius:4px;overflow:hidden;display:flex">'+
-            '<div style="width:'+newCntW+'%;background:'+col+';display:flex;align-items:center;padding-left:5px"><span style="font-size:10px;font-weight:500;color:#fff;white-space:nowrap">신규 '+newCntPct+'%</span></div>'+
-            '<div style="width:'+oldCntW+'%;background:'+light+';display:flex;align-items:center;padding-left:5px"><span style="font-size:10px;font-weight:500;color:'+ltext+';white-space:nowrap">기존 '+(100-newCntPct)+'%</span></div>'+
+          '<div style="flex:1;height:20px;border-radius:4px;overflow:visible;display:flex;position:relative">'+
+            newCntSeg+oldCntSeg+
           '</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:7px">'+
           '<div style="font-size:10px;color:var(--color-text-tertiary);width:36px;text-align:right;flex-shrink:0">광고비</div>'+
-          '<div style="flex:1;height:20px;border-radius:4px;overflow:hidden;display:flex">'+
-            '<div style="width:'+newSpW+'%;background:'+dark+';display:flex;align-items:center;padding-left:5px"><span style="font-size:10px;font-weight:500;color:#fff;white-space:nowrap">신규 '+newSpendPct+'%</span></div>'+
-            '<div style="width:'+oldSpW+'%;background:'+light+';display:flex;align-items:center;padding-left:5px"><span style="font-size:10px;font-weight:500;color:'+ltext+';white-space:nowrap">기존 '+(100-newSpendPct)+'%</span></div>'+
+          '<div style="flex:1;height:20px;border-radius:4px;overflow:visible;display:flex;position:relative">'+
+            newSpSeg+oldSpSeg+
           '</div>'+
         '</div>'+
       '</div>'+
     '</div>';
   }
 
-  function mkPieLeg(slices, labels){
-    return labels.map(function(l,i){
-      return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-secondary)">'+
-        '<div style="width:8px;height:8px;border-radius:2px;background:'+slices[i].color+';flex-shrink:0"></div>'+
-        l+'<span style="margin-left:auto;font-weight:500;color:var(--color-text-primary)">'+slices[i].pct+'%</span></div>';
-    }).join('');
-  }
+  // 파이 툴팁 데이터 저장용 (JS 전역)
+  var _pieTTData = {};
 
-  var tcNewCnt=pct(tc_ads.filter(isNew).length, tc_ads.length||1);
-  var tcNewSp=pct(sumSpend(tc_ads.filter(isNew)), sumSpend(tc_ads)||1);
-  var ptrNewCnt=pct(ptr_ads.filter(isNew).length, ptr_ads.length||1);
-  var ptrNewSp=pct(sumSpend(ptr_ads.filter(isNew)), sumSpend(ptr_ads)||1);
-  var stdNewCnt=pct(std_ads.filter(isNew).length, std_ads.length||1);
-  var stdNewSp=pct(sumSpend(std_ads.filter(isNew)), sumSpend(std_ads)||1);
+  var pieSpendSvg = mkInteractivePie('svgPS','ttPS',spendVals,totalSpend,
+    spendPcts.map(function(p,i){return {pct:p,color:typeColors[i]};}));
+  var pieCntSvg   = mkInteractivePie('svgPC','ttPC',cntVals,totalCnt,
+    cntPcts.map(function(p,i){return {pct:p,color:typeColors[i]};}));
 
+  // pieH 조립
   const pieH = '<div class="sec">'+
     '<div class="sec-hdr"><div class="sec-icon" style="background:#E6F1FB">'+
       '<i class="ti ti-chart-pie" style="font-size:15px;color:#185FA5"></i></div>'+
@@ -727,16 +811,38 @@ function renderAll(d){
         '<div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);display:flex;align-items:center;gap:5px;margin-bottom:8px">'+
           '<i class="ti ti-coin" style="font-size:13px"></i>광고비 기준</div>'+
         '<div style="display:flex;align-items:center;gap:14px">'+
-          mkDonut(spendSlices)+
-          '<div style="display:flex;flex-direction:column;gap:5px;flex:1">'+mkPieLeg(spendSlices,['콘조/트래픽','파트너스','상시전환'])+'</div>'+
+          '<div style="position:relative;flex-shrink:0">'+
+            pieSpendSvg+
+            '<div id="ttPS" style="display:none;position:absolute;background:var(--color-background-primary);'+
+            'border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 11px;'+
+            'font-size:11px;color:var(--color-text-secondary);pointer-events:none;z-index:99;'+
+            'white-space:nowrap;min-width:130px;top:-85px;left:50%;transform:translateX(-50%)">'+
+              '<div id="ttPS-title" style="font-weight:500;color:var(--color-text-primary);margin-bottom:4px;font-size:12px"></div>'+
+              '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:2px">광고비<span id="ttPS-spend" style="font-weight:500;color:var(--color-text-primary)"></span></div>'+
+              '<div style="display:flex;justify-content:space-between;gap:14px">비율<span id="ttPS-pct" style="font-weight:500;color:var(--color-text-primary)"></span></div>'+
+              '<div style="position:absolute;bottom:-5px;left:50%;width:8px;height:8px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-secondary);border-bottom:0.5px solid var(--color-border-secondary);transform:translateX(-50%) rotate(45deg)"></div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:5px;flex:1">'+mkPieLeg(spendPcts)+'</div>'+
         '</div>'+
       '</div>'+
       '<div>'+
         '<div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);display:flex;align-items:center;gap:5px;margin-bottom:8px">'+
           '<i class="ti ti-stack" style="font-size:13px"></i>소재 수 기준</div>'+
         '<div style="display:flex;align-items:center;gap:14px">'+
-          mkDonut(cntSlices)+
-          '<div style="display:flex;flex-direction:column;gap:5px;flex:1">'+mkPieLeg(cntSlices,['콘조/트래픽','파트너스','상시전환'])+'</div>'+
+          '<div style="position:relative;flex-shrink:0">'+
+            pieCntSvg+
+            '<div id="ttPC" style="display:none;position:absolute;background:var(--color-background-primary);'+
+            'border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 11px;'+
+            'font-size:11px;color:var(--color-text-secondary);pointer-events:none;z-index:99;'+
+            'white-space:nowrap;min-width:130px;top:-85px;left:50%;transform:translateX(-50%)">'+
+              '<div id="ttPC-title" style="font-weight:500;color:var(--color-text-primary);margin-bottom:4px;font-size:12px"></div>'+
+              '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:2px">소재 수<span id="ttPC-cnt" style="font-weight:500;color:var(--color-text-primary)"></span></div>'+
+              '<div style="display:flex;justify-content:space-between;gap:14px">비율<span id="ttPC-pct" style="font-weight:500;color:var(--color-text-primary)"></span></div>'+
+              '<div style="position:absolute;bottom:-5px;left:50%;width:8px;height:8px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-secondary);border-bottom:0.5px solid var(--color-border-secondary);transform:translateX(-50%) rotate(45deg)"></div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;flex-direction:column;gap:5px;flex:1">'+mkPieLeg(cntPcts)+'</div>'+
         '</div>'+
       '</div>'+
     '</div>'+
@@ -745,12 +851,9 @@ function renderAll(d){
 
     '<div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);display:flex;align-items:center;gap:5px;margin-bottom:4px">'+
       '<i class="ti ti-arrows-diff" style="font-size:13px"></i>신규 vs 기존 소재 비교</div>'+
-    '<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:12px">'+
-      '유형별 소재 수 / 광고비 비율 비교 — 두 막대 차이가 클수록 투자 집중도 차이</div>'+
+    '<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:12px">막대에 마우스를 올리면 광고비·소재 수 확인 가능</div>'+
 
-    mkDblBar(0,'콘조/트래픽',tcNewCnt,tcNewSp)+
-    mkDblBar(1,'파트너스',ptrNewCnt,ptrNewSp)+
-    mkDblBar(2,'상시전환',stdNewCnt,stdNewSp)+
+    [0,1,2].map(mkDblBarRow).join('')+
 
     '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">'+
       '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-tertiary)">'+
@@ -759,6 +862,10 @@ function renderAll(d){
         '<div style="width:9px;height:9px;border-radius:2px;background:#ccc"></div>기존 소재 (연한 색)</div>'+
     '</div>'+
   '</div>';
+
+  // 파이차트 전역 데이터 저장 (onmouseenter에서 참조)
+  window._pieSpendData = {vals:spendVals, total:totalSpend, pcts:spendPcts};
+  window._pieCntData   = {vals:cntVals,   total:totalCnt,   pcts:cntPcts};
 
   // 섹션5: 테이블
   const tbH=(d.all_ads||[]).map(r=>{
@@ -811,6 +918,39 @@ function renderAll(d){
   curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTrendSection(trends);
   setTimeout(()=>renderPieCharts(d.pie),50);
+}
+
+function showPieTT(ttId, i){
+  var data = ttId==='ttPS' ? window._pieSpendData : window._pieCntData;
+  if(!data) return;
+  var tt = document.getElementById(ttId);
+  if(!tt) return;
+  tt.style.display='block';
+  var titleEl = document.getElementById(ttId+'-title');
+  if(titleEl) titleEl.textContent = ['콘조/트래픽','파트너스','상시전환'][i];
+  if(ttId==='ttPS'){
+    var sp=document.getElementById('ttPS-spend');
+    var pt=document.getElementById('ttPS-pct');
+    if(sp) sp.textContent='₩'+Math.round(data.vals[i]/10000)+'만원';
+    if(pt) pt.textContent=data.pcts[i]+'%';
+  } else {
+    var cn=document.getElementById('ttPC-cnt');
+    var pt2=document.getElementById('ttPC-pct');
+    if(cn) cn.textContent=data.vals[i]+'개';
+    if(pt2) pt2.textContent=data.pcts[i]+'%';
+  }
+}
+function hideTT(ttId){
+  var tt=document.getElementById(ttId);
+  if(tt) tt.style.display='none';
+}
+function showBarTT(id){
+  var el=document.getElementById(id);
+  if(el) el.style.display='block';
+}
+function hideBarTT(id){
+  var el=document.getElementById(id);
+  if(el) el.style.display='none';
 }
 
 function setF(type,val,btn){
