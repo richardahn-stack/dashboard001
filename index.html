@@ -384,6 +384,18 @@ function sortD7List(arr){
   );
 }
 
+function mkD7(r){
+    const eT=r.is_new?`<span class="tag td-new">🆕 NEW</span>`:r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
+    return`<div class="d7row" onclick="openModal('${r.key}')">
+      <div class="d7th">${tThumb(r.img,'d7te','d7ov')}</div>
+      <div class="d7body">
+        <div class="d7l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7name">${r.base_key||r.key}</span>${eT}${r.age_days!=null?`<span class="tag ta-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
+        <div style="display:flex;align-items:center;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">${labelBadges(r)}<span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtW(r.spend)}</span></div>
+      </div>
+    </div>`;
+  }
+
 function renderD7Section(d){
   const dw=d.d7_win||[], dl=d.d7_lose||[];
   const swDw=sortD7List(dw), swDl=sortD7List(dl);
@@ -408,8 +420,21 @@ async function switchWeek(id){
   renderTabs();
   if(cache[id]){curRefDate=cache[id].ref_date||null;renderAll(cache[id]);return;}
   document.getElementById('mainContent').innerHTML='<div class="loading">데이터 불러오는 중...</div>';
-  try{const r=await fetch(`data/${id}.json`);cache[id]=await r.json();curRefDate=cache[id].ref_date||null;renderAll(cache[id]);}
-  catch(e){document.getElementById('mainContent').innerHTML=`<div class="loading" style="color:#A32D2D">${id}.json 로드 실패</div>`;}
+  try{
+    const r=await fetch(`data/${id}.json`);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    cache[id]=await r.json();
+    curRefDate=cache[id].ref_date||null;
+  } catch(e){
+    document.getElementById('mainContent').innerHTML=`<div class="loading" style="color:#A32D2D">${id}.json 로드 실패: ${e.message}</div>`;
+    return;
+  }
+  try{
+    renderAll(cache[id]);
+  } catch(e){
+    console.error('[renderAll 오류]', e.message, e.stack);
+    document.getElementById('mainContent').innerHTML=`<div class="loading" style="color:#A32D2D">렌더링 오류: ${e.message}</div>`;
+  }
 }
 
 const SORT_METRIC={
@@ -562,17 +587,6 @@ function renderAll(d){
   </div>`;
 
   // 섹션3: D+7
-  function mkD7(r){
-    const eT=r.is_new?`<span class="tag td-new">🆕 NEW</span>`:r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
-    return`<div class="d7row" onclick="openModal('${r.key}')">
-      <div class="d7th">${tThumb(r.img,'d7te','d7ov')}</div>
-      <div class="d7body">
-        <div class="d7l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7name">${r.base_key||r.key}</span>${eT}${r.age_days!=null?`<span class="tag ta-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
-        <div style="display:flex;align-items:center;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
-        <div style="display:flex;gap:3px;flex-wrap:wrap">${labelBadges(r)}<span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtW(r.spend)}</span></div>
-      </div>
-    </div>`;
-  }
 
   const dw=d.d7_win||[],dl=d.d7_lose||[];
   const d7H=`<div class="sec">
