@@ -847,7 +847,7 @@ function openModal(key){
   if(!cur)return;
   const allS=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
   const fId=(()=>{for(const w of allS){if(cache[w.id]?.all_ads?.find(r=>r.key===key))return w.id;}return curWeekId;})();
-  const isNew=fId===curWeekId;
+  const isNew=cur.is_new===true;
   document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
   // video 필드 있으면 영상 재생, 없고 img_type이 video면 img ID로 영상 재생
