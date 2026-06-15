@@ -38,6 +38,7 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .sec-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .sec-title{font-size:16px;font-weight:600;color:var(--text)}
+.sec-hdr>div:first-child{flex:1;min-width:0}
 .sec-sub{font-size:11px;color:var(--text3);margin-left:2px}
 .perf-section{background:var(--bg2);border-radius:var(--rl);padding:1.25rem;margin-bottom:0}
 .filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
@@ -386,7 +387,18 @@ function buildWinCard(c,thr,sort='revenue'){
   return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')">
     <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div>
       <div class="wthumb-tl"><span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
-        <span class="tip" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:#EAF3DE;color:#27500A;cursor:default">${fmtR(c.roas_pct)}${tipHtml('roas',`이번 주 평균 ${fmtR((c.win_flags?0:0)||0)} 대비`)}</span>
+        ${(()=>{
+          let delta=null,isGood=true;
+          if(sort==='revenue'&&c.prev_revenue>0){delta=(c.revenue-c.prev_revenue)/c.prev_revenue*100;isGood=delta>=0;}
+          else if(sort==='roas'&&c.roas_delta!=null){delta=c.roas_delta;isGood=delta>=0;}
+          else if(sort==='ctr'&&c.prev_ctr>0){delta=(c.ctr-c.prev_ctr)/c.prev_ctr*100;isGood=delta>=0;}
+          else if(sort==='cpc'&&c.prev_cpc>0){delta=(c.prev_cpc-c.cpc)/c.prev_cpc*100;isGood=delta>=0;}
+          if(delta==null)return c.is_new?'<span class="tag" style="font-size:9px;background:#E6F1FB;color:#0C447C;font-weight:600">NEW</span>':'';
+          const sign=delta>=0?'+':'';
+          const bg=isGood?'#EAF3DE':'#FCEBEB';
+          const col=isGood?'#27500A':'#791F1F';
+          return '<span class="tag" style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:5px;background:'+bg+';color:'+col+'">'+sign+Math.round(delta)+'%</span>';
+        })()}
       </div>
       <div class="wthumb-zoom"><i class="ti ti-zoom-in"></i></div>
     </div>
@@ -398,7 +410,6 @@ function buildWinCard(c,thr,sort='revenue'){
       <div class="wmets"><span class="sc"><i class="ti ti-ad" style="font-size:10px"></i>${fmtS(c.spend)}</span></div>
       <div class="wdots">${dots}</div>
       ${failKeys.length?`<div class="wfail">⚠ ${failKeys.join('·')} 미달</div>`:''}
-      <div style="font-size:10px;color:var(--text3)">전주 대비 ${dT}</div>
     </div>
   </div>`;
 }
