@@ -371,8 +371,11 @@ let curD7Data = null;
 
 function sortD7(key, btn){
   d7Sort = key;
-  document.querySelectorAll('.d7fbtn').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
+  // btn이 있으면 직접, 없으면 querySelectorAll로 찾아서 on 적용
+  document.querySelectorAll('.d7fbtn').forEach(b => {
+    b.classList.remove('on');
+    if(b === btn) b.classList.add('on');
+  });
   if(curD7Data) renderD7Section(curD7Data);
 }
 
@@ -595,18 +598,20 @@ function renderAll(d){
         <div class="sec-icon" style="background:#E6F1FB"><i class="ti ti-test-pipe" style="font-size:15px;color:#185FA5"></i></div>
         <div><span class="sec-title">이번 주 신규 소재 성과</span><div class="sec-sub">투입 7일 이내</div></div>
       </div>
-      <div style="display:flex;gap:4px">
-        <button class="d7fbtn fbtn on" onclick="sortD7('spend',this)">광고비순</button>
-        <button class="d7fbtn fbtn" onclick="sortD7('impressions',this)">노출순</button>
-        <button class="d7fbtn fbtn" onclick="sortD7('clicks',this)">클릭순</button>
-      </div>
     </div>
     <div class="d7w">
-      <div class="d7sum">
-        <div class="d7st">7일 이내 <strong>${dw.length+dl.length}개</strong></div>
-        <div class="d7st">위닝 광고비 <strong>${fmtW(dw.reduce((s,r)=>s+r.spend,0))}</strong></div>
-        <div class="d7st">루징 광고비 <strong>${fmtW(dl.reduce((s,r)=>s+r.spend,0))}</strong></div>
-        <div class="d7st">위닝 평균 ROAS <strong>${dw.length?fmtR(dw.reduce((s,r)=>s+r.roas_pct,0)/dw.length):'–'}</strong></div>
+      <div class="d7sum" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div class="d7st">7일 이내 <strong>${dw.length+dl.length}개</strong></div>
+          <div class="d7st">위닝 광고비 <strong>${fmtW(dw.reduce((s,r)=>s+r.spend,0))}</strong></div>
+          <div class="d7st">루징 광고비 <strong>${fmtW(dl.reduce((s,r)=>s+r.spend,0))}</strong></div>
+          <div class="d7st">위닝 평균 ROAS <strong>${dw.length?fmtR(dw.reduce((s,r)=>s+r.roas_pct,0)/dw.length):'–'}</strong></div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="d7fbtn fbtn on" onclick="sortD7('spend',this)">광고비순</button>
+          <button class="d7fbtn fbtn" onclick="sortD7('impressions',this)">노출순</button>
+          <button class="d7fbtn fbtn" onclick="sortD7('clicks',this)">클릭순</button>
+        </div>
       </div>
       <div id="d7Container"></div>
     </div>
@@ -722,6 +727,10 @@ function renderAll(d){
 
   document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
   d7Sort='spend'; curD7Data=d; renderD7Section(d);
+  // 필터 버튼 on 상태 초기화
+  document.querySelectorAll('.d7fbtn').forEach(b=>{
+    b.classList.toggle('on', b.textContent.trim()==='광고비순');
+  });
   curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTrendSection(trends);
   setTimeout(()=>renderPieCharts(d.pie),50);
