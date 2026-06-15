@@ -734,24 +734,20 @@ function renderAll(d){
     function mkSeg(w, bg, textC, elId, titleTxt, r1Label, r1Val, r2Label, r2Val){
       var min=Math.max(w,2);
       var inner = w>=18 ? w+'%' : '';
-      return '<div id="'+elId+'-wrap" style="position:relative;width:'+min+'%;display:flex">'+
+      var colorDot = '<div style="width:8px;height:8px;border-radius:2px;background:'+bg+';display:inline-block;margin-right:5px;vertical-align:middle"></div>';
+      var dataHtml =
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'+colorDot+
+          '<span style="font-weight:500;color:var(--color-text-primary);font-size:13px">'+titleTxt+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;gap:20px;margin-bottom:3px;font-size:12px">'+
+          '<span>'+r1Label+'</span><span style="font-weight:500;color:var(--color-text-primary)">'+r1Val+'</span></div>'+
+        '<div style="display:flex;justify-content:space-between;gap:20px;font-size:12px">'+
+          '<span>'+r2Label+'</span><span style="font-weight:500;color:var(--color-text-primary)">'+r2Val+'</span></div>';
+      return '<div id="'+elId+'-wrap" style="width:'+min+'%;display:flex;position:relative">'+
+        '<div id="'+elId+'_data" style="display:none">'+dataHtml+'</div>'+
         '<div style="width:100%;background:'+bg+';display:flex;align-items:center;padding:0 5px;overflow:hidden;cursor:pointer;height:20px"'+
-          ' onmouseenter="document.getElementById(\''+elId+'\').style.display=\'block\'"'+
-          ' onmouseleave="document.getElementById(\''+elId+'\').style.display=\'none\'"'+
+          ' onmouseenter="showBarTT(\''+elId+'\')"'+
+          ' onmouseleave="hideBarTT()"'+
         '><span style="font-size:10px;font-weight:500;color:'+textC+';white-space:nowrap;overflow:hidden">'+inner+'</span></div>'+
-        '<div id="'+elId+'" style="display:none;position:absolute;background:var(--color-background-primary);'+
-          'border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 11px;'+
-          'font-size:11px;color:var(--color-text-secondary);pointer-events:none;z-index:99;'+
-          'white-space:nowrap;min-width:140px;bottom:28px;left:50%;transform:translateX(-50%)">'+
-          '<div style="font-weight:500;color:var(--color-text-primary);margin-bottom:4px;font-size:12px">'+titleTxt+'</div>'+
-          '<div style="display:flex;justify-content:space-between;gap:14px;margin-bottom:2px">'+r1Label+
-            '<span style="font-weight:500;color:var(--color-text-primary)">'+r1Val+'</span></div>'+
-          '<div style="display:flex;justify-content:space-between;gap:14px">'+r2Label+
-            '<span style="font-weight:500;color:var(--color-text-primary)">'+r2Val+'</span></div>'+
-          '<div style="position:absolute;bottom:-5px;left:50%;width:8px;height:8px;background:var(--color-background-primary);'+
-          'border-right:0.5px solid var(--color-border-secondary);border-bottom:0.5px solid var(--color-border-secondary);'+
-          'transform:translateX(-50%) rotate(45deg)"></div>'+
-        '</div>'+
       '</div>';
     }
 
@@ -920,38 +916,61 @@ function renderAll(d){
   setTimeout(()=>renderPieCharts(d.pie),50);
 }
 
+// ── 전역 플로팅 툴팁 ──
+var _gtt = null;
+document.addEventListener('mousemove', function(e){
+  if(!_gtt) _gtt = document.getElementById('globalTT');
+  if(!_gtt || _gtt.style.display==='none') return;
+  var x = e.clientX, y = e.clientY;
+  var tw = _gtt.offsetWidth||160, th = _gtt.offsetHeight||80;
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var left = x + 14;
+  var top  = y + 14;
+  if(left + tw > vw - 10) left = x - tw - 10;
+  if(top  + th > vh - 10) top  = y - th - 10;
+  _gtt.style.left = left + 'px';
+  _gtt.style.top  = top  + 'px';
+});
+
+function _showGTT(html){
+  if(!_gtt) _gtt = document.getElementById('globalTT');
+  if(!_gtt) return;
+  _gtt.innerHTML = html;
+  _gtt.style.display = 'block';
+}
+function _hideGTT(){
+  if(!_gtt) _gtt = document.getElementById('globalTT');
+  if(_gtt) _gtt.style.display = 'none';
+}
+
 function showPieTT(ttId, i){
   var data = ttId==='ttPS' ? window._pieSpendData : window._pieCntData;
   if(!data) return;
-  var tt = document.getElementById(ttId);
-  if(!tt) return;
-  tt.style.display='block';
-  var titleEl = document.getElementById(ttId+'-title');
-  if(titleEl) titleEl.textContent = ['콘조/트래픽','파트너스','상시전환'][i];
+  var names=['콘조/트래픽','파트너스','상시전환'];
+  var colors=['#5EA3D0','#F0A04B','#6DB87A'];
+  var html = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'+
+    '<div style="width:9px;height:9px;border-radius:2px;background:'+colors[i]+'"></div>'+
+    '<span style="font-weight:500;color:var(--color-text-primary);font-size:13px">'+names[i]+'</span></div>';
   if(ttId==='ttPS'){
-    var sp=document.getElementById('ttPS-spend');
-    var pt=document.getElementById('ttPS-pct');
-    if(sp) sp.textContent='₩'+Math.round(data.vals[i]/10000)+'만원';
-    if(pt) pt.textContent=data.pcts[i]+'%';
+    html += '<div style="display:flex;justify-content:space-between;gap:20px;margin-bottom:3px">'+
+      '<span>광고비</span><span style="font-weight:500;color:var(--color-text-primary)">₩'+
+      Math.round(data.vals[i]/10000).toLocaleString()+'만원</span></div>';
   } else {
-    var cn=document.getElementById('ttPC-cnt');
-    var pt2=document.getElementById('ttPC-pct');
-    if(cn) cn.textContent=data.vals[i]+'개';
-    if(pt2) pt2.textContent=data.pcts[i]+'%';
+    html += '<div style="display:flex;justify-content:space-between;gap:20px;margin-bottom:3px">'+
+      '<span>소재 수</span><span style="font-weight:500;color:var(--color-text-primary)">'+
+      data.vals[i]+'개</span></div>';
   }
+  html += '<div style="display:flex;justify-content:space-between;gap:20px">'+
+    '<span>비율</span><span style="font-weight:500;color:var(--color-text-primary)">'+data.pcts[i]+'%</span></div>';
+  _showGTT(html);
 }
-function hideTT(ttId){
-  var tt=document.getElementById(ttId);
-  if(tt) tt.style.display='none';
-}
+function hideTT(){ _hideGTT(); }
 function showBarTT(id){
-  var el=document.getElementById(id);
-  if(el) el.style.display='block';
+  var el = document.getElementById(id+'_data');
+  if(!el) return;
+  _showGTT(el.innerHTML);
 }
-function hideBarTT(id){
-  var el=document.getElementById(id);
-  if(el) el.style.display='none';
-}
+function hideBarTT(){ _hideGTT(); }
 
 function setF(type,val,btn){
   curFilter[type]=val;
@@ -1407,5 +1426,19 @@ function renderTChart(wd){
 
 loadWeeks();
 </script>
+<div id="globalTT" style="
+  display:none;
+  position:fixed;
+  background:var(--color-background-primary);
+  border:1px solid var(--color-border-primary);
+  border-radius:9px;
+  padding:10px 13px;
+  font-size:12px;
+  color:var(--color-text-secondary);
+  pointer-events:none;
+  z-index:9999;
+  min-width:148px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.12);
+"></div>
 </body>
 </html>
