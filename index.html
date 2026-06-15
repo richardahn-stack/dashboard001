@@ -38,7 +38,8 @@ body{background:var(--bg3);color:var(--text);font-family:-apple-system,BlinkMacS
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .sec-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .sec-title{font-size:16px;font-weight:600;color:var(--text)}
-.sec-hdr>div:first-child{flex:1;min-width:0}
+.sec-hdr>.sec-icon{flex-shrink:0}
+.sec-hdr>div:not(.sec-icon){flex:1;min-width:0}
 .sec-sub{font-size:11px;color:var(--text3);margin-left:2px}
 .perf-section{background:var(--bg2);border-radius:var(--rl);padding:1.25rem;margin-bottom:0}
 .filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center}
@@ -347,6 +348,38 @@ const cache={};
 let tChart=null,curMetric='all',mKey=null,curTrendFilter={up:'spend_up',dn:'conv_dn'};
 let pieCharts={};
 
+
+// ── D7 섹션 정렬 (전역) ──
+let d7Sort = 'spend';
+let curD7Data = null;
+
+function sortD7(key, btn){
+  d7Sort = key;
+  document.querySelectorAll('.d7fbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  if(curD7Data) renderD7Section(curD7Data);
+}
+
+function sortD7List(arr){
+  return [...arr].sort((a,b) =>
+    d7Sort==='impressions' ? (b.impressions||0)-(a.impressions||0) :
+    d7Sort==='clicks'      ? (b.clicks||0)-(a.clicks||0) :
+                             (b.spend||0)-(a.spend||0)
+  );
+}
+
+function renderD7Section(d){
+  const dw=d.d7_win||[], dl=d.d7_lose||[];
+  const swDw=sortD7List(dw), swDl=sortD7List(dl);
+  const container=document.getElementById('d7Container');
+  if(!container) return;
+  container.innerHTML=
+    '<div class="d7cols">'+
+    '<div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span style="font-size:11px;color:var(--text3)">'+dw.length+'개</span></div>'+(swDw.length?swDw.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>')+'</div>'+
+    '<div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span style="font-size:11px;color:var(--text3)">'+dl.length+'개</span></div>'+(swDl.length?swDl.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>')+'</div>'+
+    '</div>';
+}
+
 async function loadWeeks(){
   try{const r=await fetch('data/weeks.json');weeks=await r.json();renderTabs();if(weeks.length)switchWeek(weeks[0].id);}
   catch(e){document.getElementById('weekTabs').innerHTML='<div style="padding:8px;color:#A32D2D;font-size:12px">weeks.json 로드 실패</div>';}
@@ -524,27 +557,7 @@ function renderAll(d){
       </div>
     </div>`;
   }
-  let d7Sort='spend';
-  function sortD7(key,btn){
-    d7Sort=key;
-    document.querySelectorAll('.d7fbtn').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on');
-    renderD7Section(d);
-  }
-  function sortD7List(arr){
-    return [...arr].sort((a,b)=>d7Sort==='impressions'?(b.impressions||0)-(a.impressions||0):d7Sort==='clicks'?(b.clicks||0)-(a.clicks||0):(b.spend||0)-(a.spend||0));
-  }
-  function renderD7Section(d){
-    const dw=d.d7_win||[],dl=d.d7_lose||[];
-    const swDw=sortD7List(dw), swDl=sortD7List(dl);
-    const container=document.getElementById('d7Container');
-    if(!container)return;
-    container.innerHTML=
-      '<div class="d7cols">'+
-      '<div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#27500A"><i class="ti ti-circle-check" style="font-size:14px"></i>위닝</div><span style="font-size:11px;color:var(--text3)">'+dw.length+'개</span></div>'+(swDw.length?swDw.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>')+'</div>'+
-      '<div class="d7col"><div class="d7ch"><div class="d7ct" style="color:#A32D2D"><i class="ti ti-circle-x" style="font-size:14px"></i>루징</div><span style="font-size:11px;color:var(--text3)">'+dl.length+'개</span></div>'+(swDl.length?swDl.map(mkD7).join(''):'<div style="padding:1rem;font-size:12px;color:var(--text3);text-align:center">없음</div>')+'</div>'+
-      '</div>';
-  }
+
   const dw=d.d7_win||[],dl=d.d7_lose||[];
   const d7H=`<div class="sec">
     <div class="sec-hdr">
@@ -622,7 +635,7 @@ function renderAll(d){
   </div>`;
 
   document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
-  d7Sort='spend'; renderD7Section(d);
+  d7Sort='spend'; curD7Data=d; renderD7Section(d);
   curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTrendSection(trends);
   setTimeout(()=>renderPieCharts(d.pie),50);
