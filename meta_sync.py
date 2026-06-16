@@ -16,6 +16,9 @@ BASE_URL      = f"https://graph.facebook.com/{API_VERSION}"
 GITHUB_REPO   = "richardahn-stack/dashboard001"   # 본인 레포
 OUTPUT_DIR    = "./data"                           # JSON 저장 경로
 
+# 드라이브 맵 경로 (로컬 실행 시 fallback용)
+DRIVE_MAP_PATH = "./drive_map.json"
+
 # ── 소재 분류 로직 ────────────────────────────────
 SKIP = {'공식','DT','dt','영상','배너','콘조','오딧','플랩','핑크프로모션',
         '전환','상시','2차활용','카탈로그','트래픽','핑크사전','웨딩프로모션'}
@@ -62,6 +65,51 @@ def get_age(name, ref):
         return int(days) if days >= 0 else None
     except: return None
 
+
+# ── 드라이브 맵 fallback ──────────────────────────
+def load_drive_map():
+    """드라이브 맵 로드 (없으면 빈 dict 반환)"""
+    try:
+        with open(DRIVE_MAP_PATH, 'r') as f:
+            dm = json.load(f)
+        img_exact = {tuple(k.split('||')): v for k, v in dm.get('img_exact', {}).items()}
+        img_fb    = dm.get('img_fallback', {})
+        vid_exact = {tuple(k.split('||')): v for k, v in dm.get('vid_exact', {}).items()}
+        # suffix fallback용 인덱스
+        bks_by_land = {}
+        for k in list(dm.get('vid_exact',{}).keys()) + list(dm.get('img_exact',{}).keys()):
+            bk, land = k.split('||')
+            bks_by_land.setdefault(land, [])
+            if bk not in bks_by_land[land]:
+                bks_by_land[land].append(bk)
+        return img_exact, img_fb, vid_exact, bks_by_land
+    except Exception:
+        return {}, {}, {}, {}
+
+def drive_thumb(bk, land, media, img_exact, img_fb, vid_exact, bks_by_land):
+    """드라이브 맵에서 썸네일 ID 검색 (suffix fallback 포함)"""
+    def suffix_match(bk, land):
+        for dbk in bks_by_land.get(land, []):
+            if bk.endswith(dbk) and bk != dbk:
+                return dbk
+        return None
+    vid = vid_exact.get((bk, land))
+    img = img_exact.get((bk, land)) or img_fb.get(bk)
+    if not vid and not img:
+        mbk = suffix_match(bk, land)
+        if mbk:
+            vid = vid_exact.get((mbk, land))
+            img = img_exact.get((mbk, land)) or img_fb.get(mbk)
+    if media == '영상':
+        if vid: return vid, 'video'
+        if img: return img, 'img'
+    else:
+        if img: return img, 'img'
+        if vid: return vid, 'video'
+    return None, None
+
+# 드라이브 맵 전역 로드
+_dm_img_exact, _dm_img_fb, _dm_vid_exact, _dm_bks_by_land = load_drive_map()
 
 # ── 메타 API 호출 ─────────────────────────────────
 def api_get(path, params, token):
@@ -285,12 +333,25 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
             wf = {'ctr': r['ctr']>tc_avg_ctr}
             ws = 1 if wf['ctr'] else 0; wt = 'tc'
 
-        # 소재 썸네일 (메타 API에서 직접)
+        # 소재 썸네일: 메타 API URL 우선, 없으면 드라이브 맵 fallback
         ad_id = r.get('ad_id')
         cr = creatives.get(ad_id, {})
         thumb_url = cr.get('thumbnail_url')
         video_id  = cr.get('video_id')
         img_type  = cr.get('type')
+
+        # 메타 썸네일이 없으면 드라이브 맵에서 보완
+        if not thumb_url and _dm_img_exact:
+            bk   = r.get('base_key', '')
+            land = r.get('landing', '')
+            media = r.get('media', '영상')
+            fb_id, fb_type = drive_thumb(bk, land, media,
+                _dm_img_exact, _dm_img_fb, _dm_vid_exact, _dm_bks_by_land)
+            if fb_id:
+                thumb_url = fb_id   # 드라이브 ID (tThumb에서 URL 변환)
+                img_type  = fb_type
+                if not video_id and fb_type == 'video':
+                    video_id = fb_id
 
         final_rows.append({
             **r,
