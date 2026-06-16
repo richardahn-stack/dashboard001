@@ -347,7 +347,11 @@ function prevDeltaHtml(cur,prev,fmt){
 function tThumb(img,ec,ov,name=''){
   const ovH=ov?`<div class="${ov}"><i class="ti ti-zoom-in" style="color:#fff;font-size:16px"></i></div>`:'';
   if(img){
-    return`<img src="https://drive.google.com/thumbnail?id=${img}&sz=w400" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
+    // 메타 API URL(http로 시작)이면 직접 사용, 드라이브 ID면 드라이브 썸네일 URL로 변환
+    const src = (img.startsWith('http')||img.startsWith('//'))
+      ? img
+      : `https://drive.google.com/thumbnail?id=${img}&sz=w400`;
+    return`<img src="${src}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
   }
   if(name)return`<div class="${ec}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 업로드 필요</div></div>${ovH}`;
   return`<div class="${ec}"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
@@ -1205,10 +1209,13 @@ function openModal(key){
   const isNew=cur.is_new===true;
   document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
-  // video 필드 있으면 영상 재생, 없고 img_type이 video면 img ID로 영상 재생
   const vidId = cur.video || (cur.img_type==='video' ? cur.img : null);
   if(vidId){
-    const vidUrl=`https://drive.google.com/file/d/${vidId}/preview`;
+    // 메타 video_id(숫자 문자열)면 메타 임베드 URL, 아니면 드라이브
+    const isMetaVid = /^\d+$/.test(String(vidId));
+    const vidUrl = isMetaVid
+      ? `https://www.facebook.com/video/embed?video_id=${vidId}`
+      : `https://drive.google.com/file/d/${vidId}/preview`;
     iw.innerHTML=`<div style="position:relative;width:100%;padding-top:100%;border-radius:var(--r);overflow:hidden;background:#000"><iframe src="${vidUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>`;
   } else if(cur.img){
     iw.innerHTML=`<img src="https://drive.google.com/thumbnail?id=${cur.img}&sz=w1200" style="width:100%;height:auto;max-height:480px;object-fit:contain;border-radius:var(--r);background:var(--bg2);display:block" onerror="this.parentElement.innerHTML='<div style=\\'height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r);color:var(--text3)\\'><span>이미지 없음</span></div>'">`;
