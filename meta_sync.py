@@ -317,7 +317,8 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
 
             if key not in rows:
                 rows[key] = {
-                    'key': key, 'base_key': bk, 'ad_id': ins.get('ad_id'),
+                    'key': key, 'base_key': bk,
+                    'ad_id': ins.get('ad_id'), '_max_spend': spend,
                     'objective': obj, 'pa_type': pa, 'landing': land,
                     'purpose': obj, 'mgr': mgr, 'media': media,
                     'spend': 0, 'impressions': 0, 'clicks': 0,
@@ -325,6 +326,10 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
                     'age_days': age,
                 }
             r = rows[key]
+            # 가장 spend 높은 광고의 ad_id 사용
+            if spend > r.get('_max_spend', 0):
+                r['ad_id'] = ins.get('ad_id')
+                r['_max_spend'] = spend
             r['spend'] += spend
             r['impressions'] += impressions
             r['clicks'] += clicks
@@ -344,6 +349,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
             r['revenue'] = int(r['revenue'])
             r['is_new'] = (r['age_days'] is not None and r['age_days'] <= 6)
             del r['roas_sum'], r['roas_n']
+            r.pop('_max_spend', None)
             result.append(r)
         return result
 
@@ -390,6 +396,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
 
         final_rows.append({
             **r,
+            'ad_id': r.get('ad_id'),
             'old_roas_pct': round(old_roas*100,0) if old_roas else None,
             'roas_delta': roas_delta,
             'prev_spend': int(old['spend']) if old.get('spend') else None,

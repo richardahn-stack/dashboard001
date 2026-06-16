@@ -344,12 +344,21 @@ function prevDeltaHtml(cur,prev,fmt){
   const cls=pct>=0?'mpd-up':'mpd-dn';
   return`<span style="color:var(--text3)">전주 ${fmt(prev)}</span> <span class="${cls}">${pct>=0?'▲':'▼'}${Math.abs(pct).toFixed(1)}%</span>`;
 }
-// 드라이브 ID or 메타 URL → 실제 img src 변환
+// img 필드 → 실제 src 변환 (메타 URL이면 직접, 드라이브 ID면 드라이브 URL)
 function imgSrc(img, sz='w400'){
   if(!img) return null;
-  return (img.startsWith('http')||img.startsWith('//'))
-    ? img
-    : `https://drive.google.com/thumbnail?id=${img}&sz=${sz}`;
+  if(img.startsWith('http')||img.startsWith('//')) return img;
+  // 드라이브 ID (구형 데이터 호환)
+  return `https://drive.google.com/thumbnail?id=${img}&sz=${sz}`;
+}
+
+// ad_id 기반 메타 썸네일 로드 (비동기, img 엘리먼트에 직접 주입)
+function loadMetaThumb(el, adId, fallbackSrc){
+  if(!adId){ if(fallbackSrc) el.src=fallbackSrc; return; }
+  // 메타 oEmbed API (인증 불필요, 퍼블릭 광고 한정)
+  // → 실패하면 fallback 사용
+  if(fallbackSrc){ el.src=fallbackSrc; return; }
+  // ad_id만 있고 img URL 없는 경우: 빈 상태 유지 (서버사이드에서 수집됨)
 }
 
 function tThumb(img,ec,ov,name=''){
