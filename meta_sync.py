@@ -325,11 +325,12 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
                     'purchases': 0, 'revenue': 0, 'roas_sum': 0, 'roas_n': 0,
                     'age_days': age,
                 }
+            else:
+                # 기존 row: spend 더 높은 광고의 ad_id로 업데이트
+                if spend > rows[key].get('_max_spend', 0):
+                    rows[key]['ad_id'] = ins.get('ad_id')
+                    rows[key]['_max_spend'] = spend
             r = rows[key]
-            # 가장 spend 높은 광고의 ad_id 사용
-            if spend > r.get('_max_spend', 0):
-                r['ad_id'] = ins.get('ad_id')
-                r['_max_spend'] = spend
             r['spend'] += spend
             r['impressions'] += impressions
             r['clicks'] += clicks
