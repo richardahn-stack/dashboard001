@@ -152,76 +152,72 @@ def fetch_week_data(token, date_start, date_end):
     )
     print(f"    광고 {len(insights)}개 수집")
 
-    # 2. 광고 소재 정보
+    # 2. 광고 소재 정보 (메타 API 전용 - 드라이브 불필요)
     ad_ids = [i['ad_id'] for i in insights]
     creatives = {}
-    batch_size = 50
 
-    for batch_start in range(0, len(ad_ids), batch_size):
-        batch = ad_ids[batch_start:batch_start+batch_size]
-        for ad_id in batch:
-            try:
-                ad_data = api_get(
-                    ad_id,
-                    {'fields': 'creative{id,thumbnail_url,image_url,video_id,object_story_spec}'},
-                    token
-                )
-                cr = ad_data.get('creative', {})
-                cr_id    = cr.get('id')
-                video_id = cr.get('video_id')
+    for ad_id in ad_ids:
+        try:
+            # creative 전체 필드 요청
+            ad_data = api_get(
+                ad_id,
+                {'fields': 'creative{id,image_url,video_id,object_story_spec,asset_feed_spec}'},
+                token
+            )
+            cr       = ad_data.get('creative', {})
+            cr_id    = cr.get('id')
+            video_id = cr.get('video_id')
+            thumb_url = None
+            img_type  = None
 
-                # 영상 소재: video_id로 썸네일 URL 별도 요청
-                thumb_url = None
-                if video_id:
-                    try:
-                        vt = api_get(
-                            f"{video_id}/thumbnails",
-                            {'fields': 'uri,is_preferred'},
-                            token
-                        )
-                        thumbs = vt.get('data', [])
-                        # is_preferred=True 우선, 없으면 첫 번째
-                        preferred = next((t for t in thumbs if t.get('is_preferred')), None)
-                        if preferred:
-                            thumb_url = preferred.get('uri')
-                        elif thumbs:
-                            thumb_url = thumbs[0].get('uri')
-                    except:
-                        pass
-
-                # 이미지 소재: image_url (영구 URL)
+            if video_id:
+                # ── 영상 소재 ──
+                img_type = 'video'
+                # 1) video thumbnails API (가장 안정적)
+                try:
+                    vt = api_get(f"{video_id}/thumbnails",
+                                 {'fields': 'uri,is_preferred'}, token)
+                    thumbs = vt.get('data', [])
+                    pref = next((t for t in thumbs if t.get('is_preferred')), None)
+                    thumb_url = (pref or (thumbs[0] if thumbs else {})).get('uri')
+                except Exception:
+                    pass
+                # 2) object_story_spec.video_data.image_url fallback
                 if not thumb_url:
-                    thumb_url = cr.get('image_url') or cr.get('thumbnail_url')
-
-                # object_story_spec에서 추가 시도
+                    vd = cr.get('object_story_spec', {}).get('video_data', {})
+                    thumb_url = vd.get('image_url')
+                # 3) asset_feed_spec fallback
                 if not thumb_url:
-                    spec = cr.get('object_story_spec', {})
-                    if 'video_data' in spec:
-                        img_hash = spec['video_data'].get('image_hash')
-                        if img_hash and cr_id:
-                            try:
-                                img_info = api_get(
-                                    f"{AD_ACCOUNT_ID}/adimages",
-                                    {'hashes': json.dumps([img_hash]), 'fields': 'url'},
-                                    token
-                                )
-                                imgs = img_info.get('data', [])
-                                if imgs:
-                                    thumb_url = imgs[0].get('url')
-                            except:
-                                pass
-                    elif 'link_data' in spec:
-                        thumb_url = spec['link_data'].get('image_url') or spec['link_data'].get('picture')
+                    afs = cr.get('asset_feed_spec', {})
+                    vids = afs.get('videos', [])
+                    if vids:
+                        thumb_url = vids[0].get('thumbnail_url')
+            else:
+                # ── 이미지/배너 소재 ──
+                img_type = 'img'
+                # 1) image_url (영구 URL)
+                thumb_url = cr.get('image_url')
+                # 2) object_story_spec.link_data
+                if not thumb_url:
+                    ld = cr.get('object_story_spec', {}).get('link_data', {})
+                    thumb_url = ld.get('image_url') or ld.get('picture')
+                # 3) asset_feed_spec
+                if not thumb_url:
+                    afs = cr.get('asset_feed_spec', {})
+                    imgs = afs.get('images', [])
+                    if imgs:
+                        thumb_url = imgs[0].get('url')
 
-                creatives[ad_id] = {
-                    'thumbnail_url': thumb_url,
-                    'video_id': video_id,
-                    'type': 'video' if video_id else 'img'
-                }
-            except Exception as e:
-                creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'type': None}
+            creatives[ad_id] = {
+                'thumbnail_url': thumb_url,
+                'video_id':      video_id,
+                'type':          img_type,
+            }
+        except Exception as e:
+            creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'type': None}
 
-    print(f"    소재 {len(creatives)}개 수집")
+    found = sum(1 for c in creatives.values() if c.get('thumbnail_url'))
+    print(f"    소재 {len(creatives)}개 수집 (썸네일 {found}개 확보)")
     return insights, creatives
 
 
@@ -340,18 +336,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
         video_id  = cr.get('video_id')
         img_type  = cr.get('type')
 
-        # 메타 썸네일이 없으면 드라이브 맵에서 보완
-        if not thumb_url and _dm_img_exact:
-            bk   = r.get('base_key', '')
-            land = r.get('landing', '')
-            media = r.get('media', '영상')
-            fb_id, fb_type = drive_thumb(bk, land, media,
-                _dm_img_exact, _dm_img_fb, _dm_vid_exact, _dm_bks_by_land)
-            if fb_id:
-                thumb_url = fb_id   # 드라이브 ID (tThumb에서 URL 변환)
-                img_type  = fb_type
-                if not video_id and fb_type == 'video':
-                    video_id = fb_id
+
 
         final_rows.append({
             **r,
