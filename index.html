@@ -249,84 +249,6 @@ tr:hover td{background:var(--bg2)}
 </head>
 <body>
 
-<!-- 비밀번호 잠금 화면 -->
-<div id="lockScreen" style="
-  display:none;
-  position:fixed;inset:0;z-index:99999;
-  background:var(--color-background-primary);
-  display:flex;align-items:center;justify-content:center;
-">
-  <div style="
-    width:340px;padding:2.5rem;
-    background:var(--color-background-primary);
-    border:0.5px solid var(--color-border-tertiary);
-    border-radius:16px;
-    box-shadow:0 8px 32px rgba(0,0,0,0.12);
-    text-align:center;
-  ">
-    <div style="font-size:32px;margin-bottom:1rem">📊</div>
-    <div style="font-size:18px;font-weight:600;color:var(--color-text-primary);margin-bottom:6px">메타 광고 위닝소재 리포트</div>
-    <div style="font-size:13px;color:var(--color-text-tertiary);margin-bottom:1.5rem">팀 전용 대시보드입니다</div>
-    <input id="pwInput" type="password" placeholder="비밀번호 입력"
-      style="
-        width:100%;padding:10px 14px;
-        border:1px solid var(--color-border-secondary);
-        border-radius:8px;
-        background:var(--color-background-secondary);
-        color:var(--color-text-primary);
-        font-size:14px;
-        outline:none;
-        box-sizing:border-box;
-        margin-bottom:10px;
-      "
-      onkeydown="if(event.key==='Enter')checkPW()"
-    />
-    <button onclick="checkPW()" style="
-      width:100%;padding:10px;
-      background:#185FA5;color:#fff;
-      border:none;border-radius:8px;
-      font-size:14px;font-weight:500;
-      cursor:pointer;
-    ">입장하기</button>
-    <div id="pwError" style="font-size:12px;color:#A32D2D;margin-top:8px;display:none">
-      비밀번호가 올바르지 않습니다
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  // ── 비밀번호 설정 (여기서 변경) ──────────────────────
-  var PW = 'camplz2025';
-  // ─────────────────────────────────────────────────────
-
-  var SESSION_KEY = 'dash_auth';
-  var lock = document.getElementById('lockScreen');
-
-  function checkPW(){
-    var input = document.getElementById('pwInput').value;
-    if(input === PW){
-      sessionStorage.setItem(SESSION_KEY, '1');
-      lock.style.display = 'none';
-      document.body.style.overflow = '';
-    } else {
-      document.getElementById('pwError').style.display = 'block';
-      document.getElementById('pwInput').value = '';
-      document.getElementById('pwInput').focus();
-    }
-  }
-  window.checkPW = checkPW;
-
-  // 세션 체크
-  if(!sessionStorage.getItem(SESSION_KEY)){
-    lock.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-  } else {
-    lock.style.display = 'none';
-  }
-})();
-</script>
-
 <div class="wrap"><div class="dash">
 <div class="hdr">
   <div class="hdr-top"><div class="hdr-title">메타 광고 위닝소재 리포트</div></div>
@@ -440,14 +362,17 @@ function loadMetaThumb(el, adId, fallbackSrc){
   // ad_id만 있고 img URL 없는 경우: 빈 상태 유지 (서버사이드에서 수집됨)
 }
 
-function tThumb(img,ec,ov,name=''){
+function tThumb(img,ec,ov,name='',vid=''){
   const ovH=ov?`<div class="${ov}"><i class="ti ti-zoom-in" style="color:#fff;font-size:16px"></i></div>`:'';
   if(img){
-    // 메타 API URL(http로 시작)이면 직접 사용, 드라이브 ID면 드라이브 썸네일 URL로 변환
     const src = imgSrc(img, 'w400');
     return`<img src="${src}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
   }
-  if(name)return`<div class="${ec}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 업로드 필요</div></div>${ovH}`;
+  // img 없어도 video 있으면 재생 아이콘 표시
+  if(vid){
+    return`<div class="${ec}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(0,0,0,0.06)"><i class="ti ti-player-play" style="font-size:18px;color:var(--text3)"></i><div style="font-size:9px;color:var(--text3)">영상</div></div>${ovH}`;
+  }
+  if(name)return`<div class="${ec}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 없음</div></div>${ovH}`;
   return`<div class="${ec}"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
 }
 function labelBadges(c){
@@ -488,7 +413,7 @@ function sortD7List(arr){
 function mkD7(r){
     const eT=r.is_new?`<span class="tag td-new">🆕 NEW</span>`:r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
     return`<div class="d7row" onclick="openModal('${r.key}')">
-      <div class="d7th">${tThumb(r.img,'d7te','d7ov')}</div>
+      <div class="d7th">${tThumb(r.img,'d7te','d7ov','',r.video||'')}</div>
       <div class="d7body">
         <div class="d7l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7name">${r.base_key||r.key}</span>${eT}${r.age_days!=null?`<span class="tag ta-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
         <div style="display:flex;align-items:center;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
@@ -1041,6 +966,29 @@ function _hideGTT(){
   if(_gtt) _gtt.style.display = 'none';
 }
 
+function buildMetaVidHtml(vidId, thumbS){
+  var pluginUrl = 'https://www.facebook.com/plugins/video.php?href='
+    + encodeURIComponent('https://www.facebook.com/video/embed?video_id='+vidId)
+    + '&show_text=false&autoplay=1&allowfullscreen=true';
+  var iframeHtml = '<iframe src="'+pluginUrl+'" style="width:100%;height:420px;border:none" allowfullscreen allow="autoplay; encrypted-media"></iframe>';
+  var noImg = 'this.style.display=\x27none\x27';
+  var thumbHtml = thumbS
+    ? ('<img src="'+thumbS+'" style="width:100%;display:block" onerror="'+noImg+'">')
+    : '<div style="height:280px;background:var(--bg2);display:flex;align-items:center;justify-content:center"><i class="ti ti-video" style="font-size:40px;color:var(--text3)"></i></div>';
+  var playBtn = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,0.3);cursor:pointer">'
+    +'<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.93);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.25)">'
+    +'<i class="ti ti-player-play-filled" style="font-size:26px;color:#111;margin-left:4px"></i>'
+    +'</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.45);padding:4px 12px;border-radius:20px">클릭하여 재생</div>'
+    +'</div>';
+  var wrapperId = 'mvid_'+vidId;
+  var iframeJson = JSON.stringify(iframeHtml);
+  return '<div id="'+wrapperId+'" style="position:relative;width:100%;border-radius:var(--r);overflow:hidden;background:#000">'
+    +thumbHtml
+    +'<div onclick="document.getElementById(\''+wrapperId+'\').innerHTML='+iframeJson.replace(/'/g,"\\'")+'">'+playBtn+'</div>'
+    +'</div>';
+}
+
 function showPieTT(ttId, i){
   var data = ttId==='ttPS' ? window._pieSpendData : window._pieCntData;
   if(!data) return;
@@ -1308,13 +1256,12 @@ function openModal(key){
     var isMetaVid = /^\d+$/.test(String(vidId));
     var thumbS = imgSrc(cur.img,'w800')||'';
     if(isMetaVid){
-      var metaUrl='https://www.facebook.com/video.php?v='+vidId;
-      var thumbPart=thumbS?('<img src="'+thumbS+'" style="width:100%;display:block" onerror="this.style.display=\'none\'">'):('<div style="height:260px;display:flex;align-items:center;justify-content:center;background:var(--bg2)"><i class=\"ti ti-video\" style=\"font-size:40px;color:var(--text3)\"></i></div>');
-      var overlay='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(0,0,0,0.32)"><div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,0.93);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,0.25)"><i class=\"ti ti-player-play-filled\" style=\"font-size:26px;color:#111;margin-left:4px\"></i></div><div style=\"font-size:11px;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.45);padding:4px 12px;border-radius:20px\">Facebook에서 영상 보기 →</div></div>';
-      iw.innerHTML='<a href="'+metaUrl+'" target="_blank" rel="noopener" style="display:block;position:relative;border-radius:var(--r);overflow:hidden;cursor:pointer;text-decoration:none">'+thumbPart+overlay+'</a>';
+      iw.innerHTML = buildMetaVidHtml(vidId, thumbS);
     } else {
-      var driveUrl='https://drive.google.com/file/d/'+vidId+'/preview';
-      iw.innerHTML='<div style="position:relative;width:100%;padding-top:100%;border-radius:var(--r);overflow:hidden;background:#000"><iframe src="'+driveUrl+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe></div>';
+      var driveUrl = 'https://drive.google.com/file/d/'+vidId+'/preview';
+      iw.innerHTML = '<div style="position:relative;width:100%;padding-top:100%;border-radius:var(--r);overflow:hidden;background:#000">'
+        +'<iframe src="'+driveUrl+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe>'
+        +'</div>';
     }
     } else if(cur.img){
     iw.innerHTML=`<img src="${imgSrc(cur.img,'w1200')}" style="width:100%;height:auto;max-height:480px;object-fit:contain;border-radius:var(--r);background:var(--bg2);display:block" onerror="this.parentElement.innerHTML='<div style=\\'height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r);color:var(--text3)\\'><span>이미지 없음</span></div>'">`;

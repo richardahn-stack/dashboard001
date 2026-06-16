@@ -161,7 +161,7 @@ def fetch_week_data(token, date_start, date_end):
             # creative 전체 필드 요청
             ad_data = api_get(
                 ad_id,
-                {'fields': 'creative{id,image_url,video_id,object_story_spec,asset_feed_spec}'},
+                {'fields': 'creative{id,thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,effective_instagram_story_id}'},
                 token
             )
             cr       = ad_data.get('creative', {})
@@ -173,16 +173,19 @@ def fetch_week_data(token, date_start, date_end):
             if video_id:
                 # ── 영상 소재 ──
                 img_type = 'video'
-                # 1) video thumbnails API (가장 안정적)
-                try:
-                    vt = api_get(f"{video_id}/thumbnails",
-                                 {'fields': 'uri,is_preferred'}, token)
-                    thumbs = vt.get('data', [])
-                    pref = next((t for t in thumbs if t.get('is_preferred')), None)
-                    thumb_url = (pref or (thumbs[0] if thumbs else {})).get('uri')
-                except Exception:
-                    pass
-                # 2) object_story_spec.video_data.image_url fallback
+                # 1) creative.thumbnail_url (파트너스 등 외부 영상에서도 작동)
+                thumb_url = cr.get('thumbnail_url')
+                # 2) video thumbnails API
+                if not thumb_url:
+                    try:
+                        vt = api_get(f"{video_id}/thumbnails",
+                                     {'fields': 'uri,is_preferred'}, token)
+                        thumbs = vt.get('data', [])
+                        pref = next((t for t in thumbs if t.get('is_preferred')), None)
+                        thumb_url = (pref or (thumbs[0] if thumbs else {})).get('uri')
+                    except Exception:
+                        pass
+                # 3) object_story_spec.video_data.image_url fallback
                 if not thumb_url:
                     vd = cr.get('object_story_spec', {}).get('video_data', {})
                     thumb_url = vd.get('image_url')
