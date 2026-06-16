@@ -1,0 +1,101 @@
+name: 메타 광고 자동 동기화
+
+on:
+  schedule:
+    # 매주 월요일 오전 9시 (KST = UTC+9, 즉 UTC 00:00)
+    - cron: '0 0 * * 1'
+  workflow_dispatch:  # 수동 실행 버튼도 활성화
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 의존성 설치
+        run: pip install requests
+
+      - name: 메타 광고 데이터 동기화
+        env:
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+        run: |
+          # 토큰을 환경변수에서 읽어서 스크립트에 전달
+          python3 - << 'PYEOF'
+          import os, sys
+          sys.stdin = open('/dev/null')
+
+          # 환경변수에서 토큰 읽기
+          token = os.environ.get('META_TOKEN', '')
+          if not token:
+              print('❌ META_TOKEN 환경변수가 없습니다')
+              sys.exit(1)
+
+          # meta_sync.py의 main() 로직을 토큰 주입 방식으로 실행
+          import importlib.util, types
+
+          spec = importlib.util.spec_from_file_location('meta_sync', 'meta_sync.py')
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+
+          # 토큰 직접 주입 후 실행
+          from datetime import datetime, timedelta
+          import json
+
+          today = datetime.today()
+          days_since_sunday = (today.weekday() + 1) % 7
+          last_sunday = today - timedelta(days=days_since_sunday)
+
+          weeks = []
+          for i in range(6):
+              end   = last_sunday - timedelta(weeks=i)
+              start = end - timedelta(days=6)
+              label = f"{end.month}/{start.day}~{end.day}"
+              weeks.append({
+                  'id':    end.strftime('%Y-W%U'),
+                  'label': label,
+                  'end':   end.strftime('%Y-%m-%d'),
+                  'start': start.strftime('%Y-%m-%d'),
+              })
+
+          import os as _os
+          _os.makedirs('data', exist_ok=True)
+          weeks_list = []
+
+          for i, w in enumerate(weeks):
+              print(f"[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
+              try:
+                  prev = weeks[i+1] if i+1 < len(weeks) else weeks[i]
+                  data = mod.build_json_from_api(
+                      token,
+                      w['end'], prev['end'],
+                      w['label'], prev['label']
+                  )
+                  out = f"data/{w['id']}.json"
+                  with open(out, 'w', encoding='utf-8') as f:
+                      json.dump(data, f, ensure_ascii=False)
+                  print(f"  ✅ {out} 저장 (소재 {len(data['all_ads'])}개)")
+                  weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
+              except Exception as e:
+                  print(f"  ❌ {w['label']} 오류: {e}")
+                  import traceback; traceback.print_exc()
+
+          with open('data/weeks.json', 'w', encoding='utf-8') as f:
+              json.dump(weeks_list, f, ensure_ascii=False)
+          print("✅ weeks.json 저장 완료")
+          PYEOF
+
+      - name: 변경사항 커밋 및 푸시
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          # 변경사항 있을 때만 커밋
+          git diff --staged --quiet || git commit -m "Auto sync $(date +'%Y-%m-%d')"
+          git push
