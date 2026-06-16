@@ -3,7 +3,7 @@ name: 메타 광고 자동 동기화
 on:
   schedule:
     # 매주 월요일 오전 9시 (KST = UTC+9, 즉 UTC 00:00)
-    - cron: '0 0 * * 1'
+    - cron: '0 21 * * 0'  # 월요일 06:00 KST
   workflow_dispatch:  # 수동 실행 버튼도 활성화
 
 jobs:
