@@ -221,6 +221,56 @@ def fetch_week_data(token, date_start, date_end):
     return insights, creatives
 
 
+
+def calc_trends(rows, avg_rev):
+    """전주 대비 트렌드 계산"""
+    valid = [r for r in rows if r.get('prev_spend') and r['spend'] >= 50000]
+
+    # 광고비 상승
+    su = sorted(
+        [{**r, '_v': r['spend']-r['prev_spend'], '_p': (r['spend']-r['prev_spend'])/r['prev_spend']*100}
+         for r in valid if r['spend'] > r['prev_spend']],
+        key=lambda x: x['_v'], reverse=True)[:5]
+
+    # 매출 상승
+    ru = []
+    for r in valid:
+        pr = r.get('prev_revenue') or 0
+        cr = r.get('revenue') or 0
+        if pr > 0 and cr > pr:
+            ab = cr - pr; pt = (cr-pr)/pr*100
+            ru.append({**r, '_v': ab, '_p': pt, '_score': (ab/max(avg_rev,1))+(pt/100)})
+    ru = sorted(ru, key=lambda x: x['_score'], reverse=True)[:5]
+
+    # CPC 효율 상승 (CPC 하락)
+    cu = []
+    for r in valid:
+        pc = r.get('prev_cpc') or 0; cc = r.get('cpc') or 0
+        if pc > 0 and cc > 0 and cc < pc:
+            cu.append({**r, '_v': cc, '_p': -(pc-cc)/pc*100, '_drop': (pc-cc)/pc*100})
+    cu = sorted(cu, key=lambda x: x['_drop'], reverse=True)[:5]
+
+    # 전환 하락
+    cd = []
+    for r in valid:
+        if r['spend'] < 100000: continue
+        pr = r.get('old_roas_pct') or 0; crv = r.get('roas_pct') or 0
+        pc = r.get('prev_cvr') or 0; cc = r.get('cvr') or 0
+        if pr > 0 and pc > 0 and pr > crv and pc > cc:
+            rd = (pr-crv)/pr*100; cvd = (pc-cc)/pc*100
+            cd.append({**r, '_v': crv, '_p': -rd, '_roas_drop': rd, '_cvr_drop': cvd, '_score': (rd+cvd)/2})
+    cd = sorted(cd, key=lambda x: x['_score'], reverse=True)[:5]
+
+    # CPC 효율 하락 (CPC 상승)
+    cdn = []
+    for r in valid:
+        pc = r.get('prev_cpc') or 0; cc = r.get('cpc') or 0
+        if pc > 0 and cc > pc:
+            cdn.append({**r, '_v': cc, '_p': (cc-pc)/pc*100, '_rise': (cc-pc)/pc*100})
+    cdn = sorted(cdn, key=lambda x: x['_rise'], reverse=True)[:5]
+
+    return {'spend_up': su, 'rev_up': ru, 'cpc_eff_up': cu, 'conv_dn': cd, 'cpc_eff_dn': cdn}
+
 def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_label):
     """메타 API 데이터로 JSON 빌드"""
     ref = datetime.strptime(end_date_str, '%Y-%m-%d')
@@ -374,6 +424,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
         }
     }
 
+    avg_rev = sum(r['revenue'] for r in final_rows) / len(final_rows) if final_rows else 1
     all_ads = sorted(final_rows, key=lambda x: x['spend'], reverse=True)
     conv_win = sorted([r for r in final_rows if r['win_type']=='전환' and (r['win_score'] or 0)>=3],
                       key=lambda x: x['revenue'], reverse=True)[:10]
@@ -399,7 +450,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
     return {
         'label': label, 'prev_label': prev_label, 'ref_date': end_date_str,
         'summary': summary, 'prev_summary': prev_s,
-        'trends': {}, 'pie': {},
+        'trends': calc_trends(final_rows, avg_rev), 'pie': {},
         'winning': conv_win + tc_win,
         'd7_win': d7_win, 'd7_lose': d7_lose,
         'all_ads': all_ads,
