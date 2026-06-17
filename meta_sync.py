@@ -160,22 +160,19 @@ def fetch_week_data(token, date_start, date_end):
         if not ad_id:
             continue
         try:
-            # Step1: ad → creative id 획득
-            ad_data     = api_get(ad_id, {'fields': 'creative'}, token)
-            creative_id = ad_data.get('creative', {}).get('id')
-            if not creative_id:
-                creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'video_source': None, 'type': None}
-                continue
-            # Step2: creative id → 실제 소재 필드 조회
-            cr       = api_get(creative_id,
-                               {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture,effective_object_story_id'},
-                               token)
-            # 첫 번째 광고만 디버그 출력
+            # ad → adcreatives 직접 조회 (/{ad_id}/adcreatives 엔드포인트)
+            cr_list = api_get(
+                f"{ad_id}/adcreatives",
+                {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
+                token
+            )
+            cr_data = cr_list.get('data', [])
+            cr = cr_data[0] if cr_data else {}
+            # 첫 번째 광고 디버그
             if ad_id == ad_ids[0]:
                 import json as _json
-                print(f"    [DEBUG] creative_id={creative_id}")
                 print(f"    [DEBUG] cr keys={list(cr.keys())}")
-                print(f"    [DEBUG] cr sample={_json.dumps(cr, ensure_ascii=False)[:300]}")
+                print(f"    [DEBUG] cr sample={_json.dumps(cr, ensure_ascii=False)[:400]}")
             video_id = cr.get('video_id')
             thumb_url = None
             img_type  = None
