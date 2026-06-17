@@ -168,11 +168,6 @@ def fetch_week_data(token, date_start, date_end):
             )
             cr_data = cr_list.get('data', [])
             cr = cr_data[0] if cr_data else {}
-            # 첫 번째 광고 디버그
-            if ad_id == ad_ids[0]:
-                import json as _json
-                print(f"    [DEBUG] cr keys={list(cr.keys())}")
-                print(f"    [DEBUG] cr sample={_json.dumps(cr, ensure_ascii=False)[:400]}")
             video_id = cr.get('video_id')
             thumb_url = None
             img_type  = None
