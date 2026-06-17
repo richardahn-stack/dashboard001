@@ -160,10 +160,16 @@ def fetch_week_data(token, date_start, date_end):
         if not ad_id:
             continue
         try:
-            ad_data  = api_get(ad_id,
-                               {'fields': 'creative{id,thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture}'},
+            # Step1: ad → creative id 획득
+            ad_data     = api_get(ad_id, {'fields': 'creative'}, token)
+            creative_id = ad_data.get('creative', {}).get('id')
+            if not creative_id:
+                creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'video_source': None, 'type': None}
+                continue
+            # Step2: creative id → 실제 소재 필드 조회
+            cr       = api_get(creative_id,
+                               {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
                                token)
-            cr       = ad_data.get('creative', {})
             video_id = cr.get('video_id')
             thumb_url = None
             img_type  = None
@@ -221,8 +227,9 @@ def fetch_week_data(token, date_start, date_end):
                 'type':          img_type,
             }
         except Exception as e:
+            print(f"    ⚠️  크리에이티브 수집 실패 [{ad_id}]: {e}")
             creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'video_source': None, 'type': None}
-    found = sum(1 for c in creatives.values() if c.get('thumbnail_url'))
+    found = sum(1 for cr in creatives.values() if cr.get('thumbnail_url'))
     print(f"    소재 {len(creatives)}개 수집 (썸네일 {found}개 확보)")
     return insights, creatives
 
