@@ -174,45 +174,19 @@ def fetch_week_data(token, date_start, date_end):
 
             if video_id:
                 img_type = 'video'
-                # 1) video/thumbnails - 고화질
-                try:
-                    vt     = api_get(f"{video_id}/thumbnails",
-                                     {'fields': 'uri,width,height,is_preferred'}, token)
-                    thumbs = vt.get('data', [])
-                    if thumbs:
-                        best      = max(thumbs, key=lambda t: t.get('width', 0) * t.get('height', 0))
-                        thumb_url = best.get('uri')
-                except Exception:
-                    pass
-                # 2) object_story_spec
-                if not thumb_url:
-                    thumb_url = cr.get('object_story_spec', {}).get('video_data', {}).get('image_url')
-                # 3) asset_feed_spec
-                if not thumb_url:
-                    vids = cr.get('asset_feed_spec', {}).get('videos', [])
-                    if vids:
-                        thumb_url = vids[0].get('thumbnail_url')
-                # 4) picture
-                if not thumb_url:
-                    thumb_url = cr.get('picture')
-                # 5) thumbnail_url fallback
-                if not thumb_url:
-                    thumb_url = cr.get('thumbnail_url')
-
-                # video source URL (mp4 직접 재생)
-                # 1) adcreatives에서 직접 source 필드
-                video_source = cr.get('source')
-                # 2) object_story_spec 내 video_data.source
-                if not video_source:
-                    video_source = (cr.get('object_story_spec', {})
-                                      .get('video_data', {}).get('source'))
-                # 3) 별도 video 엔드포인트 (ads_read 권한으로 접근 가능한 경우)
-                if not video_source:
-                    try:
-                        vs = api_get(str(video_id), {'fields': 'source'}, token)
-                        video_source = vs.get('source')
-                    except Exception:
-                        pass
+                # thumbnail: adcreatives 응답에서 직접 수집 (별도 API 호출 없음)
+                # 우선순위: object_story_spec > asset_feed_spec > picture > thumbnail_url
+                thumb_url = (
+                    cr.get('object_story_spec', {}).get('video_data', {}).get('image_url')
+                    or (cr.get('asset_feed_spec', {}).get('videos') or [{}])[0].get('thumbnail_url')
+                    or cr.get('picture')
+                    or cr.get('thumbnail_url')
+                )
+                # video source: adcreatives 응답 또는 object_story_spec에서 직접 수집
+                video_source = (
+                    cr.get('source')
+                    or cr.get('object_story_spec', {}).get('video_data', {}).get('source')
+                )
             else:
                 img_type = 'img'
                 thumb_url = (cr.get('image_url')

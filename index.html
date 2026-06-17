@@ -893,8 +893,13 @@ function renderAll(d){
   window._pieSpendData = {vals:spendVals, total:totalSpend, pcts:spendPcts};
   window._pieCntData   = {vals:cntVals,   total:totalCnt,   pcts:cntPcts};
 
-  // 섹션5: 테이블
-  const tbH=(d.all_ads||[]).map(r=>{
+  // 섹션5: 테이블 — 펼치기 전까지 렌더 지연 (성능 최적화)
+  let _tbHCache = null;
+  function getTbH(){
+    if(_tbHCache) return _tbHCache;
+    // 기본 spend desc 정렬
+    const _rows = [...(d.all_ads||[])].sort((a,b)=>(b.spend||0)-(a.spend||0));
+    _tbHCache = _rows.map(r=>{
     const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'–';
     const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
     return`<tr style="cursor:pointer" onclick="openModal('${r.key}')">
@@ -913,7 +918,9 @@ function renderAll(d){
       <td><span class="tip" style="cursor:default">${r.cvr>0?r.cvr+'%':'-'}${tipHtml('cvr')}</span></td>
       <td>${ws}</td>
     </tr>`;
-  }).join('');
+    }).join('');
+    return _tbHCache;
+  }
   const tblH=`<div class="sec">
     <div class="sec-hdr"><div class="sec-icon" style="background:var(--bg3)"><i class="ti ti-table" style="font-size:15px;color:var(--text2)"></i></div><div><span class="sec-title">전체 소재 상세</span><div class="sec-sub">헤더 클릭으로 정렬</div></div></div>
     <button class="dtl-btn" id="dBtn" onclick="toggleDtl()"><i class="ti ti-chevron-down" id="dIco"></i>펼쳐서 전체 보기</button>
@@ -932,7 +939,7 @@ function renderAll(d){
       <th class="th-sort" onclick="sortTbl('ctr',this)">CTR<span class="sort-ico"></span></th>
       <th class="th-sort" onclick="sortTbl('cvr',this)">CVR<span class="sort-ico"></span></th>
       <th class="th-sort" onclick="sortTbl('win_score',this)">점수<span class="sort-ico"></span></th>
-    </tr></thead><tbody id="tblBody">${tbH}</tbody></table></div></div>
+    </tr></thead><tbody id="tblBody"></tbody></table></div></div>
   </div>`;
 
   document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
@@ -1108,6 +1115,8 @@ function sortTbl(col, thEl){
 
   const tbody = document.getElementById('tblBody');
   if(!tbody) return;
+  // 정렬 시 펼쳐져 있지 않으면 먼저 렌더 상태로 표시
+  tbody.dataset.rendered = '1';
   tbody.innerHTML = rows.map(r=>{
     const dT=r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'–';
     const ws=r.win_score!=null?`<span class="tag" style="background:#EAF3DE;color:#27500A">${r.win_score}점</span>`:'';
@@ -1130,6 +1139,12 @@ function sortTbl(col, thEl){
   }).join('');
 }
 function toggleDtl(){
+    // 처음 펼칠 때만 테이블 렌더
+    const tb = document.getElementById('tblBody');
+    if(tb && !tb.dataset.rendered){
+      tb.innerHTML = getTbH();
+      tb.dataset.rendered = '1';
+    }
   detailOpen=!detailOpen;
   document.getElementById('dWrap').style.display=detailOpen?'block':'none';
   document.getElementById('dIco').className=detailOpen?'ti ti-chevron-up':'ti ti-chevron-down';
