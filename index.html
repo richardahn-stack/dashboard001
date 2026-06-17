@@ -966,20 +966,48 @@ function _hideGTT(){
   if(_gtt) _gtt.style.display = 'none';
 }
 
-function buildMetaVidHtml(vidId, thumbS){
-  // Facebook iframe은 X-Frame-Options로 차단됨 → 새 탭으로 열기
-  var metaUrl = 'https://www.facebook.com/video.php?v='+vidId;
+function buildMetaVidHtml(vidId, thumbS, videoSrc){
   var noImg = 'this.style.display=\x27none\x27';
   var thumbHtml = thumbS
     ? ('<img src="'+thumbS+'" style="width:100%;display:block;border-radius:var(--r)" onerror="'+noImg+'">')
-    : '<div style="height:280px;background:var(--bg2);display:flex;align-items:center;justify-content:center;border-radius:var(--r)"><i class="ti ti-video" style="font-size:48px;color:var(--text3)"></i></div>';
+    : '<div style="height:280px;background:var(--bg2);display:flex;align-items:center;justify-content:center;border-radius:var(--r)"><i class=\"ti ti-video\" style=\"font-size:48px;color:var(--text3)\"></i></div>';
+
+  var playOverlay = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,0.28)">'
+    +'<div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3)">'
+    +'<i class=\"ti ti-player-play-filled\" style=\"font-size:28px;color:#111;margin-left:4px\"></i>'
+    +'</div>'
+    +'<div style=\"font-size:12px;color:#fff;background:rgba(0,0,0,0.55);padding:5px 14px;border-radius:20px;font-weight:500\">클릭하여 재생</div>'
+    +'</div>';
+
+  if(videoSrc){
+    var wid = 'mvid_'+vidId;
+    // 전역 함수로 재생 처리 (onclick 이스케이프 문제 방지)
+    window['playVid_'+vidId] = function(){
+      var t = document.getElementById(wid+'_t');
+      var v = document.getElementById(wid+'_v');
+      if(t) t.style.display='none';
+      if(v) v.style.display='block';
+    };
+    return '<div id="'+wid+'" style="border-radius:var(--r);overflow:hidden;background:#000">'
+      +'<div id="'+wid+'_t" style="position:relative;cursor:pointer" onclick="(window[\'playVid_'+vidId+'\']||function(){})();">'
+        +thumbHtml+playOverlay
+      +'</div>'
+      +'<div id="'+wid+'_v" style="display:none">'
+        +'<video src="'+videoSrc+'" controls autoplay playsinline'
+        +' style="width:100%;max-height:480px;border-radius:var(--r);background:#000;display:block"'
+        +' controlslist="nodownload"></video>'
+      +'</div>'
+    +'</div>';
+  }
+
+  var metaUrl = 'https://www.facebook.com/video.php?v='+vidId;
   return '<a href="'+metaUrl+'" target="_blank" rel="noopener noreferrer" style="display:block;position:relative;border-radius:var(--r);overflow:hidden;cursor:pointer;text-decoration:none">'
     +thumbHtml
     +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,0.28)">'
       +'<div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3)">'
-        +'<i class="ti ti-player-play-filled" style="font-size:28px;color:#111;margin-left:4px"></i>'
+        +'<i class=\"ti ti-player-play-filled\" style=\"font-size:28px;color:#111;margin-left:4px\"></i>'
       +'</div>'
-      +'<div style="font-size:12px;color:#fff;background:rgba(0,0,0,0.55);padding:5px 14px;border-radius:20px;font-weight:500">Facebook에서 영상 재생</div>'
+      +'<div style=\"font-size:12px;color:#fff;background:rgba(0,0,0,0.55);padding:5px 14px;border-radius:20px;font-weight:500\">Facebook에서 영상 재생</div>'
     +'</div>'
   +'</a>';
 }
@@ -1252,7 +1280,7 @@ function openModal(key){
     var isMetaVid = /^\d+$/.test(String(vidId));
     var thumbS = imgSrc(cur.img,'w800')||'';
     if(isMetaVid){
-      iw.innerHTML = buildMetaVidHtml(vidId, thumbS);
+      iw.innerHTML = buildMetaVidHtml(vidId, thumbS, cur.video_src||'');
     } else {
       var driveUrl = 'https://drive.google.com/file/d/'+vidId+'/preview';
       iw.innerHTML = '<div style="position:relative;width:100%;padding-top:100%;border-radius:var(--r);overflow:hidden;background:#000">'

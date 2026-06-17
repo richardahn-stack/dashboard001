@@ -161,7 +161,7 @@ def fetch_week_data(token, date_start, date_end):
             # creative 전체 필드 요청
             ad_data = api_get(
                 ad_id,
-                {'fields': 'creative{id,thumbnail_url,image_hash,image_url,video_id,object_story_spec,asset_feed_spec}'},
+                {'fields': 'creative{id,thumbnail_url,image_hash,image_url,video_id,object_story_spec,asset_feed_spec,picture}'},
                 token
             )
             cr       = ad_data.get('creative', {})
@@ -194,7 +194,10 @@ def fetch_week_data(token, date_start, date_end):
                     vids = afs.get('videos', [])
                     if vids:
                         thumb_url = vids[0].get('thumbnail_url')
-                # 4) creative.thumbnail_url 최후 fallback
+                # 4) creative.picture (파트너스 영상에서도 작동)
+                if not thumb_url:
+                    thumb_url = cr.get('picture')
+                # 5) creative.thumbnail_url 최후 fallback
                 if not thumb_url:
                     thumb_url = cr.get('thumbnail_url')
                 # 3) asset_feed_spec fallback
@@ -208,22 +211,35 @@ def fetch_week_data(token, date_start, date_end):
                 img_type = 'img'
                 # 1) image_url (영구 URL)
                 thumb_url = cr.get('image_url')
-                # 2) object_story_spec.link_data
+                # 2) picture 필드
+                if not thumb_url:
+                    thumb_url = cr.get('picture')
+                # 3) object_story_spec.link_data
                 if not thumb_url:
                     ld = cr.get('object_story_spec', {}).get('link_data', {})
                     thumb_url = ld.get('image_url') or ld.get('picture')
-                # 3) asset_feed_spec
+                # 4) asset_feed_spec
                 if not thumb_url:
                     afs = cr.get('asset_feed_spec', {})
                     imgs = afs.get('images', [])
                     if imgs:
                         thumb_url = imgs[0].get('url')
 
-            creatives[ad_id] = {
-                'thumbnail_url': thumb_url,
-                'video_id':      video_id,
-                'type':          img_type,
-            }
+            # video source URL (mp4 직접 재생)
+                video_source = None
+                if video_id:
+                    try:
+                        vs = api_get(str(video_id), {'fields': 'source'}, token)
+                        video_source = vs.get('source')
+                    except Exception:
+                        pass
+
+                creatives[ad_id] = {
+                    'thumbnail_url': thumb_url,
+                    'video_id':      video_id,
+                    'video_source':  video_source,
+                    'type':          img_type,
+                }
         except Exception as e:
             creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'type': None}
 
@@ -397,7 +413,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
             wf = {'ctr': r['ctr']>tc_avg_ctr}
             ws = 1 if wf['ctr'] else 0; wt = 'tc'
 
-        # 소재 썸네일: 메타 API URL 우선, 없으면 드라이브 맵 fallback
+        # 소재 썸네일 + 영상 소스 URL
         ad_id = r.get('ad_id')
         cr = creatives.get(ad_id, {})
         thumb_url = cr.get('thumbnail_url')
@@ -417,9 +433,10 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
             'prev_cpc': round(old['cpc'],0) if old.get('cpc') else None,
             'prev_purchases': int(old['purchases']) if old.get('purchases') else None,
             'prev_revenue': int(old['revenue']) if old.get('revenue') else None,
-            'img': thumb_url,       # ← 드라이브 ID 대신 메타 썸네일 URL
+            'img': thumb_url,
             'img_type': img_type,
-            'video': video_id,      # ← 메타 비디오 ID
+            'video': video_id,
+            'video_src': cr.get('video_source'),  # mp4 직접 재생 URL
             'win_score': ws, 'win_type': wt, 'win_flags': wf,
         })
 
