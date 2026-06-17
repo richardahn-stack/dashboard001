@@ -157,92 +157,71 @@ def fetch_week_data(token, date_start, date_end):
     creatives = {}
 
     for ad_id in ad_ids:
+        if not ad_id:
+            continue
         try:
-            # creative 전체 필드 요청
-            ad_data = api_get(
-                ad_id,
-                {'fields': 'creative{id,thumbnail_url,image_hash,image_url,video_id,object_story_spec,asset_feed_spec,picture}'},
-                token
-            )
+            ad_data  = api_get(ad_id,
+                               {'fields': 'creative{id,thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture}'},
+                               token)
             cr       = ad_data.get('creative', {})
-            cr_id    = cr.get('id')
             video_id = cr.get('video_id')
             thumb_url = None
             img_type  = None
 
             if video_id:
-                # ── 영상 소재 ──
                 img_type = 'video'
-                # 1) video/thumbnails API — 고화질 우선
-                thumb_url = None
+                # 1) video/thumbnails - 고화질
                 try:
-                    vt = api_get(f"{video_id}/thumbnails",
-                                 {'fields': 'uri,width,height,is_preferred'}, token)
+                    vt     = api_get(f"{video_id}/thumbnails",
+                                     {'fields': 'uri,width,height,is_preferred'}, token)
                     thumbs = vt.get('data', [])
                     if thumbs:
-                        best = max(thumbs, key=lambda t: t.get('width', 0) * t.get('height', 0))
+                        best      = max(thumbs, key=lambda t: t.get('width', 0) * t.get('height', 0))
                         thumb_url = best.get('uri')
                 except Exception:
                     pass
-                # 2) object_story_spec.video_data.image_url
+                # 2) object_story_spec
                 if not thumb_url:
-                    vd = cr.get('object_story_spec', {}).get('video_data', {})
-                    thumb_url = vd.get('image_url')
+                    thumb_url = cr.get('object_story_spec', {}).get('video_data', {}).get('image_url')
                 # 3) asset_feed_spec
                 if not thumb_url:
-                    afs = cr.get('asset_feed_spec', {})
-                    vids = afs.get('videos', [])
+                    vids = cr.get('asset_feed_spec', {}).get('videos', [])
                     if vids:
                         thumb_url = vids[0].get('thumbnail_url')
-                # 4) creative.picture (파트너스 영상에서도 작동)
+                # 4) picture
                 if not thumb_url:
                     thumb_url = cr.get('picture')
-                # 5) creative.thumbnail_url 최후 fallback
+                # 5) thumbnail_url fallback
                 if not thumb_url:
                     thumb_url = cr.get('thumbnail_url')
-                # 3) asset_feed_spec fallback
-                if not thumb_url:
-                    afs = cr.get('asset_feed_spec', {})
-                    vids = afs.get('videos', [])
-                    if vids:
-                        thumb_url = vids[0].get('thumbnail_url')
+
+                # video source URL (mp4 직접 재생)
+                video_source = None
+                try:
+                    vs           = api_get(str(video_id), {'fields': 'source'}, token)
+                    video_source = vs.get('source')
+                except Exception:
+                    pass
             else:
-                # ── 이미지/배너 소재 ──
                 img_type = 'img'
-                # 1) image_url (영구 URL)
-                thumb_url = cr.get('image_url')
-                # 2) picture 필드
+                thumb_url = (cr.get('image_url')
+                             or cr.get('picture')
+                             or cr.get('object_story_spec', {}).get('link_data', {}).get('image_url')
+                             or cr.get('object_story_spec', {}).get('link_data', {}).get('picture'))
                 if not thumb_url:
-                    thumb_url = cr.get('picture')
-                # 3) object_story_spec.link_data
-                if not thumb_url:
-                    ld = cr.get('object_story_spec', {}).get('link_data', {})
-                    thumb_url = ld.get('image_url') or ld.get('picture')
-                # 4) asset_feed_spec
-                if not thumb_url:
-                    afs = cr.get('asset_feed_spec', {})
-                    imgs = afs.get('images', [])
+                    imgs = cr.get('asset_feed_spec', {}).get('images', [])
                     if imgs:
                         thumb_url = imgs[0].get('url')
-
-            # video source URL (mp4 직접 재생)
                 video_source = None
-                if video_id:
-                    try:
-                        vs = api_get(str(video_id), {'fields': 'source'}, token)
-                        video_source = vs.get('source')
-                    except Exception:
-                        pass
 
-                creatives[ad_id] = {
-                    'thumbnail_url': thumb_url,
-                    'video_id':      video_id,
-                    'video_source':  video_source,
-                    'type':          img_type,
-                }
+            creatives[ad_id] = {
+                'thumbnail_url': thumb_url,
+                'video_id':      video_id,
+                'video_source':  video_source,
+                'type':          img_type,
+            }
         except Exception as e:
-            creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'type': None}
-
+            creatives[ad_id] = {'thumbnail_url': None, 'video_id': None, 'video_source': None, 'type': None}
     found = sum(1 for c in creatives.values() if c.get('thumbnail_url'))
     print(f"    소재 {len(creatives)}개 수집 (썸네일 {found}개 확보)")
     return insights, creatives
