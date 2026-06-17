@@ -345,12 +345,28 @@ function prevDeltaHtml(cur,prev,fmt){
   const cls=pct>=0?'mpd-up':'mpd-dn';
   return`<span style="color:var(--text3)">전주 ${fmt(prev)}</span> <span class="${cls}">${pct>=0?'▲':'▼'}${Math.abs(pct).toFixed(1)}%</span>`;
 }
-// img 필드 → 실제 src 변환 (메타 URL이면 직접, 드라이브 ID면 드라이브 URL)
+// img → 실제 src (메타 URL 그대로, 드라이브 ID는 드라이브 URL 변환)
 function imgSrc(img, sz='w400'){
   if(!img) return null;
   if(img.startsWith('http')||img.startsWith('//')) return img;
-  // 드라이브 ID (구형 데이터 호환)
   return `https://drive.google.com/thumbnail?id=${img}&sz=${sz}`;
+}
+
+// 소재 썸네일 HTML 생성 (카드용)
+function thumbHtml(row, containerCls, overlayCls){
+  const src = imgSrc(row.img, 'w400');
+  const ov  = overlayCls ? `<div class="${overlayCls}"><i class="ti ti-zoom-in" style="color:#fff;font-size:16px"></i></div>` : '';
+  if(src){
+    return `<img src="${src}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="${containerCls}" style="display:none"></div>${ov}`;
+  }
+  if(row.video){
+    return `<div class="${containerCls}" style="flex-direction:column;gap:4px">
+              <i class="ti ti-player-play" style="font-size:20px;color:var(--text3)"></i>
+              <div style="font-size:9px;color:var(--text3)">영상</div>
+            </div>${ov}`;
+  }
+  return `<div class="${containerCls}"><i class="ti ti-photo" style="font-size:14px"></i></div>${ov}`;
 }
 
 // ad_id 기반 메타 썸네일 로드 (비동기, img 엘리먼트에 직접 주입)
@@ -363,17 +379,8 @@ function loadMetaThumb(el, adId, fallbackSrc){
 }
 
 function tThumb(img,ec,ov,name='',vid=''){
-  const ovH=ov?`<div class="${ov}"><i class="ti ti-zoom-in" style="color:#fff;font-size:16px"></i></div>`:'';
-  if(img){
-    const src = imgSrc(img, 'w400');
-    return`<img src="${src}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="${ec}" style="display:none"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
-  }
-  // img 없어도 video 있으면 재생 아이콘 표시
-  if(vid){
-    return`<div class="${ec}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(0,0,0,0.06)"><i class="ti ti-player-play" style="font-size:18px;color:var(--text3)"></i><div style="font-size:9px;color:var(--text3)">영상</div></div>${ovH}`;
-  }
-  if(name)return`<div class="${ec}"><div class="wno-name">${name}</div><div class="wno-msg">썸네일 없음</div></div>${ovH}`;
-  return`<div class="${ec}"><i class="ti ti-photo" style="font-size:14px"></i></div>${ovH}`;
+  const row = {img: img, video: vid};
+  return thumbHtml(row, ec, ov);
 }
 function labelBadges(c){
   const obj=c.objective||c.purpose||'';
@@ -413,7 +420,7 @@ function sortD7List(arr){
 function mkD7(r){
     const eT=r.is_new?`<span class="tag td-new">🆕 NEW</span>`:r.roas_delta!=null?`<span class="tag ${r.roas_delta>0?'td-up':'td-dn'}">${r.roas_delta>0?'+':''}${Math.round(r.roas_delta)}%</span>`:'';
     return`<div class="d7row" onclick="openModal('${r.key}')">
-      <div class="d7th">${tThumb(r.img,'d7te','d7ov','',r.video||'')}</div>
+      <div class="d7th">${thumbHtml(r,'d7te','d7ov')}</div>
       <div class="d7body">
         <div class="d7l1"><span class="mgr-dot" style="background:${MC[r.mgr]}"></span><span class="d7name">${r.base_key||r.key}</span>${eT}${r.age_days!=null?`<span class="tag ta-d0" style="font-size:9px">D+${r.age_days}</span>`:''}</div>
         <div style="display:flex;align-items:center;gap:5px"><span class="${rvC(r.roas_pct)}" style="font-size:14px;font-weight:600">${r.roas_pct>0?fmtR(r.roas_pct):'전환 없음'}</span>${r.old_roas_pct?`<span class="roas-arr">←</span><span class="roas-prev">전주 ${fmtR(r.old_roas_pct)}</span>`:''}</div>
@@ -485,7 +492,7 @@ function buildWinCard(c,thr,sort='revenue'){
   else if(sort==='ctr'&&c.prev_ctr!=null)prevVal=`전주 ${c.prev_ctr}%`;
   else if(sort==='cpc'&&c.prev_cpc!=null)prevVal=`전주 ₩${Math.round(c.prev_cpc).toLocaleString()}`;
   return`<div class="wcard ${sClass}" onclick="openModal('${c.key}')">
-    <div class="wthumb">${iu?`<img src="${iu}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}<div class="wno-thumb" style="display:${iu?'none':'flex'}"><div class="wno-name">${c.base_key||c.key}</div><div class="wno-msg">썸네일 업로드 필요</div></div>
+    <div class="wthumb">${thumbHtml(c,'wno-thumb','wthumb-zoom')}
       <div class="wthumb-tl"><span class="tag ${ageCls(c.age_days)}" style="font-size:9px">${c.age_days!=null?'D+'+c.age_days:'-'}</span>
         ${(()=>{
           let delta=null,isGood=true;
@@ -1275,19 +1282,10 @@ function openModal(key){
   const isNew=cur.is_new===true;
   document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
-  const vidId = cur.video || (cur.img_type==='video' ? cur.img : null);
-  if(vidId){
-    var isMetaVid = /^\d+$/.test(String(vidId));
-    var thumbS = imgSrc(cur.img,'w800')||'';
-    if(isMetaVid){
-      iw.innerHTML = buildMetaVidHtml(vidId, thumbS, cur.video_src||'');
-    } else {
-      var driveUrl = 'https://drive.google.com/file/d/'+vidId+'/preview';
-      iw.innerHTML = '<div style="position:relative;width:100%;padding-top:100%;border-radius:var(--r);overflow:hidden;background:#000">'
-        +'<iframe src="'+driveUrl+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe>'
-        +'</div>';
-    }
-    } else if(cur.img){
+  if(cur.video){
+    // 영상 소재: buildMetaVidHtml (직접재생 or 새탭)
+    iw.innerHTML = buildMetaVidHtml(cur.video, imgSrc(cur.img,'w800')||'', cur.video_src||'');
+  } else if(cur.img){
     iw.innerHTML=`<img src="${imgSrc(cur.img,'w1200')}" style="width:100%;height:auto;max-height:480px;object-fit:contain;border-radius:var(--r);background:var(--bg2);display:block" onerror="this.parentElement.innerHTML='<div style=\\'height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r);color:var(--text3)\\'><span>이미지 없음</span></div>'">`;
     } else {
     iw.innerHTML=`<div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--bg2);border-radius:var(--r)"><i class="ti ti-photo" style="font-size:32px;color:var(--text3)"></i><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 1rem">${cur.base_key||cur.key}</div><div style="font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;
