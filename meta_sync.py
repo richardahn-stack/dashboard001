@@ -163,7 +163,7 @@ def fetch_week_data(token, date_start, date_end):
             # ad → adcreatives 직접 조회 (/{ad_id}/adcreatives 엔드포인트)
             cr_list = api_get(
                 f"{ad_id}/adcreatives",
-                {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
+                {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture,source'},
                 token
             )
             cr_data = cr_list.get('data', [])
@@ -200,12 +200,19 @@ def fetch_week_data(token, date_start, date_end):
                     thumb_url = cr.get('thumbnail_url')
 
                 # video source URL (mp4 직접 재생)
-                video_source = None
-                try:
-                    vs           = api_get(str(video_id), {'fields': 'source'}, token)
-                    video_source = vs.get('source')
-                except Exception:
-                    pass
+                # 1) adcreatives에서 직접 source 필드
+                video_source = cr.get('source')
+                # 2) object_story_spec 내 video_data.source
+                if not video_source:
+                    video_source = (cr.get('object_story_spec', {})
+                                      .get('video_data', {}).get('source'))
+                # 3) 별도 video 엔드포인트 (ads_read 권한으로 접근 가능한 경우)
+                if not video_source:
+                    try:
+                        vs = api_get(str(video_id), {'fields': 'source'}, token)
+                        video_source = vs.get('source')
+                    except Exception:
+                        pass
             else:
                 img_type = 'img'
                 thumb_url = (cr.get('image_url')
@@ -526,7 +533,7 @@ def main():
     last_sunday = today - timedelta(days=days_since_sunday)
 
     weeks = []
-    for i in range(6):
+    for i in range(2):  # 최근 2주만 갱신 (속도 최적화)
         end   = last_sunday - timedelta(weeks=i)
         start = end - timedelta(days=6)
         label = f"{end.month}/{start.day}~{end.day}"
@@ -548,13 +555,20 @@ def main():
     for i, w in enumerate(weeks):
         print(f"\n[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
         try:
+            out_path = f"{OUTPUT_DIR}/{w['id']}.json"
+            # 이번 주(i==0)는 항상 갱신, 이전 주는 파일 있으면 skip
+            if i > 0 and os.path.exists(out_path):
+                print(f"  ⏭️  {out_path} 이미 존재 → skip")
+                with open(out_path, encoding='utf-8') as f:
+                    existing = json.load(f)
+                weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
+                continue
             prev = weeks[i+1] if i+1 < len(weeks) else weeks[i]
             data = build_json_from_api(
                 token,
                 w['end'], prev['end'],
                 w['label'], prev['label']
             )
-            out_path = f"{OUTPUT_DIR}/{w['id']}.json"
             with open(out_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False)
             print(f"  ✅ {out_path} 저장 완료 (소재 {len(data['all_ads'])}개)")
