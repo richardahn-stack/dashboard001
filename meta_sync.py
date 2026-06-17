@@ -161,7 +161,7 @@ def fetch_week_data(token, date_start, date_end):
             # creative 전체 필드 요청
             ad_data = api_get(
                 ad_id,
-                {'fields': 'creative{id,thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,effective_instagram_story_id}'},
+                {'fields': 'creative{id,thumbnail_url,image_hash,image_url,video_id,object_story_spec,asset_feed_spec}'},
                 token
             )
             cr       = ad_data.get('creative', {})
@@ -173,22 +173,30 @@ def fetch_week_data(token, date_start, date_end):
             if video_id:
                 # ── 영상 소재 ──
                 img_type = 'video'
-                # 1) creative.thumbnail_url (파트너스 등 외부 영상에서도 작동)
-                thumb_url = cr.get('thumbnail_url')
-                # 2) video thumbnails API
-                if not thumb_url:
-                    try:
-                        vt = api_get(f"{video_id}/thumbnails",
-                                     {'fields': 'uri,is_preferred'}, token)
-                        thumbs = vt.get('data', [])
-                        pref = next((t for t in thumbs if t.get('is_preferred')), None)
-                        thumb_url = (pref or (thumbs[0] if thumbs else {})).get('uri')
-                    except Exception:
-                        pass
-                # 3) object_story_spec.video_data.image_url fallback
+                # 1) video/thumbnails API — 고화질 우선
+                thumb_url = None
+                try:
+                    vt = api_get(f"{video_id}/thumbnails",
+                                 {'fields': 'uri,width,height,is_preferred'}, token)
+                    thumbs = vt.get('data', [])
+                    if thumbs:
+                        best = max(thumbs, key=lambda t: t.get('width', 0) * t.get('height', 0))
+                        thumb_url = best.get('uri')
+                except Exception:
+                    pass
+                # 2) object_story_spec.video_data.image_url
                 if not thumb_url:
                     vd = cr.get('object_story_spec', {}).get('video_data', {})
                     thumb_url = vd.get('image_url')
+                # 3) asset_feed_spec
+                if not thumb_url:
+                    afs = cr.get('asset_feed_spec', {})
+                    vids = afs.get('videos', [])
+                    if vids:
+                        thumb_url = vids[0].get('thumbnail_url')
+                # 4) creative.thumbnail_url 최후 fallback
+                if not thumb_url:
+                    thumb_url = cr.get('thumbnail_url')
                 # 3) asset_feed_spec fallback
                 if not thumb_url:
                     afs = cr.get('asset_feed_spec', {})
