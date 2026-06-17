@@ -168,8 +168,14 @@ def fetch_week_data(token, date_start, date_end):
                 continue
             # Step2: creative id → 실제 소재 필드 조회
             cr       = api_get(creative_id,
-                               {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
+                               {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture,effective_object_story_id'},
                                token)
+            # 첫 번째 광고만 디버그 출력
+            if ad_id == ad_ids[0]:
+                import json as _json
+                print(f"    [DEBUG] creative_id={creative_id}")
+                print(f"    [DEBUG] cr keys={list(cr.keys())}")
+                print(f"    [DEBUG] cr sample={_json.dumps(cr, ensure_ascii=False)[:300]}")
             video_id = cr.get('video_id')
             thumb_url = None
             img_type  = None
