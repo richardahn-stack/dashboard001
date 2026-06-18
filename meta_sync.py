@@ -503,7 +503,7 @@ def main():
     last_sunday = today - timedelta(days=days_since_sunday)
 
     weeks = []
-    for i in range(2):  # 최근 2주만 갱신 (속도 최적화)
+    for i in range(6):  # 전체 6주 재수집 (일회성)
         end   = last_sunday - timedelta(weeks=i)
         start = end - timedelta(days=6)
         label = f"{end.month}/{start.day}~{end.day}"
@@ -526,13 +526,7 @@ def main():
         print(f"\n[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
         try:
             out_path = f"{OUTPUT_DIR}/{w['id']}.json"
-            # 이번 주(i==0)는 항상 갱신, 이전 주는 파일 있으면 skip
-            if i > 0 and os.path.exists(out_path):
-                print(f"  ⏭️  {out_path} 이미 존재 → skip")
-                with open(out_path, encoding='utf-8') as f:
-                    existing = json.load(f)
-                weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
-                continue
+            # skip 없이 전체 재수집 (일회성 실행)
             prev = weeks[i+1] if i+1 < len(weeks) else weeks[i]
             data = build_json_from_api(
                 token,
