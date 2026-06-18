@@ -998,13 +998,16 @@ function buildMetaVidHtml(vidId, thumbS){
   window['playVid_' + vidId] = function(){
     var wrap = document.getElementById(wid);
     if(!wrap) return;
+    // mimg flex 컨테이너 안에서 높이가 잡히도록 width 기준 고정 높이 사용
+    var w = wrap.offsetWidth || 480;
+    var h = Math.round(w * 9 / 16);
+    wrap.style.display = 'block';
     wrap.innerHTML =
-      '<div style="position:relative;padding-top:56.25%;border-radius:var(--r);overflow:hidden;background:#000">'
-      +'<iframe src="' + embedUrl + '?autoplay=1&allowfullscreen=true"'
-      +' style="position:absolute;inset:0;width:100%;height:100%;border:none"'
+      '<iframe src="' + embedUrl + '?autoplay=1&allowfullscreen=true"'
+      +' width="' + w + '" height="' + h + '"'
+      +' style="width:100%;height:' + h + 'px;border:none;display:block;border-radius:var(--r)"'
       +' allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"'
-      +' allowfullscreen></iframe>'
-      +'</div>';
+      +' allowfullscreen></iframe>';
   };
 
   return '<div id="'+wid+'" style="border-radius:var(--r);overflow:hidden">'
