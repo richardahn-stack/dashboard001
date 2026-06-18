@@ -992,7 +992,7 @@ function buildMetaVidHtml(vidId, thumbS){
     : '<div style="height:280px;background:var(--bg2);display:flex;align-items:center;justify-content:center;border-radius:var(--r)"><i class=\"ti ti-video\" style=\"font-size:48px;color:var(--text3)\"></i></div>';
 
   var wid = 'mvid_' + vidId;
-  var embedUrl = 'https://www.facebook.com/video/embed?video_id=' + vidId;
+  var embedUrl = 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fvideo%2F' + vidId + '%2F&show_text=false&appId';
 
   // 썸네일 클릭 시 iframe 임베드 플레이어로 교체 (웹 내 재생)
   window['playVid_' + vidId] = function(){
