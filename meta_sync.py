@@ -361,16 +361,16 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
         old_roas = old.get('roas')
         roas_delta = round((r['roas']-old_roas)/old_roas*100,1) if old_roas and old_roas>0 and r['roas']>0 else None
 
-        # 위닝 판정
+        # 위닝 판정 (spend 기준 제거 — 신규 소재도 평가)
         ws = None; wf = {}; wt = None
-        if r['objective']=='전환' and r['spend']>=100000 and avg_roas>0:
+        if r['objective']=='전환' and avg_roas>0:
             wf = {
                 'roas': r['roas']>avg_roas, 'ctr': r['ctr']>avg_ctr,
                 'cvr': r['cvr']>avg_cvr, 'cpc': r['cpc']>0 and r['cpc']<avg_cpc,
                 'purchases': r['purchases']>avg_pur
             }
             ws = sum(wf.values()); wt = '전환'
-        elif r['objective'] in ['트래픽','콘조'] and r['spend']>=30000:
+        elif r['objective'] in ['트래픽','콘조']:
             wf = {'ctr': r['ctr']>tc_avg_ctr}
             ws = 1 if wf['ctr'] else 0; wt = 'tc'
 
@@ -428,8 +428,18 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
     tc_win   = sorted([r for r in final_rows if r['win_type']=='tc' and (r['win_score'] or 0)>=1],
                       key=lambda x: x['ctr'], reverse=True)[:10]
     d7_all   = [r for r in final_rows if r['age_days'] is not None and r['age_days']<=7 and r['spend']>=30000]
-    d7_win   = sorted([r for r in d7_all if r['roas_pct']>=200], key=lambda x: x['roas_pct'], reverse=True)
-    d7_lose  = sorted([r for r in d7_all if r['roas_pct']<200],  key=lambda x: x['spend'], reverse=True)
+    # 위닝: 전환 win_score>=3 또는 tc win_score>=1, 정렬: score↓ → spend↓
+    d7_win   = sorted(
+        [r for r in d7_all if (r['win_type']=='전환' and (r['win_score'] or 0)>=3)
+                           or (r['win_type']=='tc'   and (r['win_score'] or 0)>=1)],
+        key=lambda x: (-(x['win_score'] or 0), -x['spend'])
+    )
+    # 루징: 위닝 제외 전체, 정렬: spend↓
+    d7_win_ids = {id(r) for r in d7_win}
+    d7_lose  = sorted(
+        [r for r in d7_all if id(r) not in d7_win_ids],
+        key=lambda x: -x['spend']
+    )
 
     prev_total = sum(r['spend'] for r in prev_rows)
     prev_s = {
