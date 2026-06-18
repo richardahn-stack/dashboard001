@@ -163,7 +163,7 @@ def fetch_week_data(token, date_start, date_end):
             # ad → adcreatives 직접 조회 (/{ad_id}/adcreatives 엔드포인트)
             cr_list = api_get(
                 f"{ad_id}/adcreatives",
-                {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture,source'},
+                {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
                 token
             )
             cr_data = cr_list.get('data', [])
@@ -182,11 +182,7 @@ def fetch_week_data(token, date_start, date_end):
                     or cr.get('picture')
                     or cr.get('thumbnail_url')
                 )
-                # video source: adcreatives 응답 또는 object_story_spec에서 직접 수집
-                video_source = (
-                    cr.get('source')
-                    or cr.get('object_story_spec', {}).get('video_data', {}).get('source')
-                )
+                video_source = None  # mp4 직접재생 불가 (ads_read 권한 제한)
             else:
                 img_type = 'img'
                 thumb_url = (cr.get('image_url')

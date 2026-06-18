@@ -246,6 +246,11 @@ tr:hover td{background:var(--bg2)}
 .loading{text-align:center;padding:3rem;color:var(--text3);font-size:13px}
 @media(max-width:600px){.tcols,.d7cols{grid-template-columns:1fr}.win-grid{grid-template-columns:repeat(2,1fr)}.kpi-row{grid-template-columns:repeat(2,1fr)}.mtop{grid-template-columns:1fr}}
 </style>
+  <!-- Facebook Embedded Video Player SDK -->
+  <div id="fb-root"></div>
+  <script async defer crossorigin="anonymous"
+    src="https://connect.facebook.net/ko_KR/sdk.js#xfbml=1&version=v21.0">
+  </script>
 </head>
 <body>
 
@@ -980,50 +985,39 @@ function _hideGTT(){
   if(_gtt) _gtt.style.display = 'none';
 }
 
-function buildMetaVidHtml(vidId, thumbS, videoSrc){
-  var noImg = 'this.style.display=\x27none\x27';
+function buildMetaVidHtml(vidId, thumbS){
+  var noImg = 'this.style.display:\x27none\x27';
   var thumbHtml = thumbS
     ? ('<img src="'+thumbS+'" style="width:100%;display:block;border-radius:var(--r)" onerror="'+noImg+'">')
     : '<div style="height:280px;background:var(--bg2);display:flex;align-items:center;justify-content:center;border-radius:var(--r)"><i class=\"ti ti-video\" style=\"font-size:48px;color:var(--text3)\"></i></div>';
 
-  var playOverlay = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,0.28)">'
-    +'<div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3)">'
-    +'<i class=\"ti ti-player-play-filled\" style=\"font-size:28px;color:#111;margin-left:4px\"></i>'
-    +'</div>'
-    +'<div style=\"font-size:12px;color:#fff;background:rgba(0,0,0,0.55);padding:5px 14px;border-radius:20px;font-weight:500\">클릭하여 재생</div>'
-    +'</div>';
+  var wid = 'mvid_' + vidId;
+  var embedUrl = 'https://www.facebook.com/video/embed?video_id=' + vidId;
 
-  if(videoSrc){
-    var wid = 'mvid_'+vidId;
-    // 전역 함수로 재생 처리 (onclick 이스케이프 문제 방지)
-    window['playVid_'+vidId] = function(){
-      var t = document.getElementById(wid+'_t');
-      var v = document.getElementById(wid+'_v');
-      if(t) t.style.display='none';
-      if(v) v.style.display='block';
-    };
-    return '<div id="'+wid+'" style="border-radius:var(--r);overflow:hidden;background:#000">'
-      +'<div id="'+wid+'_t" style="position:relative;cursor:pointer" onclick="(window[\'playVid_'+vidId+'\']||function(){})();">'
-        +thumbHtml+playOverlay
-      +'</div>'
-      +'<div id="'+wid+'_v" style="display:none">'
-        +'<video src="'+videoSrc+'" controls autoplay playsinline'
-        +' style="width:100%;max-height:480px;border-radius:var(--r);background:#000;display:block"'
-        +' controlslist="nodownload"></video>'
-      +'</div>'
-    +'</div>';
-  }
+  // 썸네일 클릭 시 iframe 임베드 플레이어로 교체 (웹 내 재생)
+  window['playVid_' + vidId] = function(){
+    var wrap = document.getElementById(wid);
+    if(!wrap) return;
+    wrap.innerHTML =
+      '<div style="position:relative;padding-top:56.25%;border-radius:var(--r);overflow:hidden;background:#000">'
+      +'<iframe src="' + embedUrl + '?autoplay=1&allowfullscreen=true"'
+      +' style="position:absolute;inset:0;width:100%;height:100%;border:none"'
+      +' allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"'
+      +' allowfullscreen></iframe>'
+      +'</div>';
+  };
 
-  var metaUrl = 'https://www.facebook.com/video.php?v='+vidId;
-  return '<a href="'+metaUrl+'" target="_blank" rel="noopener noreferrer" style="display:block;position:relative;border-radius:var(--r);overflow:hidden;cursor:pointer;text-decoration:none">'
-    +thumbHtml
-    +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,0.28)">'
-      +'<div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3)">'
-        +'<i class=\"ti ti-player-play-filled\" style=\"font-size:28px;color:#111;margin-left:4px\"></i>'
+  return '<div id="'+wid+'" style="border-radius:var(--r);overflow:hidden">'
+    +'<div style="position:relative;cursor:pointer" onclick="(window[\'playVid_'+vidId+'\']||function(){})();">'
+      +thumbHtml
+      +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,0.28)">'
+        +'<div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3)">'
+          +'<i class=\"ti ti-player-play-filled\" style=\"font-size:28px;color:#111;margin-left:4px\"></i>'
+        +'</div>'
+        +'<div style=\"font-size:12px;color:#fff;background:rgba(0,0,0,0.55);padding:5px 14px;border-radius:20px;font-weight:500\">클릭하여 재생</div>'
       +'</div>'
-      +'<div style=\"font-size:12px;color:#fff;background:rgba(0,0,0,0.55);padding:5px 14px;border-radius:20px;font-weight:500\">Facebook에서 영상 재생</div>'
     +'</div>'
-  +'</a>';
+  +'</div>';
 }
 
 
@@ -1299,7 +1293,7 @@ function openModal(key){
   const iw=document.getElementById('mimg');
   if(cur.video){
     // 영상 소재: buildMetaVidHtml (직접재생 or 새탭)
-    iw.innerHTML = buildMetaVidHtml(cur.video, imgSrc(cur.img,'w800')||'', cur.video_src||'');
+    iw.innerHTML = buildMetaVidHtml(cur.video, imgSrc(cur.img,'w800')||'');
   } else if(cur.img){
     iw.innerHTML=`<img src="${imgSrc(cur.img,'w1200')}" style="width:100%;height:auto;max-height:480px;object-fit:contain;border-radius:var(--r);background:var(--bg2);display:block" onerror="this.parentElement.innerHTML='<div style=\\'height:200px;display:flex;align-items:center;justify-content:center;background:var(--bg2);border-radius:var(--r);color:var(--text3)\\'><span>이미지 없음</span></div>'">`;
     } else {
