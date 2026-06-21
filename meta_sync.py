@@ -482,10 +482,12 @@ def main():
     print("  메타 광고 대시보드 자동 동기화")
     print("=" * 50)
 
-    # 토큰 입력 (보안상 코드에 넣지 않음)
-    token = input("\n시스템 사용자 액세스 토큰을 입력하세요: ").strip()
+    # 환경변수 우선 (GitHub Actions), 없으면 직접 입력 (로컬 실행)
+    token = os.environ.get('META_TOKEN', '').strip()
     if not token:
-        print("❌ 토큰이 없습니다.")
+        token = input("\n시스템 사용자 액세스 토큰을 입력하세요: ").strip()
+    if not token:
+        print("❌ 토큰이 없습니다. META_TOKEN 환경변수를 설정하거나 직접 입력하세요.")
         sys.exit(1)
 
     # 토큰 유효성 검증
@@ -513,7 +515,7 @@ def main():
     last_sunday = today - timedelta(days=days_since_sunday)
 
     weeks = []
-    for i in range(6):  # 전체 6주 재수집 (일회성)
+    for i in range(2):  # 이번 주 + 지난주 갱신 (매주 자동)
         end   = last_sunday - timedelta(weeks=i)
         start = end - timedelta(days=6)
         label = f"{end.month}/{start.day}~{end.day}"
@@ -536,7 +538,11 @@ def main():
         print(f"\n[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
         try:
             out_path = f"{OUTPUT_DIR}/{w['id']}.json"
-            # skip 없이 전체 재수집 (일회성 실행)
+            # 이번 주(i=0)는 항상 갱신, 이전 주는 파일 있으면 skip
+            if i > 0 and os.path.exists(out_path):
+                print(f"  ⏭️  {out_path} 이미 존재 → skip")
+                weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
+                continue
             prev = weeks[i+1] if i+1 < len(weeks) else weeks[i]
             data = build_json_from_api(
                 token,
