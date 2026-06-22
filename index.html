@@ -1013,7 +1013,7 @@ function buildLeaderSection(d){
   const topRev   = top.reduce((s,r)=>s+(r.revenue||0),0);
   const spPct = tSpend>0 ? Math.round(topSpend/tSpend*100) : 0;
   const rvPct = tRev>0   ? Math.round(topRev/tRev*100)   : 0;
-  const maxSpend = top[0]?.spend || 1;
+  const maxSpend = (top[0] && top[0].spend) ? top[0].spend : 1;
   const maxRev   = Math.max(...top.map(r=>r.revenue||0)) || 1;
 
   const rows = top.map((r,i)=>{
@@ -1071,7 +1071,7 @@ function buildLeaderSection(d){
 /* ─────────────────────── */
 
   // ── AB테스트 섹션 ──
-  function buildAbSection(d):
+  function buildAbSection(d){
     const ads = d.all_ads || [];
 
     function seriesKey(bk){
@@ -1558,11 +1558,11 @@ function renderPieCharts(pie){
 function openModal(key){
   mKey=key;
   const wd=[];
-  for(const w of weeks){if(cache[w.id]){const r=cache[w.id].all_ads?.find(r=>r.key===key);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
+  for(const w of weeks){if(cache[w.id]){const r=(cache[w.id].all_ads||[]).find(r=>r.key===key);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
   const cur=wd.find(r=>r.weekId===curWeekId)||wd[0];
   if(!cur)return;
   const allS=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
-  const fId=(()=>{for(const w of allS){if(cache[w.id]?.all_ads?.find(r=>r.key===key))return w.id;}return curWeekId;})();
+  const fId=(()=>{for(const w of allS){if((cache[w.id] && (cache[w.id].all_ads||[]).find(r=>r.key===key)))return w.id;}return curWeekId;})();
   const isNew=cur.is_new===true;
   document.getElementById('mtitle').innerHTML=`<span class="mgr-dot" style="background:${MC[cur.mgr]};width:8px;height:8px"></span>${cur.base_key||cur.key} ${isNew?` <span class="tag tag-new">🆕 NEW</span>`:''}`;
   const iw=document.getElementById('mimg');
@@ -1575,7 +1575,7 @@ function openModal(key){
     iw.innerHTML=`<div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--bg2);border-radius:var(--r)"><i class="ti ti-photo" style="font-size:32px;color:var(--text3)"></i><div style="font-size:11px;color:var(--text3);text-align:center;padding:0 1rem">${cur.base_key||cur.key}</div><div style="font-size:11px;color:#854F0B;font-weight:500">썸네일 업로드 필요</div></div>`;
   }
   document.getElementById('mtags').innerHTML=labelBadges(cur)+`${cur.age_days!=null?`<span class="tag ${ageCls(cur.age_days)}">D+${cur.age_days}</span>`:''}<span style="font-size:11px;font-weight:500;color:${MC[cur.mgr]}">${cur.mgr}</span>`;
-  const thr=cache[curWeekId]?.summary?.winning_thresholds||{};
+  const thr=(cache[curWeekId] && cache[curWeekId].summary && cache[curWeekId].summary.winning_thresholds)||{};
   document.getElementById('mkpis').innerHTML=`
     <div class="mkpi"><div class="mkpi-l"><span>ROAS</span><i class="ti ti-info-circle" style="font-size:11px"></i>${tipHtml('roas',`이번 주 평균 ${fmtR(thr.avg_roas_pct||0)}`)}</div><div class="mkpi-v ${rvC(cur.roas_pct)}">${cur.roas_pct>0?fmtR(cur.roas_pct):'-'}</div><div class="mkpi-prev">${prevDeltaHtml(cur.roas_pct,cur.old_roas_pct,fmtR)}</div></div>
     <div class="mkpi"><div class="mkpi-l">광고비</div><div class="mkpi-v">${fmtS(cur.spend)}</div><div class="mkpi-prev">${cur.prev_spend?prevDeltaHtml(cur.spend,cur.prev_spend,fmtS):''}</div></div>
@@ -1711,8 +1711,8 @@ function toggleReplyForm(idx){
 }
 
 async function submitPost(){
-  const nick = (document.getElementById('bNick')?.value||'').trim() || '익명';
-  const body = (document.getElementById('bText')?.value||'').trim();
+  const nick = ((document.getElementById('bNick')||{}).value||'').trim() || '익명';
+  const body = ((document.getElementById('bText')||{}).value||'').trim();
   if(!body) return;
   const posts = await Store.get('board:' + boardKey) || [];
   posts.unshift({nick, body, ts: Date.now(), replies:[]});
@@ -1725,8 +1725,8 @@ async function submitPost(){
 }
 
 async function submitReply(idx){
-  const nick = (document.getElementById('rNick_'+idx)?.value||'').trim() || '익명';
-  const body = (document.getElementById('rText_'+idx)?.value||'').trim();
+  const nick = ((document.getElementById('rNick_'+idx)||{}).value||'').trim() || '익명';
+  const body = ((document.getElementById('rText_'+idx)||{}).value||'').trim();
   if(!body) return;
   const posts = await Store.get('board:' + boardKey) || [];
   if(!posts[idx]) return;
@@ -1749,7 +1749,7 @@ function setMetric(m,btn){
   document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   const wd=[];
-  for(const w of weeks){if(cache[w.id]){const r=cache[w.id].all_ads?.find(r=>r.key===mKey);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
+  for(const w of weeks){if(cache[w.id]){const r=(cache[w.id].all_ads||[]).find(r=>r.key===mKey);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
   renderTChart(wd);
 }
 
@@ -1758,12 +1758,12 @@ function renderTChart(wd){
   if(tChart){tChart.destroy();tChart=null;}
   const sorted=[...wd].sort((a,b)=>a.weekId>b.weekId?1:-1);
   const allS=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
-  const fId=(()=>{for(const w of allS){if(cache[w.id]?.all_ads?.find(r=>r.key===mKey))return w.id;}return sorted[0]?.weekId;})();
+  const fId=(()=>{for(const w of allS){if((cache[w.id] && (cache[w.id].all_ads||[]).find(r=>r.key===mKey)))return w.id;}return (sorted[0] && sorted[0].weekId);})();
   const fIdx=sorted.findIndex(r=>r.weekId===fId);
   const labels=sorted.map((r,i)=>r.week+(i===fIdx?' ★':''));
   if(curMetric==='rank'){
     cw.style.display='none';rt.style.display='block';
-    rt.innerHTML=`<table class="rtbl"><thead><tr><th>주차</th><th>순위</th><th>광고비</th><th>ROAS</th></tr></thead><tbody>${sorted.map((r,i)=>{const wa=cache[r.weekId]?.all_ads||[];const rank=[...wa].sort((a,b)=>b.spend-a.spend).findIndex(a=>a.key===mKey)+1;return`<tr style="${i===fIdx?'background:rgba(24,95,165,0.05)':''}"><td>${r.week}${i===fIdx?' 🆕':''}</td><td>${rank>0?rank+'위/'+wa.length+'개':'-'}</td><td>${fmtS(r.spend)}</td><td class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</td></tr>`;}).join('')}</tbody></table>`;
+    rt.innerHTML=`<table class="rtbl"><thead><tr><th>주차</th><th>순위</th><th>광고비</th><th>ROAS</th></tr></thead><tbody>${sorted.map((r,i)=>{const wa=(cache[r.weekId] && cache[r.weekId].all_ads)||[];const rank=[...wa].sort((a,b)=>b.spend-a.spend).findIndex(a=>a.key===mKey)+1;return`<tr style="${i===fIdx?'background:rgba(24,95,165,0.05)':''}"><td>${r.week}${i===fIdx?' 🆕':''}</td><td>${rank>0?rank+'위/'+wa.length+'개':'-'}</td><td>${fmtS(r.spend)}</td><td class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</td></tr>`;}).join('')}</tbody></table>`;
     return;
   }
   cw.style.display='block';rt.style.display='none';
