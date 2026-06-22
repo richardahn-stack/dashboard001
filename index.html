@@ -309,7 +309,7 @@ tr:hover td{background:var(--bg2)}
 
 /* ── 매출 리딩 소재 섹션 ── */
 .leader-grid{display:flex;flex-direction:column;gap:.6rem}
-.leader-row{display:grid;grid-template-columns:28px 52px 1fr 90px 90px 80px 80px;align-items:center;gap:.75rem;padding:.7rem .9rem;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:background .15s}
+.leader-row{display:grid;grid-template-columns:28px 52px 1fr 90px 90px 80px 80px 100px;align-items:center;gap:.75rem;padding:.7rem .9rem;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:background .15s}
 .leader-row:hover{background:var(--bg2)}
 .leader-row.leader-row--top{border-left:3px solid var(--accent)}
 .leader-rank{font-size:.8rem;font-weight:800;color:var(--text3);text-align:center}
@@ -330,7 +330,15 @@ tr:hover td{background:var(--bg2)}
 .leader-bar-fill{height:100%;border-radius:3px;transition:width .3s}
 .leader-bar-fill--spend{background:#6c9eff}
 .leader-bar-fill--rev{background:#52b788}
-@media(max-width:600px){.leader-row{grid-template-columns:24px 44px 1fr 70px;gap:.5rem}.leader-bar-block:nth-child(2),.leader-kpi-block:nth-child(6){display:none}}
+@media(max-width:600px){.leader-row{grid-template-columns:24px 44px 1fr 70px;gap:.5rem}.leader-bar-block,.leader-kpi-block:nth-child(6),.leader-indicators{display:none}}
+
+/* ── leader 지표 뱃지 ── */
+.leader-indicators{display:flex;flex-direction:column;gap:3px;min-width:0}
+.leader-ind-row{display:flex;gap:4px;flex-wrap:wrap}
+.li-badge{display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:10px;font-size:.65rem;font-weight:700;white-space:nowrap}
+.li-badge--up{background:#e8f5e9;color:#2e7d32}
+.li-badge--dn{background:#fce4ec;color:#c62828}
+.li-badge--neu{background:var(--bg3);color:var(--text3)}
 </style>
 
 </head>
@@ -1027,6 +1035,25 @@ function buildLeaderSection(d){
       ? '<img src="'+imgSrc(r.img,'w200')+'" loading="lazy" onerror="this.style.display=&#39;none&#39;">'
       : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.2rem">&#9654;</div>';
 
+
+    // 평균 대비 지표 뱃지
+    const thr = (d.summary && d.summary.winning_thresholds) || {};
+    const avgRoas = thr.avg_roas_pct || 0;
+    const avgCtr  = thr.avg_ctr  || 0;
+    const avgCvr  = thr.avg_cvr  || 0;
+    const avgCpc  = thr.avg_cpc  || 0;
+    function liBadge(label, val, avg, lowBetter){
+      if(!avg || !val) return '<span class="li-badge li-badge--neu">'+label+'</span>';
+      const good = lowBetter ? val < avg : val > avg;
+      const pct  = Math.round(Math.abs(val - avg) / avg * 100);
+      const arrow = good ? '&#9650;' : '&#9660;';
+      const cls   = good ? 'li-badge--up' : 'li-badge--dn';
+      return '<span class="li-badge '+cls+'">'+arrow+' '+label+' '+pct+'%</span>';
+    }
+    const indHtml = '<div class="leader-indicators">'
+      +'<div class="leader-ind-row">'+liBadge('ROAS',r.roas_pct||0,avgRoas,false)+liBadge('CTR',r.ctr||0,avgCtr,false)+'</div>'
+      +'<div class="leader-ind-row">'+liBadge('CVR',r.cvr||0,avgCvr,false)+liBadge('CPC',r.cpc||0,avgCpc,true)+'</div>'
+    +'</div>';
     return '<div class="leader-row'+(rank<=3?' leader-row--top':'')+'" onclick="openModal(\''+r.key+'\')">'
       +'<div class="leader-rank '+rCls+'">'+rank+'</div>'
       +'<div class="leader-thumb">'+th+'</div>'
@@ -1056,6 +1083,7 @@ function buildLeaderSection(d){
         +'<div class="leader-kpi-main '+rvC(r.roas_pct||0)+'">'+fmtR(r.roas_pct||0)+'</div>'
         +'<div class="leader-kpi-sub">ROAS</div>'
       +'</div>'
+      +indHtml
     +'</div>';
   }).join('');
 
