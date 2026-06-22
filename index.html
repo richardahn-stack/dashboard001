@@ -245,6 +245,29 @@ tr:hover td{background:var(--bg2)}
 .no-data{text-align:center;padding:2rem;color:var(--text3);font-size:12px}
 .loading{text-align:center;padding:3rem;color:var(--text3);font-size:13px}
 @media(max-width:600px){.tcols,.d7cols{grid-template-columns:1fr}.win-grid{grid-template-columns:repeat(2,1fr)}.kpi-row{grid-template-columns:repeat(2,1fr)}.mtop{grid-template-columns:1fr}}
+
+/* ── AB테스트 섹션 ── */
+.ab-group{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1rem}
+.ab-group-hd{display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem}
+.ab-series-name{font-weight:700;font-size:.95rem;color:var(--text1)}
+.ab-meta{font-size:.78rem;color:var(--text3);background:var(--bg2);padding:2px 10px;border-radius:20px}
+.ab-cards{display:flex;gap:.75rem;overflow-x:auto;padding-bottom:.25rem}
+.ab-cards::-webkit-scrollbar{height:4px}.ab-cards::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ab-card{min-width:160px;max-width:180px;flex-shrink:0;background:var(--bg2);border:1.5px solid var(--border);border-radius:calc(var(--r) - 2px);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+.ab-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.ab-card--top{border-color:var(--accent)}
+.ab-thumb{width:100%;aspect-ratio:1;background:var(--bg3);overflow:hidden}
+.ab-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ab-no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.5rem}
+.ab-card-body{padding:.6rem .75rem}
+.ab-card-name{font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ab-kpis{display:flex;flex-direction:column;gap:3px}
+.ab-kpi{display:flex;justify-content:space-between;align-items:center;font-size:.72rem}
+.ab-kpi-label{color:var(--text3)}
+.ab-kpi-val{font-weight:600;color:var(--text1)}
+.ab-kpi--out .ab-kpi-val{color:var(--accent);font-weight:700}
+.ab-kpi--out .ab-kpi-label::after{content:' ↑';color:var(--accent);font-size:.65rem}
+.ab-top-badge{position:absolute;top:6px;right:6px;font-size:.65rem;background:var(--accent);color:#fff;padding:2px 7px;border-radius:20px;font-weight:700}
 </style>
 
 </head>
@@ -894,6 +917,125 @@ function renderAll(d){
   window._pieSpendData = {vals:spendVals, total:totalSpend, pcts:spendPcts};
   window._pieCntData   = {vals:cntVals,   total:totalCnt,   pcts:cntPcts};
 
+
+  // ── AB테스트 섹션 ──
+  function buildAbSection(d){
+    const ads = d.all_ads || [];
+
+    function seriesKey(bk){
+      if(!bk) return '';
+      return bk.replace(/[-]?\d+[-]?/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'');
+    }
+
+    // 시리즈 그룹핑
+    const sg = {};
+    ads.forEach(a=>{
+      const bk = a.base_key||'';
+      const sk = seriesKey(bk);
+      if(!sg[sk]) sg[sk]=[];
+      sg[sk].push(a);
+    });
+
+    // 필터: 변형 2개+, 같은 age, 전환 소재 포함, 총 spend 5만+
+    const groups = [];
+    Object.entries(sg).forEach(([sk, list])=>{
+      const bkeys = [...new Set(list.map(a=>a.base_key))];
+      if(bkeys.length < 2) return;
+      const ages = [...new Set(list.map(a=>a.age_days).filter(x=>x!=null))];
+      if(ages.length !== 1) return;
+      const totalSpend = list.reduce((s,a)=>s+a.spend,0);
+      if(totalSpend < 50000) return;
+      const hasConv = list.some(a=>a.objective==='전환');
+      if(!hasConv) return;
+      groups.push({sk, list, bkeys, totalSpend, age: ages[0]});
+    });
+
+    // spend 합계 내림차순
+    groups.sort((a,b)=>b.totalSpend-a.totalSpend);
+
+    if(!groups.length) return '';
+
+    // 지표 튀는 소재 감지 (평균 대비 1.5배 이상 차이)
+    function outlier(vals, v){
+      if(vals.length < 2) return false;
+      const avg = vals.reduce((s,x)=>s+x,0)/vals.length;
+      if(avg===0) return v>0;
+      return v > avg*1.5 || (v < avg*0.5 && avg>0);
+    }
+
+    let html = `<div class="sec" id="abSec">
+      <div class="sec-hd">
+        <span class="sec-ico">🧪</span>
+        <span class="sec-title">AB테스트 소재 비교</span>
+        <span class="sec-sub">같은 날 투입된 연속 소재 그룹 · ${groups.length}개 시리즈</span>
+      </div>`;
+
+    groups.forEach(({sk, list, bkeys, totalSpend, age})=>{
+      // 전환 목적 대표 소재 (bkey별 spend 최고)
+      const byBkey = {};
+      list.filter(a=>a.objective==='전환').forEach(a=>{
+        if(!byBkey[a.base_key] || a.spend > byBkey[a.base_key].spend)
+          byBkey[a.base_key] = a;
+      });
+      const reps = Object.values(byBkey).sort((a,b)=>b.spend-a.spend);
+      if(!reps.length) return;
+
+      const roasVals = reps.map(r=>r.roas_pct||0);
+      const ctrVals  = reps.map(r=>r.ctr||0);
+      const cvrVals  = reps.map(r=>r.cvr||0);
+      const maxRoas  = Math.max(...roasVals);
+
+      html += `<div class="ab-group">
+        <div class="ab-group-hd">
+          <span class="ab-series-name">${sk}</span>
+          <span class="ab-meta">${bkeys.length}개 변형 · ${age}일차 · 총 ${Math.round(totalSpend/10000)}만원</span>
+        </div>
+        <div class="ab-cards">`;
+
+      reps.forEach(r=>{
+        const isRoasOut = outlier(roasVals, r.roas_pct||0);
+        const isCtrOut  = outlier(ctrVals,  r.ctr||0);
+        const isCvrOut  = outlier(cvrVals,  r.cvr||0);
+        const isTop     = (r.roas_pct||0) === maxRoas && maxRoas > 0;
+        const th        = thumbHtml(r,'ab-no-img','');
+        html += `<div class="ab-card${isTop?' ab-card--top':''}" onclick="openModal(${JSON.stringify(r.ad_id)},curWeekData)">
+          <div class="ab-thumb">${th}</div>
+          <div class="ab-card-body">
+            <div class="ab-card-name">${r.base_key||r.key}</div>
+            <div class="ab-kpis">
+              <span class="ab-kpi${isRoasOut?' ab-kpi--out':''}">
+                <span class="ab-kpi-label">ROAS</span>
+                <span class="ab-kpi-val">${r.roas_pct||0}%</span>
+              </span>
+              <span class="ab-kpi${isCtrOut?' ab-kpi--out':''}">
+                <span class="ab-kpi-label">CTR</span>
+                <span class="ab-kpi-val">${(r.ctr||0).toFixed(2)}%</span>
+              </span>
+              <span class="ab-kpi${isCvrOut?' ab-kpi--out':''}">
+                <span class="ab-kpi-label">CVR</span>
+                <span class="ab-kpi-val">${(r.cvr||0).toFixed(2)}%</span>
+              </span>
+              <span class="ab-kpi">
+                <span class="ab-kpi-label">구매</span>
+                <span class="ab-kpi-val">${r.purchases||0}건</span>
+              </span>
+              <span class="ab-kpi">
+                <span class="ab-kpi-label">광고비</span>
+                <span class="ab-kpi-val">${Math.round((r.spend||0)/10000)}만</span>
+              </span>
+            </div>
+          </div>
+          ${isTop?'<div class="ab-top-badge">👑 최고</div>':''}
+        </div>`;
+      });
+
+      html += `</div></div>`;
+    });
+
+    html += '</div>';
+    return html;
+  }
+
   // 섹션5: 테이블 — 펼치기 전까지 렌더 지연 (성능 최적화)
   let _tbHCache = null;
   function getTbH(){
@@ -943,7 +1085,8 @@ function renderAll(d){
     </tr></thead><tbody id="tblBody"></tbody></table></div></div>
   </div>`;
 
-  document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+tblH;
+  const abH = buildAbSection(d);
+  document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+abH+tblH;
   d7Sort='spend'; curD7Data=d; renderD7Section(d);
   // 필터 버튼 on 상태 초기화
   document.querySelectorAll('.d7fbtn').forEach(b=>{
