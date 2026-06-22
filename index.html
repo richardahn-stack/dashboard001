@@ -306,6 +306,31 @@ tr:hover td{background:var(--bg2)}
 .ab-crow-val.best{color:var(--accent);font-weight:800}
 .ab-crow-val.worst{color:#e05c5c}
 
+
+/* ── 매출 리딩 소재 섹션 ── */
+.leader-grid{display:flex;flex-direction:column;gap:.6rem}
+.leader-row{display:grid;grid-template-columns:28px 52px 1fr 90px 90px 80px 80px;align-items:center;gap:.75rem;padding:.7rem .9rem;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:background .15s}
+.leader-row:hover{background:var(--bg2)}
+.leader-row.leader-row--top{border-left:3px solid var(--accent)}
+.leader-rank{font-size:.8rem;font-weight:800;color:var(--text3);text-align:center}
+.leader-rank.r1{color:var(--accent)}
+.leader-rank.r2{color:#6c9eff}
+.leader-rank.r3{color:#52b788}
+.leader-thumb{width:52px;height:52px;border-radius:6px;overflow:hidden;background:var(--bg2);flex-shrink:0}
+.leader-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.leader-info{min-width:0}
+.leader-name{font-size:.82rem;font-weight:700;color:var(--text1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px}
+.leader-tags{display:flex;gap:4px;flex-wrap:wrap}
+.leader-kpi-block{text-align:right}
+.leader-kpi-main{font-size:.85rem;font-weight:700;color:var(--text1)}
+.leader-kpi-sub{font-size:.7rem;color:var(--text3);margin-top:1px}
+.leader-bar-block{display:flex;flex-direction:column;gap:3px;min-width:0}
+.leader-bar-label{font-size:.65rem;color:var(--text3);display:flex;justify-content:space-between}
+.leader-bar-track{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.leader-bar-fill{height:100%;border-radius:3px;transition:width .3s}
+.leader-bar-fill--spend{background:#6c9eff}
+.leader-bar-fill--rev{background:#52b788}
+@media(max-width:600px){.leader-row{grid-template-columns:24px 44px 1fr 70px;gap:.5rem}.leader-bar-block:nth-child(2),.leader-kpi-block:nth-child(6){display:none}}
 </style>
 
 </head>
@@ -976,8 +1001,77 @@ function renderAll(d){
   window._pieCntData   = {vals:cntVals,   total:totalCnt,   pcts:cntPcts};
 
 
+
+/* ───── 매출 리딩 소재 섹션 ───── */
+function buildLeaderSection(d){
+  const all  = d.all_ads || [];
+  const conv = all.filter(r=>r.objective==='전환' && (r.spend||0)>0);
+  const tSpend = all.reduce((s,r)=>s+(r.spend||0),0);
+  const tRev   = all.reduce((s,r)=>s+(r.revenue||0),0);
+  const top = [...conv].sort((a,b)=>b.spend-a.spend).slice(0,7);
+  const topSpend = top.reduce((s,r)=>s+(r.spend||0),0);
+  const topRev   = top.reduce((s,r)=>s+(r.revenue||0),0);
+  const spPct = tSpend>0 ? Math.round(topSpend/tSpend*100) : 0;
+  const rvPct = tRev>0   ? Math.round(topRev/tRev*100)   : 0;
+  const maxSpend = top[0]?.spend || 1;
+  const maxRev   = Math.max(...top.map(r=>r.revenue||0)) || 1;
+
+  const rows = top.map((r,i)=>{
+    const rank  = i+1;
+    const rCls  = rank<=3 ? 'r'+rank : '';
+    const spPortion = tSpend>0 ? (r.spend/tSpend*100).toFixed(1) : '0';
+    const rvPortion = tRev>0   ? ((r.revenue||0)/tRev*100).toFixed(1) : '0';
+    const spBarW = Math.round(r.spend/maxSpend*100);
+    const rvBarW = tRev>0 ? Math.round((r.revenue||0)/maxRev*100) : 0;
+    const th = r.img
+      ? '<img src="'+imgSrc(r.img,'w200')+'" loading="lazy" onerror="this.style.display=&#39;none&#39;">'
+      : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.2rem">&#9654;</div>';
+
+    return '<div class="leader-row'+(rank<=3?' leader-row--top':'')+'" onclick="openModal(\''+r.key+'\')">'
+      +'<div class="leader-rank '+rCls+'">'+rank+'</div>'
+      +'<div class="leader-thumb">'+th+'</div>'
+      +'<div class="leader-info">'
+        +'<div class="leader-name" title="'+(r.base_key||r.key)+'">'+(r.base_key||r.key)+'</div>'
+        +'<div class="leader-tags">'
+          +'<span class="tag tp-'+(r.objective||'전환')+'" style="font-size:9px">'+(r.objective||'전환')+'</span>'
+          +(r.mgr?'<span class="tag" style="font-size:9px;background:var(--bg3);color:var(--text2)">'+r.mgr+'</span>':'')
+          +(r.media?'<span class="tag" style="font-size:9px;background:var(--bg3);color:var(--text2)">'+r.media+'</span>':'')
+        +'</div>'
+      +'</div>'
+      +'<div class="leader-kpi-block">'
+        +'<div class="leader-kpi-main">'+fmtS(r.spend)+'</div>'
+        +'<div class="leader-kpi-sub">광고비 '+spPortion+'%</div>'
+      +'</div>'
+      +'<div class="leader-kpi-block">'
+        +'<div class="leader-kpi-main '+rvC(r.roas_pct)+'">'+(r.revenue>0?fmtS(r.revenue):'-')+'</div>'
+        +'<div class="leader-kpi-sub">매출 '+rvPortion+'%</div>'
+      +'</div>'
+      +'<div class="leader-bar-block">'
+        +'<div class="leader-bar-label"><span>광고비</span><span>'+spPortion+'%</span></div>'
+        +'<div class="leader-bar-track"><div class="leader-bar-fill leader-bar-fill--spend" style="width:'+spBarW+'%"></div></div>'
+        +'<div class="leader-bar-label" style="margin-top:3px"><span>매출</span><span>'+rvPortion+'%</span></div>'
+        +'<div class="leader-bar-track"><div class="leader-bar-fill leader-bar-fill--rev" style="width:'+rvBarW+'%"></div></div>'
+      +'</div>'
+      +'<div class="leader-kpi-block">'
+        +'<div class="leader-kpi-main '+rvC(r.roas_pct||0)+'">'+fmtR(r.roas_pct||0)+'</div>'
+        +'<div class="leader-kpi-sub">ROAS</div>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+
+  return '<div class="sec" id="leaderSec">'
+    +'<div class="sec-hd">'
+      +'<span class="sec-ico">&#128202;</span>'
+      +'<span class="sec-title">매출 리딩 소재</span>'
+      +'<span class="sec-sub">광고비 상위 7개 &middot; 전체 광고비의 '+spPct+'% &middot; 전환매출의 '+rvPct+'% 기여</span>'
+    +'</div>'
+    +'<div class="leader-grid">'+rows+'</div>'
+  +'</div>';
+}
+/* ─────────────────────── */
+
   // ── AB테스트 섹션 ──
-  function buildAbSection(d){
+  function buildAbSection(d):
     const ads = d.all_ads || [];
 
     function seriesKey(bk){
@@ -1144,7 +1238,8 @@ function renderAll(d){
   </div>`;
 
   const abH = buildAbSection(d);
-  document.getElementById('mainContent').innerHTML=kpiH+pieH+winH+trendH+d7H+abH+tblH;
+  const leaderH = buildLeaderSection(d);
+  document.getElementById('mainContent').innerHTML=kpiH+pieH+leaderH+winH+trendH+d7H+abH+tblH;
   d7Sort='spend'; curD7Data=d; renderD7Section(d);
   // 필터 버튼 on 상태 초기화
   document.querySelectorAll('.d7fbtn').forEach(b=>{
