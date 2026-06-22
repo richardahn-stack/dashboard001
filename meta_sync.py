@@ -348,7 +348,12 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
 
     # 전주 대비 지표 추가
     conv = [r for r in rows if r['objective']=='전환' and r['spend']>=100000]
-    avg_roas = sum(r['roas'] for r in conv)/len(conv) if conv else 0
+    # ROAS: 메타 방식 = 총 전환값 / 총 광고비 (개별 평균 아님)
+    _conv_rev   = sum(r['revenue'] for r in conv)
+    _conv_spend = sum(r['spend']   for r in conv)
+    avg_roas = _conv_rev / _conv_spend if _conv_spend else 0
+
+    # CTR/CVR/CPC/구매: 전환 소재 전체 산술평균
     avg_ctr  = sum(r['ctr']  for r in conv)/len(conv) if conv else 0
     avg_cvr  = sum(r['cvr']  for r in conv)/len(conv) if conv else 0
     avg_cpc  = sum(r['cpc']  for r in conv if r['cpc']>0)/len([r for r in conv if r['cpc']>0]) if conv else 0
