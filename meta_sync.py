@@ -447,6 +447,15 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
     )
 
     prev_total = sum(r['spend'] for r in prev_rows)
+    # 이전 주차 전환 소재 평균 (메타 방식 ROAS)
+    prev_conv = [r for r in prev_rows if r.get('objective') == '전환']
+    prev_conv_rev   = sum(r['revenue'] for r in prev_conv)
+    prev_conv_spend = sum(r['spend']   for r in prev_conv)
+    prev_avg_roas_pct = round(prev_conv_rev / prev_conv_spend * 100, 1) if prev_conv_spend else 0
+    prev_avg_ctr  = round(sum(r['ctr'] for r in prev_conv) / len(prev_conv), 2) if prev_conv else 0
+    prev_avg_cvr  = round(sum(r['cvr'] for r in prev_conv) / len(prev_conv), 2) if prev_conv else 0
+    prev_cpc_rows = [r for r in prev_conv if r.get('cpc', 0) > 0]
+    prev_avg_cpc  = round(sum(r['cpc'] for r in prev_cpc_rows) / len(prev_cpc_rows), 0) if prev_cpc_rows else 0
     prev_s = {
         'spend': int(prev_total),
         'revenue': int(sum(r['revenue'] for r in prev_rows)),
@@ -454,8 +463,10 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
         'purchases': int(sum(r['purchases'] for r in prev_rows)),
         'impressions': int(sum(r['impressions'] for r in prev_rows)),
         'clicks': int(sum(r['clicks'] for r in prev_rows)),
-        'avg_ctr': round(sum(r['ctr'] for r in prev_rows)/len(prev_rows),2) if prev_rows else 0,
-        'avg_cpc': 0,
+        'avg_ctr': prev_avg_ctr,
+        'avg_cvr': prev_avg_cvr,
+        'avg_cpc': prev_avg_cpc,
+        'avg_roas_pct': prev_avg_roas_pct,
         'active_ads': len(prev_insights),
     }
 
