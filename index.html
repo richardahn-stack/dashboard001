@@ -551,6 +551,7 @@ async function switchWeek(id){
 }
 
 const SORT_METRIC={
+  spend:{primary:c=>fmtS(c.spend),primaryLabel:'광고비',secondary:c=>fmtR(c.roas_pct),secondaryLabel:'ROAS',primaryClass:c=>rvC(c.roas_pct)},
   revenue:{primary:c=>fmtS(c.revenue),primaryLabel:'전환매출',secondary:c=>fmtR(c.roas_pct),secondaryLabel:'ROAS',primaryClass:c=>rvC(c.roas_pct)},
   roas:{primary:c=>fmtR(c.roas_pct),primaryLabel:'ROAS',secondary:c=>fmtS(c.revenue),secondaryLabel:'전환매출',primaryClass:c=>rvC(c.roas_pct)},
   ctr:{primary:c=>`${c.ctr}%`,primaryLabel:'CTR',secondary:c=>`₩${Math.round(c.cpc||0).toLocaleString()}`,secondaryLabel:'CPC',primaryClass:()=>'rv-good'},
@@ -601,7 +602,7 @@ function buildWinCard(c,thr,sort='revenue'){
   </div>`;
 }
 
-function sfn(s){if(s==='revenue')return(a,b)=>b.revenue-a.revenue;if(s==='roas')return(a,b)=>b.roas_pct-a.roas_pct;if(s==='ctr')return(a,b)=>b.ctr-a.ctr;if(s==='cpc')return(a,b)=>(a.cpc||9999)-(b.cpc||9999);return(a,b)=>b.revenue-a.revenue;}
+function sfn(s){if(s==='spend')return(a,b)=>b.spend-a.spend;if(s==='revenue')return(a,b)=>b.revenue-a.revenue;if(s==='roas')return(a,b)=>b.roas_pct-a.roas_pct;if(s==='ctr')return(a,b)=>b.ctr-a.ctr;if(s==='cpc')return(a,b)=>(a.cpc||9999)-(b.cpc||9999);return(a,b)=>b.revenue-a.revenue;}
 function getWinData(d,purpose,sort){
   const all=d.winning||[];
   if(purpose==='전체'){
@@ -661,6 +662,7 @@ function renderAll(d){
       </div>
       <div class="fdiv"></div>
       <div class="fg" id="sortFilter">
+        <button class="fbtn" onclick="setF('sort','spend',this)">광고비순</button>
         <button class="fbtn on" onclick="setF('sort','revenue',this)">전환매출순</button>
         <button class="fbtn" onclick="setF('sort','roas',this)"><span class="tip" style="cursor:default">ROAS순${tipHtml('roas')}</span></button>
         <button class="fbtn" onclick="setF('sort','ctr',this)"><span class="tip" style="cursor:default">CTR순${tipHtml('ctr')}</span></button>
@@ -1232,7 +1234,7 @@ function setF(type,val,btn){
   curFilter[type]=val;
   document.getElementById(type==='purpose'?'purposeFilter':'sortFilter').querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  if(type==='purpose'&&val==='트래픽/콘조'){curFilter.sort='ctr';document.getElementById('sortFilter').querySelectorAll('.fbtn').forEach((b,i)=>b.classList.toggle('on',i===2));}
+  if(type==='purpose'&&val==='트래픽/콘조'){curFilter.sort='ctr';document.getElementById('sortFilter').querySelectorAll('.fbtn').forEach((b,i)=>b.classList.toggle('on',i===3));}
   const d=cache[curWeekId];if(!d)return;
   const thr=d.summary.winning_thresholds||{};
   const es=curFilter.purpose==='트래픽/콘조'?'ctr':curFilter.sort;
@@ -1743,6 +1745,12 @@ function closeAbModal(){
   document.body.style.overflow = '';
 }
 
+function abCardClick(el){
+  var key = el.dataset.adkey;
+  document.getElementById('abMov').style.zIndex = '900';
+  openModal(key);
+}
+
 function setAbSort(key){
   _abSortKey = key;
   // 탭 active만 업데이트 (탭 재렌더 없음)
@@ -1826,8 +1834,8 @@ function renderAbGrid(){
     const rankCls  = rank<=3 ? 'rank-'+rank : '';
     const rankBadge= rank<=3 ? '<div class="ab-rank-badge r'+rank+'">'+rank+'</div>' : '';
     const th = r.img
-      ? '<img src="'+imgSrc(r.img,'w400')+'" loading="lazy" onerror="this.style.display=\'none\'">'
-      : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:2rem">▶</div>';
+      ? '<img src="'+imgSrc(r.img,'w400')+'" loading="lazy" onerror="this.style.display=&#39;none&#39;">'
+      : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:2rem">&#9654;</div>';
 
     const rows = [
       {label:'ROAS',  val:r.roas_pct>0?fmtR(r.roas_pct):'-', cls:vc(r.roas_pct||0,bwRoas)},
@@ -1847,8 +1855,7 @@ function renderAbGrid(){
       +'</div>'
     ).join('');
 
-    return '<div class="ab-ccard '+rankCls+'"'
-      +' onclick="document.getElementById(\'abMov\').style.zIndex=\'900\';openModal(\''+r.key+'\')">'
+    return '<div class="ab-ccard '+rankCls+'" data-adkey="'+r.key+'" onclick="abCardClick(this)">'
       +rankBadge
       +'<div class="ab-cthumb">'+th+'</div>'
       +'<div class="ab-cbody">'

@@ -513,24 +513,26 @@ def main():
         print(f"❌ 계정 오류: {e}")
         sys.exit(1)
 
-    # 수집할 주차 설정 (최근 6주)
+    # 수집할 주차 설정 (W19부터 현재까지)
     today = datetime.today()
-    # 가장 최근 일요일 기준
     days_since_sunday = (today.weekday() + 1) % 7
     last_sunday = today - timedelta(days=days_since_sunday)
 
+    # 시작 기준: 2026-W19 (2026-05-10 일요일)
+    START_SUNDAY = datetime(2026, 5, 10)
+
     weeks = []
-    for i in range(2):  # 이번 주 + 지난주 갱신 (매주 자동)
-        end   = last_sunday - timedelta(weeks=i)
-        start = end - timedelta(days=6)
-        label = f"{end.month}/{start.day}~{end.day}"
-        week_id = end.strftime('%Y-W%V')
+    cur = last_sunday
+    while cur >= START_SUNDAY:
+        start = cur - timedelta(days=6)
+        label = f"{cur.month}/{start.day}~{cur.day}"
         weeks.append({
-            'id': end.strftime('%Y-W%U'),
+            'id':    cur.strftime('%Y-W%U'),
             'label': label,
-            'end': end.strftime('%Y-%m-%d'),
+            'end':   cur.strftime('%Y-%m-%d'),
             'start': start.strftime('%Y-%m-%d'),
         })
+        cur -= timedelta(weeks=1)
 
     print(f"\n📅 수집 대상 주차: {len(weeks)}개")
     for w in weeks:
