@@ -183,7 +183,7 @@ td{padding:6px 7px;border-bottom:.5px solid var(--border);vertical-align:middle;
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg2)}
 /* 팝업 */
-.mov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity .2s}
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1200;display:none;align-items:center;justify-content:center;padding:1rem;opacity:0;transition:opacity .2s}
 .mov.show{opacity:1}
 .modal{background:var(--bg);border-radius:var(--rl);width:100%;max-width:840px;max-height:90vh;overflow-y:auto;transform:translateY(12px);transition:transform .2s}
 .mov.show .modal{transform:translateY(0)}
@@ -1639,7 +1639,7 @@ async function submitReply(idx){
 function hideModal(){
   const ov=document.getElementById('mov');
   ov.classList.remove('show');
-  setTimeout(()=>{ov.style.display='none';document.body.style.overflow='';},200);
+  setTimeout(()=>{ov.style.display='none';document.body.style.overflow='';const abm=document.getElementById('abMov');if(abm)abm.style.zIndex='';},200);
   if(tChart){tChart.destroy();tChart=null;}
 }
 function closeOv(e){if(e.target===document.getElementById('mov'))hideModal();}
@@ -1688,16 +1688,16 @@ loadWeeks();
 
 /* ───── AB 비교 팝업 ───── */
 let _abGroup = null;
-let _abSortKey = 'roas_pct';
+
 
 const AB_SORTS = [
+  {key:'spend',    label:'광고비'},
+  {key:'purchases',label:'구매'},
   {key:'roas_pct', label:'ROAS'},
   {key:'ctr',      label:'CTR'},
-  {key:'cvr',      label:'CVR'},
-  {key:'purchases',label:'구매'},
-  {key:'spend',    label:'광고비'},
   {key:'cpc',      label:'CPC'},
 ];
+let _abSortKey = 'spend';
 
 function openAbModal(seriesKeyArg){
   const d = cache[curWeekId]; if(!d) return;
@@ -1729,7 +1729,7 @@ function openAbModal(seriesKeyArg){
 
   _abGroup = groups.find(g => g.sk === seriesKeyArg);
   if(!_abGroup) return;
-  _abSortKey = 'roas_pct';
+  _abSortKey = 'spend';
   renderAbModal();
   const mov = document.getElementById('abMov');
   mov.classList.add('show');
@@ -1739,6 +1739,11 @@ function openAbModal(seriesKeyArg){
 function closeAbModal(){
   document.getElementById('abMov').classList.remove('show');
   document.body.style.overflow = '';
+}
+
+function setAbSort(key){
+  _abSortKey = key;
+  renderAbModal();
 }
 
 function renderAbModal(){
@@ -1753,7 +1758,8 @@ function renderAbModal(){
   const tabsEl = document.getElementById('abSortTabs');
   tabsEl.innerHTML = AB_SORTS.map(s=>
     `<button class="ab-sort-tab${_abSortKey===s.key?' on':''}"
-      onclick="_abSortKey='${s.key}';renderAbModal()">${s.label}순</button>`
+      data-key="${s.key}"
+      onclick="setAbSort(this.dataset.key)">${s.label}순</button>`
   ).join('');
 
   // 전환 목적 대표 소재 (bkey별 spend 최고)
@@ -1838,7 +1844,7 @@ function renderAbModal(){
             <span class="ab-crow-label">${row.label}</span>
             <span class="ab-crow-val${row.cls}">${row.val}</span>
           </div>`).join('')}
-        <button class="ab-detail-btn" onclick="event.stopPropagation();openModal('${r.key}')">
+        <button class="ab-detail-btn" onclick="event.stopPropagation();document.getElementById('abMov').style.zIndex='900';openModal('${r.key}')">
           상세 보기 →
         </button>
       </div>
