@@ -1024,7 +1024,7 @@ function renderAll(d){
         <span class="sec-sub">같은 날 투입된 연속 소재 그룹 · ${groups.length}개 시리즈</span>
       </div>`;
 
-    groups.forEach(({sk, list, bkeys, totalSpend, age}, groupIdx)=>{
+    groups.forEach(({sk, list, bkeys, totalSpend, age})=>{
       // 전환 목적 대표 소재 (bkey별 spend 최고)
       const byBkey = {};
       list.filter(a=>a.objective==='전환').forEach(a=>{
@@ -1052,7 +1052,7 @@ function renderAll(d){
         const isCvrOut  = outlier(cvrVals,  r.cvr||0);
         const isTop     = (r.roas_pct||0) === maxRoas && maxRoas > 0;
         const th        = thumbHtml(r,'ab-no-img','');
-        html += `<div class="ab-card${isTop?' ab-card--top':''}" onclick="openAbModal(${groupIdx})">
+        html += `<div class="ab-card${isTop?' ab-card--top':''}" onclick="openAbModal('${sk}')">
           <div class="ab-thumb">${th}</div>
           <div class="ab-card-body">
             <div class="ab-card-name">${r.base_key||r.key}</div>
@@ -1699,8 +1699,9 @@ const AB_SORTS = [
   {key:'cpc',      label:'CPC'},
 ];
 
-function openAbModal(groupIdx){
-  const ads = (curWeekData && curWeekData.all_ads) ? curWeekData.all_ads : [];
+function openAbModal(seriesKeyArg){
+  const d = cache[curWeekId]; if(!d) return;
+  const ads = d.all_ads || [];
 
   function seriesKey(bk){
     if(!bk) return '';
@@ -1726,7 +1727,7 @@ function openAbModal(groupIdx){
   });
   groups.sort((a,b)=>b.totalSpend-a.totalSpend);
 
-  _abGroup = groups[groupIdx];
+  _abGroup = groups.find(g => g.sk === seriesKeyArg);
   if(!_abGroup) return;
   _abSortKey = 'roas_pct';
   renderAbModal();
