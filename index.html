@@ -274,7 +274,8 @@ tr:hover td{background:var(--bg2)}
 .ab-mov.show{opacity:1;pointer-events:all}
 .ab-modal{background:var(--bg);border-radius:var(--rl);width:100%;max-width:960px;max-height:92vh;overflow-y:auto;transform:translateY(14px);transition:transform .2s;display:flex;flex-direction:column}
 .ab-mov.show .ab-modal{transform:translateY(0)}
-.ab-mhd{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+.ab-sticky-hd{position:sticky;top:0;background:var(--bg);z-index:10;border-bottom:1px solid var(--border)}
+.ab-mhd{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem}
 .ab-mhd-left{display:flex;flex-direction:column;gap:4px}
 .ab-mhd-title{font-size:1rem;font-weight:700;color:var(--text1)}
 .ab-mhd-sub{font-size:.75rem;color:var(--text3)}
@@ -304,8 +305,7 @@ tr:hover td{background:var(--bg2)}
 .ab-crow-val{font-weight:600;color:var(--text1)}
 .ab-crow-val.best{color:var(--accent);font-weight:800}
 .ab-crow-val.worst{color:#e05c5c}
-.ab-detail-btn{display:block;width:100%;margin-top:.65rem;padding:5px;border-radius:calc(var(--r) - 2px);border:1px solid var(--border);background:var(--bg2);font-size:.7rem;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;transition:background .15s}
-.ab-detail-btn:hover{background:var(--bg3)}
+
 </style>
 
 </head>
@@ -324,14 +324,16 @@ tr:hover td{background:var(--bg2)}
   <!-- AB 비교 팝업 -->
   <div class="ab-mov" id="abMov" onclick="if(event.target===this)closeAbModal()">
     <div class="ab-modal" id="abModal">
-      <div class="ab-mhd">
-        <div class="ab-mhd-left">
-          <div class="ab-mhd-title" id="abMTitle">AB 비교</div>
-          <div class="ab-mhd-sub" id="abMSub"></div>
+      <div class="ab-sticky-hd">
+        <div class="ab-mhd">
+          <div class="ab-mhd-left">
+            <div class="ab-mhd-title" id="abMTitle">AB 비교</div>
+            <div class="ab-mhd-sub" id="abMSub"></div>
+          </div>
+          <button class="ab-mhd-close" onclick="closeAbModal()">✕</button>
         </div>
-        <button class="ab-mhd-close" onclick="closeAbModal()">✕</button>
+        <div class="ab-sort-tabs" id="abSortTabs"></div>
       </div>
-      <div class="ab-sort-tabs" id="abSortTabs"></div>
       <div class="ab-compare-grid" id="abCompareGrid"></div>
     </div>
   </div>
@@ -1743,7 +1745,12 @@ function closeAbModal(){
 
 function setAbSort(key){
   _abSortKey = key;
-  renderAbModal();
+  // 탭 active만 업데이트 (탭 재렌더 없음)
+  document.querySelectorAll('#abSortTabs .ab-sort-tab').forEach(btn=>{
+    btn.classList.toggle('on', btn.dataset.key === key);
+  });
+  // 그리드만 재렌더
+  renderAbGrid();
 }
 
 function renderAbModal(){
@@ -1754,13 +1761,22 @@ function renderAbModal(){
   document.getElementById('abMSub').textContent =
     `${bkeys.length}개 변형 · ${age}일차 · 총 ${Math.round(totalSpend/10000)}만원`;
 
-  // 정렬 탭
+  // 정렬 탭 (최초 1회만 렌더)
   const tabsEl = document.getElementById('abSortTabs');
   tabsEl.innerHTML = AB_SORTS.map(s=>
     `<button class="ab-sort-tab${_abSortKey===s.key?' on':''}"
       data-key="${s.key}"
       onclick="setAbSort(this.dataset.key)">${s.label}순</button>`
   ).join('');
+
+  renderAbGrid();
+}
+
+function renderAbGrid(){
+  if(!_abGroup) return;
+  const {list} = _abGroup;
+  const gridEl = document.getElementById('abCompareGrid');
+  if(!gridEl) return;
 
   // 전환 목적 대표 소재 (bkey별 spend 최고)
   const byBkey = {};
@@ -1771,86 +1787,78 @@ function renderAbModal(){
   let reps = Object.values(byBkey);
 
   // 정렬
-  const sortKey = _abSortKey;
-  if(sortKey === 'cpc'){
-    // CPC는 낮을수록 좋으므로 오름차순 (0 제외)
+  if(_abSortKey === 'cpc'){
     reps.sort((a,b)=>{
-      const av = a.cpc||0, bv = b.cpc||0;
-      if(av===0 && bv===0) return 0;
-      if(av===0) return 1;
-      if(bv===0) return -1;
-      return av - bv;
+      const av=a.cpc||0, bv=b.cpc||0;
+      if(!av && !bv) return 0;
+      if(!av) return 1;
+      if(!bv) return -1;
+      return av-bv;
     });
   } else {
-    reps.sort((a,b)=>(b[sortKey]||0)-(a[sortKey]||0));
+    reps.sort((a,b)=>(b[_abSortKey]||0)-(a[_abSortKey]||0));
   }
 
-  // best/worst 계산 (각 지표)
-  function bestWorst(arr, key, lowIsBetter){
+  // best/worst
+  function bw(arr, key, lowBetter){
     const vals = arr.map(r=>r[key]||0).filter(v=>v>0);
-    if(!vals.length) return {best:null, worst:null};
-    return lowIsBetter
-      ? {best: Math.min(...vals), worst: Math.max(...vals)}
-      : {best: Math.max(...vals), worst: Math.min(...vals)};
+    if(!vals.length) return {best:null,worst:null};
+    return lowBetter
+      ? {best:Math.min(...vals), worst:Math.max(...vals)}
+      : {best:Math.max(...vals), worst:Math.min(...vals)};
   }
-  const bwRoas = bestWorst(reps,'roas_pct',false);
-  const bwCtr  = bestWorst(reps,'ctr',false);
-  const bwCvr  = bestWorst(reps,'cvr',false);
-  const bwCpc  = bestWorst(reps,'cpc',true);
-  const bwPur  = bestWorst(reps,'purchases',false);
-  const bwSpend= bestWorst(reps,'spend',false);
+  const bwRoas=bw(reps,'roas_pct',false);
+  const bwCtr =bw(reps,'ctr',false);
+  const bwCvr =bw(reps,'cvr',false);
+  const bwCpc =bw(reps,'cpc',true);
+  const bwPur =bw(reps,'purchases',false);
+  const bwSpd =bw(reps,'spend',false);
 
-  function valClass(val, bw){
-    if(!bw.best) return '';
-    if(val === bw.best && val > 0) return ' best';
-    if(val === bw.worst && val > 0 && bw.best !== bw.worst) return ' worst';
-    return '';
-  }
-  function cpcClass(val, bw){
-    if(!bw.best || val===0) return '';
-    if(val === bw.best) return ' best';
-    if(val === bw.worst) return ' worst';
+  function vc(val, bwObj){
+    if(!bwObj.best || !val) return '';
+    if(val===bwObj.best) return ' best';
+    if(val===bwObj.worst && bwObj.best!==bwObj.worst) return ' worst';
     return '';
   }
 
-  const gridEl = document.getElementById('abCompareGrid');
-  gridEl.innerHTML = reps.map((r, idx)=>{
+  gridEl.innerHTML = reps.map((r,idx)=>{
     const rank = idx+1;
-    const rankCls = rank<=3 ? `rank-${rank}` : '';
-    const rankBadge = rank<=3
-      ? `<div class="ab-rank-badge r${rank}">${rank}</div>` : '';
+    const rankCls  = rank<=3 ? 'rank-'+rank : '';
+    const rankBadge= rank<=3 ? '<div class="ab-rank-badge r'+rank+'">'+rank+'</div>' : '';
     const th = r.img
-      ? `<img src="${imgSrc(r.img,'w400')}" loading="lazy" onerror="this.style.display='none'">`
-      : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:2rem">▶</div>`;
+      ? '<img src="'+imgSrc(r.img,'w400')+'" loading="lazy" onerror="this.style.display=\'none\'">'
+      : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:2rem">▶</div>';
 
     const rows = [
-      {label:'ROAS',  val: r.roas_pct>0 ? fmtR(r.roas_pct) : '-',  cls: valClass(r.roas_pct||0, bwRoas)},
-      {label:'CTR',   val: r.ctr>0 ? r.ctr+'%' : '-',               cls: valClass(r.ctr||0, bwCtr)},
-      {label:'CVR',   val: r.cvr>0 ? r.cvr+'%' : '-',               cls: valClass(r.cvr||0, bwCvr)},
-      {label:'CPC',   val: r.cpc>0 ? fmtS(r.cpc) : '-',             cls: cpcClass(r.cpc||0, bwCpc)},
-      {label:'구매',   val: r.purchases>0 ? r.purchases+'건' : '-',   cls: valClass(r.purchases||0, bwPur)},
-      {label:'광고비', val: fmtS(r.spend),                           cls: valClass(r.spend||0, bwSpend)},
-      {label:'노출',   val: r.impressions>0 ? (r.impressions/10000).toFixed(1)+'만' : '-', cls:''},
-      {label:'클릭',   val: r.clicks>0 ? r.clicks.toLocaleString() : '-', cls:''},
+      {label:'ROAS',  val:r.roas_pct>0?fmtR(r.roas_pct):'-', cls:vc(r.roas_pct||0,bwRoas)},
+      {label:'CTR',   val:r.ctr>0?r.ctr+'%':'-',              cls:vc(r.ctr||0,bwCtr)},
+      {label:'CVR',   val:r.cvr>0?r.cvr+'%':'-',              cls:vc(r.cvr||0,bwCvr)},
+      {label:'CPC',   val:r.cpc>0?fmtS(r.cpc):'-',            cls:vc(r.cpc||0,bwCpc)},
+      {label:'구매',   val:r.purchases>0?r.purchases+'건':'-',  cls:vc(r.purchases||0,bwPur)},
+      {label:'광고비', val:fmtS(r.spend),                       cls:vc(r.spend||0,bwSpd)},
+      {label:'노출',   val:r.impressions>0?(r.impressions/10000).toFixed(1)+'만':'-', cls:''},
+      {label:'클릭',   val:r.clicks>0?r.clicks.toLocaleString():'-', cls:''},
     ];
 
-    return `<div class="ab-ccard ${rankCls}">
-      ${rankBadge}
-      <div class="ab-cthumb">${th}</div>
-      <div class="ab-cbody">
-        <div class="ab-cname" title="${r.base_key||r.key}">${r.base_key||r.key}</div>
-        ${rows.map(row=>`
-          <div class="ab-crow">
-            <span class="ab-crow-label">${row.label}</span>
-            <span class="ab-crow-val${row.cls}">${row.val}</span>
-          </div>`).join('')}
-        <button class="ab-detail-btn" onclick="event.stopPropagation();document.getElementById('abMov').style.zIndex='900';openModal('${r.key}')">
-          상세 보기 →
-        </button>
-      </div>
-    </div>`;
+    const rowsHtml = rows.map(row=>
+      '<div class="ab-crow">'
+      +'<span class="ab-crow-label">'+row.label+'</span>'
+      +'<span class="ab-crow-val'+row.cls+'">'+row.val+'</span>'
+      +'</div>'
+    ).join('');
+
+    return '<div class="ab-ccard '+rankCls+'"'
+      +' onclick="document.getElementById(\'abMov\').style.zIndex=\'900\';openModal(\''+r.key+'\')">'
+      +rankBadge
+      +'<div class="ab-cthumb">'+th+'</div>'
+      +'<div class="ab-cbody">'
+        +'<div class="ab-cname" title="'+(r.base_key||r.key)+'">'+(r.base_key||r.key)+'</div>'
+        +rowsHtml
+      +'</div>'
+    +'</div>';
   }).join('');
 }
+
 /* ───────────────────── */
 
 </script>
