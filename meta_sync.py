@@ -482,6 +482,51 @@ tThumb 함수에서 드라이브 URL 대신 직접 URL 사용하도록 변경
 
 
 # ── 메인 실행 ─────────────────────────────────────
+def get_leader_top7_keys(json_path):
+    """JSON 파일에서 리딩 소재 상위 7개 base_key 반환"""
+    try:
+        with open(json_path, encoding='utf-8') as f:
+            d = json.load(f)
+        conv = [r for r in d.get('all_ads', [])
+                if r.get('objective') == '전환' and r.get('spend', 0) > 0]
+        top7 = sorted(conv, key=lambda x: -x['spend'])[:7]
+        return {r['base_key'] for r in top7}
+    except Exception:
+        return set()
+
+
+def calc_leader_badges(current_keys, weeks_in_order, output_dir):
+    """소재별 뱃지 계산 (new / n주연속 / comeback)
+    weeks_in_order: 최신→과거 순 week dict 리스트
+    현재 주차는 weeks_in_order[0]
+    """
+    badges = {}
+    # 과거 주차 키셋 목록 (최신→과거, 현재 제외)
+    past_keysets = []
+    for w in weeks_in_order[1:]:
+        path = f"{output_dir}/{w['id']}.json"
+        past_keysets.append(get_leader_top7_keys(path))
+
+    for key in current_keys:
+        # 연속 등장 횟수
+        streak = 1
+        for ks in past_keysets:
+            if key in ks:
+                streak += 1
+            else:
+                break
+        # 과거 전체 이력 (연속 끊긴 이후에도 있었는지)
+        has_history = any(key in ks for ks in past_keysets)
+
+        if streak >= 2:
+            badges[key] = {'type': 'streak', 'count': streak}
+        elif has_history:
+            badges[key] = {'type': 'comeback'}
+        else:
+            badges[key] = {'type': 'new'}
+    return badges
+
+
 def main():
     print("=" * 50)
     print("  메타 광고 대시보드 자동 동기화")
@@ -556,6 +601,12 @@ def main():
                 w['end'], prev['end'],
                 w['label'], prev['label']
             )
+            # 리딩 소재 뱃지 계산 (이전 주차 파일 참조)
+            cur_keys = {r['base_key'] for r in
+                        sorted([r for r in data['all_ads']
+                                if r.get('objective')=='전환' and r.get('spend',0)>0],
+                               key=lambda x: -x['spend'])[:7]}
+            data['leader_badges'] = calc_leader_badges(cur_keys, weeks[i:], OUTPUT_DIR)
             with open(out_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False)
             print(f"  ✅ {out_path} 저장 완료 (소재 {len(data['all_ads'])}개)")

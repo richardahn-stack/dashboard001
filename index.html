@@ -1018,35 +1018,10 @@ function buildLeaderSection(d){
   const tRev   = all.reduce((s,r)=>s+(r.revenue||0),0);
   const top = [...conv].sort((a,b)=>b.spend-a.spend).slice(0,7);
 
-  // ── 연속 등장 / NEW / COME BACK 계산 ──
-  const curIdx = weeks.findIndex(function(w){ return w.id === curWeekId; });
-  function getTop7Keys(weekId){
-    var wd = cache[weekId];
-    if(!wd) return {};
-    var wConv = (wd.all_ads||[]).filter(function(r){ return r.objective==='전환' && (r.spend||0)>0; });
-    var keys = {};
-    wConv.sort(function(a,b){ return b.spend-a.spend; }).slice(0,7).forEach(function(r){ keys[r.base_key]=true; });
-    return keys;
-  }
-  // 소재별 뱃지 타입 계산
-  // NEW: 이번 주 첫 등장 (이전 이력 없음)
-  // n주 연속: 직전 주차부터 연속으로 등장
-  // COME BACK: 이전 이력 있으나 끊겼다가 재등장
+  // ── 연속 등장 뱃지: JSON에 미리 계산된 leader_badges 사용 ──
+  const leaderBadges = d.leader_badges || {};
   function calcBadge(baseKey){
-    // 연속 횟수 (현재 주차 포함, 과거로 역추적)
-    var streak = 0;
-    for(var i = curIdx; i < weeks.length; i++){
-      if(getTop7Keys(weeks[i].id)[baseKey]) streak++;
-      else break;
-    }
-    // 과거 전체 이력 (현재 제외)
-    var hasHistory = false;
-    for(var j = curIdx+1; j < weeks.length; j++){
-      if(getTop7Keys(weeks[j].id)[baseKey]){ hasHistory = true; break; }
-    }
-    if(streak >= 2) return {type:'streak', count:streak};
-    if(hasHistory)  return {type:'comeback'};
-    return {type:'new'};
+    return leaderBadges[baseKey] || {type:'new'};
   }
 
   const topSpend = top.reduce((s,r)=>s+(r.spend||0),0);
