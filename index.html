@@ -2078,7 +2078,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2101,10 +2101,12 @@ function saveRtToken(){
 // 이번 주 일요일 ~ 오늘 날짜 계산
 function getRtDateRange(){
   const today = new Date();
-  const dow   = today.getDay(); // 0=일
-  const sun   = new Date(today); sun.setDate(today.getDate() - dow);
-  const fmt   = d => d.toISOString().slice(0,10);
-  return { start: fmt(sun), end: fmt(today) };
+  const dow   = today.getDay(); // 0=일, 1=월
+  // 월요일 시작: 일요일(0)이면 6일 전, 그 외 (dow-1)일 전
+  const diffToMon = dow === 0 ? 6 : dow - 1;
+  const mon = new Date(today); mon.setDate(today.getDate() - diffToMon);
+  const fmt = d => d.toISOString().slice(0,10);
+  return { start: fmt(mon), end: fmt(today) };
 }
 
 // 메타 API 페이지네이션
@@ -2166,12 +2168,38 @@ async function buildRtWeekJson(){
   const rtStatusEl = document.getElementById('rtLiveStatus');
   if(rtStatusEl) rtStatusEl.textContent = '🔄 실시간 데이터 수집 중...';
 
-  // insights 호출
-  const insights = await rtFetch(RT_ACCOUNT+'/insights', {
-    level: 'ad',
-    time_range: JSON.stringify({since:start, until:end}),
-    fields: 'ad_id,ad_name,campaign_name,spend,impressions,clicks,ctr,cpc,actions,action_values',
-  });
+  // 이전 주 날짜 계산
+  const startD = new Date(start), endD = new Date(end);
+  const prevEnd   = new Date(startD); prevEnd.setDate(startD.getDate()-1);
+  const prevStart = new Date(prevEnd); prevStart.setDate(prevEnd.getDate()-6);
+  const fmt = d => d.toISOString().slice(0,10);
+
+  // 이번 주 + 이전 주 insights 병렬 호출
+  const [insights, prevInsights] = await Promise.all([
+    rtFetch(RT_ACCOUNT+'/insights', {
+      level:'ad',
+      time_range: JSON.stringify({since:start, until:end}),
+      fields:'ad_id,ad_name,campaign_name,spend,impressions,clicks,ctr,cpc,actions,action_values',
+    }),
+    rtFetch(RT_ACCOUNT+'/insights', {
+      level:'ad',
+      time_range: JSON.stringify({since:fmt(prevStart), until:fmt(prevEnd)}),
+      fields:'ad_id,ad_name,campaign_name,spend,impressions,clicks,ctr,cpc,actions,action_values',
+    }).catch(()=>[]),
+  ]);
+
+  // 이전 주 파싱
+  const prevRows = rtParseInsights(prevInsights);
+  const prevTSpend = prevRows.reduce((s,r)=>s+r.spend,0);
+  const prevTRev   = prevRows.reduce((s,r)=>s+r.revenue,0);
+  const prevConv   = prevRows.filter(r=>r.objective==='전환');
+  const prevCSpend = prevConv.reduce((s,r)=>s+r.spend,0);
+  const prevCRev   = prevConv.reduce((s,r)=>s+r.revenue,0);
+  // 소재별 이전 주 성과 맵
+  const prevMap = {};
+  prevRows.forEach(r=>{ prevMap[r.base_key] = r; });
+
+  // insights: Promise.all에서 수집 완료
 
   const rows = rtParseInsights(insights);
 
@@ -2191,7 +2219,7 @@ async function buildRtWeekJson(){
   }));
   rows.forEach(r=>{ if(imgMap[r.ad_id]){ Object.assign(r, imgMap[r.ad_id]); } });
 
-  // 집계
+  // ── 이번 주 집계 ──
   const conv   = rows.filter(r=>r.objective==='전환');
   const tSpend = rows.reduce((s,r)=>s+r.spend,0);
   const tRev   = rows.reduce((s,r)=>s+r.revenue,0);
@@ -2204,7 +2232,26 @@ async function buildRtWeekJson(){
   const avgCpc = cpcRows.length>0 ? Math.round(cpcRows.reduce((s,r)=>s+r.cpc,0)/cpcRows.length) : 0;
   const avgPur = conv.length>0 ? Math.round(conv.reduce((s,r)=>s+r.purchases,0)/conv.length*10)/10 : 0;
 
-  // 위닝 판정
+  // ── 이전 주 소재별 성과 맵으로 prev_* 필드 채우기 ──
+  rows.forEach(r=>{
+    const p = prevMap[r.base_key];
+    if(p){
+      r.prev_spend    = p.spend;
+      r.prev_revenue  = p.revenue;
+      r.prev_ctr      = p.ctr;
+      r.prev_cvr      = p.cvr;
+      r.prev_cpc      = p.cpc;
+      r.prev_purchases= p.purchases;
+    }
+  });
+
+  // ── age_days: 이전 주에 없으면 신규 ──
+  rows.forEach(r=>{
+    r.is_new   = !prevMap[r.base_key];
+    r.age_days = r.is_new ? 0 : 7;
+  });
+
+  // ── 위닝 판정 ──
   rows.forEach(r=>{
     if(r.objective==='전환' && avgRoas>0){
       const wf = {
@@ -2222,11 +2269,48 @@ async function buildRtWeekJson(){
     }
   });
 
-  // today의 요일 기반 label
-  const today  = new Date();
-  const sun    = new Date(today); sun.setDate(today.getDate()-today.getDay());
-  const label  = `${sun.getMonth()+1}/${sun.getDate()}~${today.getMonth()+1}/${today.getDate()}`;
-  const weekId = end.slice(0,4)+'-W'+String(Math.ceil((new Date(end)-new Date(end.slice(0,4)+'-01-01'))/(7*86400000))).padStart(2,'0');
+  // ── d7 (이번 주 신규 소재) ──
+  const d7All  = rows.filter(r=>r.is_new && r.spend>=30000);
+  const d7Win  = d7All.filter(r=>(r.win_type==='전환'&&(r.win_score||0)>=3)||(r.win_type==='tc'&&(r.win_score||0)>=1))
+                      .sort((a,b)=>(b.win_score||0)-(a.win_score||0)||b.spend-a.spend);
+  const d7WinSet = new Set(d7Win.map(r=>r.ad_id));
+  const d7Lose = d7All.filter(r=>!d7WinSet.has(r.ad_id)).sort((a,b)=>b.spend-a.spend);
+
+  // ── pie (목적별 광고비/소재 수) ──
+  const pieGroups = {};
+  rows.forEach(r=>{
+    const g = r.objective==='전환' ? '상시전환'
+            : r.objective==='콘조' ? '콘조/트래픽'
+            : r.objective==='트래픽' ? '콘조/트래픽' : '파트너스';
+    if(!pieGroups[g]) pieGroups[g]={spend:0,count:0,new_count:0};
+    pieGroups[g].spend += r.spend;
+    pieGroups[g].count++;
+    if(r.is_new) pieGroups[g].new_count++;
+  });
+  const pie = {groups: Object.entries(pieGroups).map(([name,v])=>({name,...v}))};
+
+  // ── 이전 주 summary ──
+  const prevConvRows = prevRows.filter(r=>r.objective==='전환');
+  const prevCSpend2  = prevConvRows.reduce((s,r)=>s+r.spend,0);
+  const prevCRev2    = prevConvRows.reduce((s,r)=>s+r.revenue,0);
+  const prev_summary = {
+    spend:      Math.round(prevTSpend),
+    revenue:    Math.round(prevTRev),
+    roas_pct:   prevTSpend>0 ? Math.round(prevTRev/prevTSpend*1000)/10 : 0,
+    purchases:  Math.round(prevRows.reduce((s,r)=>s+r.purchases,0)),
+    impressions:prevRows.reduce((s,r)=>s+r.impressions,0),
+    clicks:     prevRows.reduce((s,r)=>s+r.clicks,0),
+    avg_ctr:    prevConvRows.length>0 ? Math.round(prevConvRows.reduce((s,r)=>s+r.ctr,0)/prevConvRows.length*100)/100 : 0,
+    avg_cvr:    prevConvRows.length>0 ? Math.round(prevConvRows.reduce((s,r)=>s+r.cvr,0)/prevConvRows.length*100)/100 : 0,
+    avg_cpc:    (()=>{ const pr=prevConvRows.filter(r=>r.cpc>0); return pr.length>0?Math.round(pr.reduce((s,r)=>s+r.cpc,0)/pr.length):0; })(),
+    avg_roas_pct: prevCSpend2>0 ? Math.round(prevCRev2/prevCSpend2*1000)/10 : 0,
+    active_ads: prevRows.length,
+  };
+
+  // ── label: 월요일 기준 ──
+  const monD  = new Date(start);
+  const label = monD.getMonth()+1+'/'+monD.getDate()+'~'+(new Date(end).getMonth()+1)+'/'+(new Date(end).getDate());
+  const weekId= end.slice(0,4)+'-W'+String(Math.ceil((new Date(end)-new Date(end.slice(0,4)+'-01-01'))/(7*86400000))).padStart(2,'0');
 
   const json = {
     label, ref_date: end, is_realtime: true,
@@ -2243,11 +2327,13 @@ async function buildRtWeekJson(){
         avg_purchases: avgPur, tc_avg_ctr: avgCtr,
       }
     },
-    prev_summary: {}, pie: {},
+    prev_summary,
+    pie,
     trends: {spend_up:[],rev_up:[],cpc_eff_up:[],conv_dn:[],cpc_eff_dn:[]},
     winning: rows.filter(r=>r.win_type==='전환'&&(r.win_score||0)>=3)
-                 .sort((a,b)=>b.spend-a.spend).slice(0,14),
-    d7_win: [], d7_lose: [],
+                 .sort((a,b)=>b.revenue-a.revenue).slice(0,14),
+    d7_win: d7Win,
+    d7_lose: d7Lose,
     all_ads: rows.sort((a,b)=>b.spend-a.spend),
     leader_badges: {},
   };
