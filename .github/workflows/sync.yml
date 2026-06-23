@@ -2,8 +2,8 @@ name: 메타 광고 자동 동기화
 
 on:
   schedule:
-    - cron: '0 21 * * 0'  # 매주 일요일 21:00 UTC = 월요일 06:00 KST
-  workflow_dispatch:       # 수동 실행 버튼
+    - cron: '0 * * * *'   # 매시간 실행
+  workflow_dispatch:        # 수동 실행 버튼
 
 jobs:
   sync:
@@ -26,10 +26,25 @@ jobs:
           META_TOKEN: ${{ secrets.META_TOKEN }}
         run: python3 meta_sync.py
 
+      - name: index.html에 메타 토큰 주입
+        env:
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+        run: |
+          sed -i "s|__RT_TOKEN_PLACEHOLDER__|${META_TOKEN}|g" index.html
+
       - name: 변경사항 커밋 및 푸시
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/
-          git diff --staged --quiet || git commit -m "Auto sync $(date +'%Y-%m-%d')"
+          git add data/ index.html
+          git diff --staged --quiet || git commit -m "Auto sync $(date +'%Y-%m-%d %H:%M')"
           git push
+
+      - name: Cloudflare Pages 배포
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: dashboard001
+          directory: .
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
