@@ -2164,7 +2164,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2223,38 +2223,112 @@ async function rtFetch(path, params){
   return results;
 }
 
-// insights 데이터 파싱 (meta_sync.py parse_insights 동일 로직)
-function rtParseInsights(insights){
-  return insights.map(i=>{
-    const purchases = (i.actions||[]).find(a=>a.action_type==='purchase');
-    const revenue   = (i.action_values||[]).find(a=>a.action_type==='purchase');
-    const spend     = parseFloat(i.spend||0);
-    const rev       = parseFloat(revenue?.value||0);
-    const clicks    = parseInt(i.clicks||0);
-    const impr      = parseInt(i.impressions||0);
-    const purch     = parseFloat(purchases?.value||0);
-    const cpc_raw   = parseFloat(i.cpc||0);
-    const ctr_raw   = parseFloat(i.ctr||0);
-    const cvr       = clicks>0 ? Math.round(purch/clicks*10000)/100 : 0;
-    const roas      = spend>0  ? rev/spend : 0;
-    // ad_name에서 키 파싱 (목적_소재명_담당자_랜딩 형태)
-    const nm  = i.ad_name || '';
-    const parts = nm.split('_');
-    const obj = (i.campaign_name||'').includes('전환') ? '전환'
-              : (i.campaign_name||'').includes('콘조') ? '콘조' : '트래픽';
-    return {
-      ad_id: i.ad_id, key: nm, base_key: nm,
-      objective: obj, spend, revenue: Math.round(rev),
-      impressions: impr, clicks, purchases: purch,
+// ── meta_sync.py 분류 로직 1:1 포팅 (과거 탭과 소재명/집계 기준 통일) ──
+const RT_SKIP = new Set(['공식','DT','dt','영상','배너','콘조','오딧','플랩','핑크프로모션',
+  '전환','상시','2차활용','카탈로그','트래픽','핑크사전','웨딩프로모션']);
+
+function rtGetLanding(camp, ad){
+  if(['아이시핑크','핑크프로모션','핑크사전'].some(k=>camp.includes(k))) return '핑크';
+  if(camp.includes('웨딩')) return '웨딩';
+  if(ad.includes('플랩') && !ad.includes('오딧')) return '플랩';
+  if(ad.includes('오딧') && !ad.includes('플랩')) return '오딧';
+  if(camp.includes('플랩') && !camp.includes('오딧')) return '플랩';
+  if(camp.includes('오딧') && !camp.includes('플랩')) return '오딧';
+  if(camp.includes('오딧') && camp.includes('플랩')) return '오딧+플랩';
+  return '기타';
+}
+function rtClassify(camp, ad){
+  let obj;
+  if(camp.includes('트래픽')) obj='트래픽';
+  else if(camp.includes('콘텐츠조회')) obj='콘조';
+  else obj='전환';
+  const pa = (obj==='전환') ? (camp.includes('PA')?'PA':'자컨') : '-';
+  return {obj, pa, land: rtGetLanding(camp, ad)};
+}
+function rtAssignMgr(name){
+  if(name.includes('파트너스') || name.includes('인스타툰')) return '파트너스';
+  const nd = name.split('_').filter(p=>!/^\d{6}$/.test(p));
+  const last = nd.length ? nd[nd.length-1].trim() : '';
+  for(const m of ['리지','콜리','세레나']){ if(last===m) return m; }
+  return '기타';
+}
+function rtGetMedia(name){ return name.includes('배너') ? '배너' : '영상'; }
+function rtExtractBk(name){
+  return name.split('_').filter(p=>!/^\d{6}$/.test(p) && !RT_SKIP.has(p)).join('_');
+}
+function rtGetAge(name, refDate){
+  let ms = [...name.matchAll(/(?:^|_)(\d{6})(?:_|$|\.)/g)].map(m=>m[1]);
+  if(!ms.length) ms = [...name.matchAll(/(\d{6})/g)].map(m=>m[1]);
+  if(!ms.length) return null;
+  const s = '20'+ms[ms.length-1];
+  const y=+s.slice(0,4), mo=+s.slice(4,6), d=+s.slice(6,8);
+  const dt = new Date(Date.UTC(y, mo-1, d));
+  if(isNaN(dt.getTime())) return null;
+  const days = Math.floor((refDate - dt)/(24*60*60*1000));
+  return days>=0 ? days : null;
+}
+
+// insights 데이터 파싱 (meta_sync.py parse_insights 동일 로직: 키별 그룹 집계)
+function rtParseInsights(insights, refDate){
+  const rows = {};
+  insights.forEach(i=>{
+    const ad_name = i.ad_name || '';
+    const camp    = i.campaign_name || '';
+    if(!ad_name) return;
+    const spend = parseFloat(i.spend||0);
+    if(spend <= 0) return;
+
+    const impr   = parseInt(i.impressions||0);
+    const clicks = parseInt(i.clicks||0);
+    const actions = {}; (i.actions||[]).forEach(a=>actions[a.action_type]=parseFloat(a.value));
+    const avals   = {}; (i.action_values||[]).forEach(a=>avals[a.action_type]=parseFloat(a.value));
+    const purch = actions['purchase'] || 0;
+    const rev   = avals['purchase'] || 0;
+    const roasList = i.purchase_roas || [];
+    const roas = roasList.length ? parseFloat(roasList[0].value) : 0;
+
+    const {obj, pa, land} = rtClassify(camp, ad_name);
+    const bk  = rtExtractBk(ad_name);
+    const key = obj+'_'+bk+'_'+land;
+    const mgr = rtAssignMgr(ad_name);
+    const media = rtGetMedia(ad_name);
+    const age = rtGetAge(ad_name, refDate);
+
+    if(!rows[key]){
+      rows[key] = {
+        key, base_key: bk, ad_id: i.ad_id, _max_spend: spend,
+        objective: obj, pa_type: pa, landing: land, purpose: obj,
+        mgr, media,
+        spend:0, impressions:0, clicks:0, purchases:0, revenue:0,
+        roas_sum:0, roas_n:0, age_days: age,
+      };
+    } else if(spend > (rows[key]._max_spend||0)){
+      rows[key].ad_id = i.ad_id; rows[key]._max_spend = spend;
+    }
+    const r = rows[key];
+    r.spend += spend; r.impressions += impr; r.clicks += clicks;
+    r.purchases += purch; r.revenue += rev;
+    if(roas>0){ r.roas_sum += roas; r.roas_n++; }
+  });
+
+  return Object.values(rows).map(r=>{
+    const roas = r.roas_n ? r.roas_sum/r.roas_n : 0;
+    const out = {
+      ...r,
       roas, roas_pct: Math.round(roas*100),
-      ctr: Math.round(ctr_raw*100)/100,
-      cvr, cpc: Math.round(cpc_raw),
-      is_new: false, age_days: null,
+      ctr: r.impressions ? Math.round(r.clicks/r.impressions*10000)/100 : 0,
+      cvr: r.clicks ? Math.round(r.purchases/r.clicks*10000)/100 : 0,
+      cpc: r.clicks ? Math.round(r.spend/r.clicks) : 0,
+      spend: Math.round(r.spend), revenue: Math.round(r.revenue),
+      is_new: (r.age_days!=null && r.age_days<=6),
       win_score: null, win_type: null, win_flags: {},
       img: null, img_type: 'img', video: null, video_src: null,
+      old_roas_pct: null,
       prev_spend: null, prev_revenue: null, prev_ctr: null,
       prev_cvr: null, prev_cpc: null, prev_purchases: null,
     };
+    delete out.roas_sum; delete out.roas_n; delete out._max_spend;
+    return out;
   });
 }
 
@@ -2268,10 +2342,12 @@ async function buildRtWeekJson(){
   const insights = await rtFetch(RT_ACCOUNT+'/insights', {
     level: 'ad',
     time_range: JSON.stringify({since:start, until:end}),
-    fields: 'ad_id,ad_name,campaign_name,spend,impressions,clicks,ctr,cpc,actions,action_values',
+    fields: 'ad_id,ad_name,campaign_name,spend,impressions,clicks,ctr,cpc,actions,action_values,purchase_roas',
   });
 
-  const rows = rtParseInsights(insights);
+  // 집계 기준일 = end(오늘), 과거 탭과 동일하게 age_days 계산
+  const refDate = new Date(end+'T00:00:00+09:00');
+  const rows = rtParseInsights(insights, refDate);
 
   // ── 소재 이미지 수집 (상위 30개) ──
   const imgMap = {};
@@ -2293,7 +2369,7 @@ async function buildRtWeekJson(){
   const prevData   = prevWeekId ? (cache[prevWeekId]||null) : null;
   const prevRows   = prevData ? (prevData.all_ads||[]) : [];
   const prevMap    = {};
-  prevRows.forEach(r=>{ prevMap[r.base_key] = r; });
+  prevRows.forEach(r=>{ prevMap[r.key] = r; });
 
   // ── 이번 주 집계 ──
   const conv    = rows.filter(r=>r.objective==='전환');
@@ -2308,11 +2384,9 @@ async function buildRtWeekJson(){
   const avgCpc  = cpcRows.length>0 ? Math.round(cpcRows.reduce((s,r)=>s+r.cpc,0)/cpcRows.length) : 0;
   const avgPur  = conv.length>0 ? Math.round(conv.reduce((s,r)=>s+r.purchases,0)/conv.length*10)/10 : 0;
 
-  // ── prev_* 필드: 이전 주 캐시 소재 매핑 ──
+  // ── prev_* 필드: 이전 주 캐시 소재 매핑 (key 기준, 과거 탭과 동일) ──
   rows.forEach(r=>{
-    const p = prevMap[r.base_key];
-    r.is_new = !p;
-    r.age_days = p ? 7 : 0;
+    const p = prevMap[r.key];
     if(p){
       r.prev_spend    = p.spend||0;
       r.prev_revenue  = p.revenue||0;
@@ -2320,7 +2394,12 @@ async function buildRtWeekJson(){
       r.prev_cvr      = p.cvr||0;
       r.prev_cpc      = p.cpc||0;
       r.prev_purchases= p.purchases||0;
+      if(p.roas>0 && r.roas>0){
+        r.old_roas_pct = Math.round(p.roas*100);
+        r.roas_delta   = Math.round((r.roas-p.roas)/p.roas*1000)/10;
+      }
     }
+    // age_days / is_new 는 rtParseInsights에서 광고명 날짜 기준으로 이미 계산됨 (덮어쓰지 않음)
   });
 
   // ── 위닝 판정 ──
@@ -2340,7 +2419,7 @@ async function buildRtWeekJson(){
   });
 
   // ── d7 신규 소재 ──
-  const d7All  = rows.filter(r=>r.is_new && (r.spend||0)>=30000);
+  const d7All  = rows.filter(r=>r.age_days!=null && r.age_days<=7 && (r.spend||0)>=30000);
   const d7Win  = d7All
     .filter(r=>(r.win_type==='전환'&&(r.win_score||0)>=3)||(r.win_type==='tc'&&(r.win_score||0)>=1))
     .sort((a,b)=>(b.win_score||0)-(a.win_score||0)||b.spend-a.spend);
