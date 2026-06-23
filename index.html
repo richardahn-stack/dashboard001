@@ -589,8 +589,8 @@ async function loadWeeks(){
   const sunD  = new Date(start+'T00:00:00+09:00');
   const endD2 = new Date(end+'T00:00:00+09:00');
   const rtLabel = (sunD.getMonth()+1)+'/'+sunD.getDate()+'~'+(endD2.getMonth()+1)+'/'+endD2.getDate();
-  const rtWeekId = 'RT-'+end.replace(/-/g,'');
-  weeks = [{id:rtWeekId, label:'🔴 '+rtLabel, ref_date:end, isLoading:true}];
+  const rtWeekId = 'RT-LIVE';
+  weeks = [{id:rtWeekId, label:'🔴 이번 주 ('+rtLabel+')', ref_date:end, isLoading:true}];
   curWeekId = rtWeekId;
   renderTabs();
   // 로딩 중 메시지 표시
@@ -2055,13 +2055,12 @@ function renderAbGrid(){
 
   gridEl.innerHTML = reps.map((r,idx)=>{
     const rank = idx+1;
-    const rankCls   = rank<=3 ? 'rank-'+rank : '';
-    const isWin     = isAbWin(r);
-    // 왕관: 위닝 소재가 있을 때만, 위닝 소재에게만 표시
+    const isWin      = isAbWin(r);
+    // 위닝 소재가 있을 때만 왕관 표시, 없으면 배지 없음
     const crownBadge = (hasWinner && isWin)
       ? '<div class="ab-rank-badge r1" style="font-size:.75rem">&#128081;</div>' : '';
-    const rankBadge  = (!hasWinner && rank<=3)
-      ? '<div class="ab-rank-badge r'+rank+'">'+rank+'</div>' : crownBadge;
+    const rankCls    = (hasWinner && isWin) ? 'rank-1' : '';
+    const rankBadge  = crownBadge;
     const th = r.img
       ? '<img src="'+imgSrc(r.img,'w400')+'" loading="lazy" onerror="this.style.display=&#39;none&#39;">'
       : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:2rem">&#9654;</div>';
@@ -2106,7 +2105,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2302,11 +2301,14 @@ async function buildRtWeekJson(){
   // ── prev_summary: 이전 주 JSON summary 재활용 ──
   const prev_summary = prevData ? (prevData.summary||{}) : {};
 
-  // ── label (KST 기준 일요일~오늘) ──
-  const sunD  = new Date(start+'T00:00:00+09:00');
-  const endD2 = new Date(end+'T00:00:00+09:00');
-  const label = (sunD.getMonth()+1)+'/'+sunD.getDate()+'~'+(endD2.getMonth()+1)+'/'+endD2.getDate();
-  const weekId= 'RT-'+end.replace(/-/g,'');
+  // ── label: W26 (실시간) 형태 ──
+  const monDate = new Date(start+'T00:00:00+09:00');
+  const todDate = new Date(end+'T00:00:00+09:00');
+  const rangeLabel = (monDate.getMonth()+1)+'/'+monDate.getDate()
+                   +'~'+(todDate.getMonth()+1)+'/'+todDate.getDate();
+  // weekId: RT-고정 (기존 JSON과 절대 충돌 없음)
+  const weekId = 'RT-LIVE';
+  const label  = rangeLabel;
 
   const json = {
     label, ref_date: end, is_realtime: true,
@@ -2397,11 +2399,11 @@ function applyRtWeek(weekId, json, label){
   const existing = weeks.find(w=>w.id===weekId || w.isLoading);
   if(existing){
     existing.id       = weekId;
-    existing.label    = '🔴 '+label;
+    existing.label    = '🔴 이번 주 ('+label+')';
     existing.ref_date = json.ref_date;
     existing.isLoading= false;
   } else {
-    weeks.unshift({id:weekId, label:'🔴 '+label, ref_date:json.ref_date});
+    weeks.unshift({id:weekId, label:'🔴 이번 주 ('+label+')', ref_date:json.ref_date});
   }
 
   // 실시간 탭으로 전환 & 렌더

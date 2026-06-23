@@ -582,12 +582,15 @@ def main():
     while cur >= START_SUNDAY:
         start = cur - timedelta(days=6)
         label = f"{cur.month}/{start.day}~{cur.day}"
-        weeks.append({
-            'id':    cur.strftime('%Y-W%U'),
-            'label': label,
-            'end':   cur.strftime('%Y-%m-%d'),
-            'start': start.strftime('%Y-%m-%d'),
-        })
+        # 완료된 주차만 포함 (end=일요일이 오늘보다 과거여야 함)
+        # 즉 오늘이 주 중간이면 이번 주는 아직 미완료 → JSON 미생성
+        if cur.date() < today.date():
+            weeks.append({
+                'id':    cur.strftime('%Y-W%U'),
+                'label': label,
+                'end':   cur.strftime('%Y-%m-%d'),
+                'start': start.strftime('%Y-%m-%d'),
+            })
         cur -= timedelta(weeks=1)
 
     print(f"\n📅 수집 대상 주차: {len(weeks)}개")
