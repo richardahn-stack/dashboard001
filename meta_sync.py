@@ -602,9 +602,13 @@ def main():
 
     for i, w in enumerate(weeks):
         print(f"\n[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
+        out_path = f"{OUTPUT_DIR}/{w['id']}.json"
+        # 이번 주(i=0)는 항상 갱신, 이전 주는 파일 있으면 skip (매주 자동 모드)
+        if i > 0 and os.path.exists(out_path):
+            print(f"  ⏭️  {out_path} 이미 존재 → skip")
+            weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
+            continue
         try:
-            out_path = f"{OUTPUT_DIR}/{w['id']}.json"
-            # 모든 주차 재수집 (이번 주 포함)
             prev = weeks[i+1] if i+1 < len(weeks) else weeks[i]
             data = build_json_from_api(
                 token,
@@ -625,10 +629,24 @@ def main():
             print(f"  ❌ 오류: {e}")
             import traceback; traceback.print_exc()
 
+    # ── 안전장치: 이번 실행에서 실패/누락된 주차라도
+    #    기존 JSON 파일이 있으면 weeks.json에 포함 (탭 사라짐 방지) ──
+    processed_ids = {w['id'] for w in weeks_list}
+    for w in weeks:
+        if w['id'] in processed_ids:
+            continue
+        if os.path.exists(f"{OUTPUT_DIR}/{w['id']}.json"):
+            weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
+            print(f"  ♻️  {w['id']} 이번 실행 실패/누락 → 기존 파일로 탭 유지")
+
+    # 최신→과거 순서 정렬 (weeks 순서 기준)
+    _order = {w['id']: idx for idx, w in enumerate(weeks)}
+    weeks_list.sort(key=lambda x: _order.get(x['id'], 999))
+
     # weeks.json 저장
     with open(f"{OUTPUT_DIR}/weeks.json", 'w', encoding='utf-8') as f:
         json.dump(weeks_list, f, ensure_ascii=False)
-    print(f"\n✅ weeks.json 저장 완료")
+    print(f"\n✅ weeks.json 저장 완료 ({len(weeks_list)}개 주차)")
     print(THUMB_PATCH_NOTE)
     print("\n🎉 동기화 완료! data/ 폴더를 GitHub에 push하세요.")
     print("   git add data/ && git commit -m 'Auto sync' && git push")
