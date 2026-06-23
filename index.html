@@ -339,6 +339,17 @@ tr:hover td{background:var(--bg2)}
 .li-badge--up{background:#e8f5e9;color:#2e7d32}
 .li-badge--dn{background:#fce4ec;color:#c62828}
 .li-badge--neu{background:var(--bg3);color:var(--text3)}
+
+/* ── 실시간 토큰 입력 ── */
+.rt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:flex;align-items:center;justify-content:center}
+.rt-box{background:var(--bg);border-radius:var(--rl);padding:2rem;width:100%;max-width:420px;display:flex;flex-direction:column;gap:1rem}
+.rt-title{font-size:1rem;font-weight:700;color:var(--text1)}
+.rt-sub{font-size:.8rem;color:var(--text3);line-height:1.5}
+.rt-input{width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text1);font-size:.85rem;outline:none;box-sizing:border-box}
+.rt-input:focus{border-color:var(--accent)}
+.rt-btn{padding:.6rem 1.2rem;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:.85rem;font-weight:700;cursor:pointer}
+.rt-status{font-size:.75rem;color:var(--text3);text-align:center}
+.rt-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;background:#e8f5e9;color:#2e7d32;cursor:pointer}
 </style>
 
 </head>
@@ -346,7 +357,13 @@ tr:hover td{background:var(--bg2)}
 
 <div class="wrap"><div class="dash">
 <div class="hdr">
-  <div class="hdr-top"><div class="hdr-title">메타 광고 위닝소재 리포트</div></div>
+  <div class="hdr-top">
+    <div class="hdr-title">메타 광고 위닝소재 리포트</div>
+    <div style="display:flex;align-items:center;gap:.6rem;margin-left:auto">
+      <span id="rtLiveStatus" class="rt-badge" onclick="loadRealtimeWeek(true)" title="클릭하면 즉시 갱신">🔄 실시간 연결 중...</span>
+      <span id="rtResetBtn" style="font-size:.65rem;color:var(--text3);cursor:pointer;display:none" onclick="resetRtToken()">토큰 변경</span>
+    </div>
+  </div>
   <div class="week-tabs" id="weekTabs"><div style="padding:8px 18px;font-size:12px;color:var(--text3)">불러오는 중...</div></div>
 </div>
 <div id="mainContent"><div class="loading">데이터 불러오는 중...</div></div>
@@ -355,6 +372,18 @@ tr:hover td{background:var(--bg2)}
 <!-- 팝업 -->
 
   <!-- AB 비교 팝업 -->
+  
+  <!-- 실시간 토큰 입력 -->
+  <div class="rt-overlay" id="rtOverlay" style="display:none">
+    <div class="rt-box">
+      <div class="rt-title">🔑 메타 API 토큰 입력</div>
+      <div class="rt-sub">이번 주 데이터를 실시간으로 불러오기 위해 시스템 사용자 토큰을 입력해주세요.<br>토큰은 이 브라우저에만 저장됩니다.</div>
+      <input class="rt-input" id="rtTokenInput" type="password" placeholder="메타 시스템 사용자 액세스 토큰">
+      <button class="rt-btn" onclick="saveRtToken()">저장하고 불러오기</button>
+      <div class="rt-status" id="rtStatus"></div>
+    </div>
+  </div>
+
   <div class="ab-mov" id="abMov" onclick="if(event.target===this)closeAbModal()">
     <div class="ab-modal" id="abModal">
       <div class="ab-sticky-hd">
@@ -557,6 +586,8 @@ function renderD7Section(d){
 async function loadWeeks(){
   try{const r=await fetch('data/weeks.json');weeks=await r.json();renderTabs();if(weeks.length)switchWeek(weeks[0].id);}
   catch(e){document.getElementById('weekTabs').innerHTML='<div style="padding:8px;color:#A32D2D;font-size:12px">weeks.json 로드 실패</div>';}
+  // 실시간 이번 주 데이터 로드
+  loadRealtimeWeek();
 }
 function renderTabs(){
   document.getElementById('weekTabs').innerHTML=weeks.map(w=>`<button class="wtab${w.id===curWeekId?' on':''}" onclick="switchWeek('${w.id}')">${w.label}</button>`).join('');
@@ -1837,8 +1868,6 @@ function renderTChart(wd){
   }
 }
 
-loadWeeks();
-
 /* ───── AB 비교 팝업 ───── */
 let _abGroup = null;
 
@@ -2038,6 +2067,266 @@ function renderAbGrid(){
 
 /* ───────────────────── */
 
+
+/* ═══════════════════════════════════════════
+   실시간 이번 주 데이터 모듈
+   메타 API 직접 호출 → 1시간 캐시 → 자동 갱신
+═══════════════════════════════════════════ */
+const RT_ACCOUNT  = 'act_863491278417905';
+const RT_API      = 'https://graph.facebook.com/v21.0';
+const RT_CACHE_KEY = 'rt_week_cache';
+const RT_TOKEN_KEY = 'rt_meta_token';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
+const RT_TTL       = 60 * 60 * 1000; // 1시간
+let   rtRefreshTimer = null;
+
+function getRtToken(){
+  // GitHub Actions에서 주입된 토큰 우선 사용
+  if(RT_TOKEN_INJECTED && !RT_TOKEN_INJECTED.startsWith('__')){
+    return RT_TOKEN_INJECTED;
+  }
+  return localStorage.getItem(RT_TOKEN_KEY) || '';
+}
+function saveRtToken(){
+  const tok = document.getElementById('rtTokenInput').value.trim();
+  if(!tok){ document.getElementById('rtStatus').textContent = '토큰을 입력해주세요'; return; }
+  localStorage.setItem(RT_TOKEN_KEY, tok);
+  document.getElementById('rtOverlay').style.display = 'none';
+  document.getElementById('rtStatus').textContent = '';
+  loadRealtimeWeek(true);
+}
+
+// 이번 주 일요일 ~ 오늘 날짜 계산
+function getRtDateRange(){
+  const today = new Date();
+  const dow   = today.getDay(); // 0=일
+  const sun   = new Date(today); sun.setDate(today.getDate() - dow);
+  const fmt   = d => d.toISOString().slice(0,10);
+  return { start: fmt(sun), end: fmt(today) };
+}
+
+// 메타 API 페이지네이션
+async function rtFetch(path, params){
+  const tok = getRtToken();
+  const url = new URL(RT_API + '/' + path);
+  Object.entries({...params, access_token: tok, limit: 500}).forEach(([k,v])=>url.searchParams.set(k,v));
+  const results = [];
+  let nextUrl = url.toString();
+  while(nextUrl){
+    const r = await fetch(nextUrl);
+    if(!r.ok){ const e = await r.json(); throw new Error(e.error?.message || r.status); }
+    const d = await r.json();
+    if(d.error) throw new Error(d.error.message);
+    (d.data||[d]).forEach(i=>results.push(i));
+    nextUrl = d.paging?.next || null;
+  }
+  return results;
+}
+
+// insights 데이터 파싱 (meta_sync.py parse_insights 동일 로직)
+function rtParseInsights(insights){
+  return insights.map(i=>{
+    const purchases = (i.actions||[]).find(a=>a.action_type==='purchase');
+    const revenue   = (i.action_values||[]).find(a=>a.action_type==='purchase');
+    const spend     = parseFloat(i.spend||0);
+    const rev       = parseFloat(revenue?.value||0);
+    const clicks    = parseInt(i.clicks||0);
+    const impr      = parseInt(i.impressions||0);
+    const purch     = parseFloat(purchases?.value||0);
+    const cpc_raw   = parseFloat(i.cpc||0);
+    const ctr_raw   = parseFloat(i.ctr||0);
+    const cvr       = clicks>0 ? Math.round(purch/clicks*10000)/100 : 0;
+    const roas      = spend>0  ? rev/spend : 0;
+    // ad_name에서 키 파싱 (목적_소재명_담당자_랜딩 형태)
+    const nm  = i.ad_name || '';
+    const parts = nm.split('_');
+    const obj = (i.campaign_name||'').includes('전환') ? '전환'
+              : (i.campaign_name||'').includes('콘조') ? '콘조' : '트래픽';
+    return {
+      ad_id: i.ad_id, key: nm, base_key: nm,
+      objective: obj, spend, revenue: Math.round(rev),
+      impressions: impr, clicks, purchases: purch,
+      roas, roas_pct: Math.round(roas*100),
+      ctr: Math.round(ctr_raw*100)/100,
+      cvr, cpc: Math.round(cpc_raw),
+      is_new: false, age_days: null,
+      win_score: null, win_type: null, win_flags: {},
+      img: null, img_type: 'img', video: null, video_src: null,
+      prev_spend: null, prev_revenue: null, prev_ctr: null,
+      prev_cvr: null, prev_cpc: null, prev_purchases: null,
+    };
+  });
+}
+
+// 이번 주 JSON 빌드 (실시간)
+async function buildRtWeekJson(){
+  const {start, end} = getRtDateRange();
+  const statusEl = document.getElementById('rtLiveStatus');
+  if(statusEl) statusEl.textContent = '🔄 실시간 데이터 수집 중...';
+
+  // insights 호출
+  const insights = await rtFetch(RT_ACCOUNT+'/insights', {
+    level: 'ad',
+    time_range: JSON.stringify({since:start, until:end}),
+    fields: 'ad_id,ad_name,campaign_name,spend,impressions,clicks,ctr,cpc,actions,action_values',
+  });
+
+  const rows = rtParseInsights(insights);
+
+  // 소재 이미지 수집 (adcreatives)
+  const imgMap = {};
+  await Promise.all(rows.slice(0,50).map(async r=>{ // 상위 50개만
+    try{
+      const cr = await rtFetch(r.ad_id+'/adcreatives',
+        {fields:'thumbnail_url,image_url,video_id,object_story_spec,picture'});
+      const c0 = cr[0]||{};
+      const vid = c0.video_id;
+      imgMap[r.ad_id] = {
+        img: c0.thumbnail_url||c0.image_url||c0.picture||null,
+        img_type: vid?'video':'img', video: vid||null
+      };
+    }catch(e){}
+  }));
+  rows.forEach(r=>{ if(imgMap[r.ad_id]){ Object.assign(r, imgMap[r.ad_id]); } });
+
+  // 집계
+  const conv   = rows.filter(r=>r.objective==='전환');
+  const tSpend = rows.reduce((s,r)=>s+r.spend,0);
+  const tRev   = rows.reduce((s,r)=>s+r.revenue,0);
+  const cSpend = conv.reduce((s,r)=>s+r.spend,0);
+  const cRev   = conv.reduce((s,r)=>s+r.revenue,0);
+  const avgRoas= cSpend>0 ? Math.round(cRev/cSpend*1000)/10 : 0;
+  const avgCtr = conv.length>0 ? Math.round(conv.reduce((s,r)=>s+r.ctr,0)/conv.length*100)/100 : 0;
+  const avgCvr = conv.length>0 ? Math.round(conv.reduce((s,r)=>s+r.cvr,0)/conv.length*100)/100 : 0;
+  const cpcRows= conv.filter(r=>r.cpc>0);
+  const avgCpc = cpcRows.length>0 ? Math.round(cpcRows.reduce((s,r)=>s+r.cpc,0)/cpcRows.length) : 0;
+  const avgPur = conv.length>0 ? Math.round(conv.reduce((s,r)=>s+r.purchases,0)/conv.length*10)/10 : 0;
+
+  // 위닝 판정
+  rows.forEach(r=>{
+    if(r.objective==='전환' && avgRoas>0){
+      const wf = {
+        roas: r.roas_pct > avgRoas,
+        ctr:  r.ctr  > avgCtr,
+        cvr:  r.cvr  > avgCvr,
+        cpc:  r.cpc > 0 && r.cpc < avgCpc,
+        purchases: r.purchases > avgPur,
+      };
+      r.win_score = Object.values(wf).filter(Boolean).length;
+      r.win_type  = '전환'; r.win_flags = wf;
+    } else if(['트래픽','콘조'].includes(r.objective)){
+      r.win_score = r.ctr > avgCtr ? 1 : 0;
+      r.win_type  = 'tc'; r.win_flags = {ctr: r.ctr > avgCtr};
+    }
+  });
+
+  // today의 요일 기반 label
+  const today  = new Date();
+  const sun    = new Date(today); sun.setDate(today.getDate()-today.getDay());
+  const label  = `${sun.getMonth()+1}/${sun.getDate()}~${today.getMonth()+1}/${today.getDate()}`;
+  const weekId = end.slice(0,4)+'-W'+String(Math.ceil((new Date(end)-new Date(end.slice(0,4)+'-01-01'))/(7*86400000))).padStart(2,'0');
+
+  const json = {
+    label, ref_date: end, is_realtime: true,
+    summary: {
+      spend: Math.round(tSpend), revenue: Math.round(tRev),
+      roas_pct: tSpend>0?Math.round(tRev/tSpend*1000)/10:0,
+      purchases: Math.round(rows.reduce((s,r)=>s+r.purchases,0)),
+      impressions: rows.reduce((s,r)=>s+r.impressions,0),
+      clicks: rows.reduce((s,r)=>s+r.clicks,0),
+      avg_ctr: avgCtr, avg_roas: avgRoas/100, active_ads: rows.length,
+      winning_thresholds: {
+        avg_roas: avgRoas/100, avg_roas_pct: avgRoas,
+        avg_ctr: avgCtr, avg_cvr: avgCvr, avg_cpc: avgCpc,
+        avg_purchases: avgPur, tc_avg_ctr: avgCtr,
+      }
+    },
+    prev_summary: {}, pie: {},
+    trends: {spend_up:[],rev_up:[],cpc_eff_up:[],conv_dn:[],cpc_eff_dn:[]},
+    winning: rows.filter(r=>r.win_type==='전환'&&(r.win_score||0)>=3)
+                 .sort((a,b)=>b.spend-a.spend).slice(0,14),
+    d7_win: [], d7_lose: [],
+    all_ads: rows.sort((a,b)=>b.spend-a.spend),
+    leader_badges: {},
+  };
+
+  return {json, weekId, label};
+}
+
+// 실시간 주차 로드
+async function loadRealtimeWeek(force=false){
+  const tok = getRtToken();
+  if(!tok){
+    // 주입 토큰 없을 때만 수동 입력 요청
+    document.getElementById('rtOverlay').style.display='flex';
+    return;
+  }
+
+  // 캐시 확인
+  if(!force){
+    try{
+      const cached = JSON.parse(localStorage.getItem(RT_CACHE_KEY)||'null');
+      if(cached && Date.now()-cached.ts < RT_TTL){
+        applyRtWeek(cached.weekId, cached.json, cached.label);
+        scheduleRtRefresh(cached.ts + RT_TTL - Date.now());
+        return;
+      }
+    }catch(e){}
+  }
+
+  try{
+    const {json, weekId, label} = await buildRtWeekJson();
+    localStorage.setItem(RT_CACHE_KEY, JSON.stringify({json, weekId, label, ts: Date.now()}));
+    applyRtWeek(weekId, json, label);
+    scheduleRtRefresh(RT_TTL);
+    const statusEl = document.getElementById('rtLiveStatus');
+    if(statusEl) statusEl.textContent = '✅ 실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
+  }catch(e){
+    console.error('실시간 로드 실패:', e);
+    const statusEl = document.getElementById('rtLiveStatus');
+    if(statusEl) statusEl.textContent = '⚠️ 실시간 로드 실패: '+e.message;
+    if(e.message.includes('token')||e.message.includes('Invalid')){
+      localStorage.removeItem(RT_TOKEN_KEY);
+      document.getElementById('rtOverlay').style.display='flex';
+    }
+  }
+}
+
+function applyRtWeek(weekId, json, label){
+  // 주입 토큰 없으면 토큰 변경 버튼 표시
+  if(!RT_TOKEN_INJECTED || RT_TOKEN_INJECTED.startsWith('__')){
+    const btn = document.getElementById('rtResetBtn');
+    if(btn) btn.style.display = 'inline';
+  }
+  // weeks 맨 앞에 실시간 주차 추가 (없으면)
+  if(!weeks.find(w=>w.id===weekId)){
+    weeks.unshift({id:weekId, label:label+'(실시간)', ref_date: json.ref_date});
+    renderTabs();
+  }
+  cache[weekId] = json;
+  // 현재 주차가 실시간 주차면 바로 렌더
+  if(curWeekId===weekId || !curWeekId){
+    curWeekId = weekId;
+    curRefDate = json.ref_date;
+    renderAll(json);
+    renderTabs();
+  }
+}
+
+function scheduleRtRefresh(ms){
+  if(rtRefreshTimer) clearTimeout(rtRefreshTimer);
+  rtRefreshTimer = setTimeout(()=>loadRealtimeWeek(true), ms);
+}
+
+// 토큰 초기화 버튼
+function resetRtToken(){
+  localStorage.removeItem(RT_TOKEN_KEY);
+  localStorage.removeItem(RT_CACHE_KEY);
+  document.getElementById('rtOverlay').style.display='flex';
+}
+/* ══════════════════════════════════════════ */
+
+loadWeeks();
 </script>
 <div id="globalTT" style="
   display:none;
