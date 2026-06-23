@@ -584,11 +584,39 @@ function renderD7Section(d){
 }
 
 async function loadWeeks(){
-  try{const r=await fetch('data/weeks.json');weeks=await r.json();renderTabs();if(weeks.length)switchWeek(weeks[0].id);}
-  catch(e){document.getElementById('weekTabs').innerHTML='<div style="padding:8px;color:#A32D2D;font-size:12px">weeks.json 로드 실패</div>';}
-  // 실시간 이번 주 데이터 로드
+  // ── 실시간 탭 미리 추가 (로딩 상태) ──
+  const {start, end} = getRtDateRange();
+  const sunD  = new Date(start+'T00:00:00+09:00');
+  const endD2 = new Date(end+'T00:00:00+09:00');
+  const rtLabel = (sunD.getMonth()+1)+'/'+sunD.getDate()+'~'+(endD2.getMonth()+1)+'/'+endD2.getDate();
+  const rtWeekId = 'RT-'+end.replace(/-/g,'');
+  weeks = [{id:rtWeekId, label:'🔴 '+rtLabel, ref_date:end, isLoading:true}];
+  curWeekId = rtWeekId;
+  renderTabs();
+  // 로딩 중 메시지 표시
+  document.getElementById('mainContent').innerHTML =
+    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:1rem;color:var(--color-text-secondary)">'
+    +'<div style="font-size:1.5rem">🔄</div>'
+    +'<div style="font-size:.9rem;font-weight:500">실시간 데이터 수집 중...</div>'
+    +'<div style="font-size:.75rem;color:var(--color-text-tertiary)">메타 API에서 이번 주 성과를 불러오고 있어요</div>'
+    +'</div>';
+
+  // ── 기존 주차 JSON 로드 ──
+  try{
+    const r=await fetch('data/weeks.json');
+    const jsonWeeks=await r.json();
+    // 실시간 탭 뒤에 기존 주차 추가
+    jsonWeeks.forEach(w=>{ if(!weeks.find(x=>x.id===w.id)) weeks.push(w); });
+    renderTabs();
+    // 기존 주차 백그라운드 프리로드
+    if(jsonWeeks.length) switchWeek(jsonWeeks[0].id);
+  } catch(e){
+    console.warn('weeks.json 로드 실패:', e);
+  }
+
+  // ── 실시간 데이터 로드 ──
   const initStatus = document.getElementById('rtLiveStatus');
-  if(initStatus) initStatus.textContent = '🔄 실시간 연결 중...';
+  if(initStatus) initStatus.textContent = '🔄 실시간 수집 중...';
   loadRealtimeWeek();
 }
 function renderTabs(){
@@ -2078,7 +2106,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2335,13 +2363,22 @@ async function loadRealtimeWeek(force=false){
     localStorage.setItem(RT_CACHE_KEY, JSON.stringify({json, weekId, label, ts: Date.now()}));
     applyRtWeek(weekId, json, label);
     scheduleRtRefresh(RT_TTL);
-    const statusEl = document.getElementById('rtLiveStatus');
-    if(statusEl) statusEl.textContent = '✅ 실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
   }catch(e){
     console.error('실시간 로드 실패:', e);
     const statusEl = document.getElementById('rtLiveStatus');
-    if(statusEl) statusEl.textContent = '⚠️ 실시간 로드 실패: '+e.message;
-    if(e.message.includes('token')||e.message.includes('Invalid')){
+    if(statusEl) statusEl.textContent = '⚠️ 로드 실패';
+    // 로딩 탭에 에러 메시지 표시
+    const loadingTab = weeks.find(w=>w.isLoading);
+    if(loadingTab && curWeekId===loadingTab.id){
+      document.getElementById('mainContent').innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:.75rem;color:var(--color-text-secondary)">'
+        +'<div style="font-size:1.5rem">⚠️</div>'
+        +'<div style="font-size:.85rem;font-weight:500">실시간 데이터 로드 실패</div>'
+        +'<div style="font-size:.75rem;color:var(--color-text-tertiary)">'+e.message+'</div>'
+        +'<button onclick="loadRealtimeWeek(true)" style="margin-top:.5rem;padding:6px 16px;border-radius:20px;border:1px solid var(--color-border-secondary);background:transparent;cursor:pointer;font-size:.8rem">다시 시도</button>'
+        +'</div>';
+    }
+    if(e.message&&(e.message.includes('token')||e.message.includes('Invalid')||e.message.includes('190'))){
       localStorage.removeItem(RT_TOKEN_KEY);
       document.getElementById('rtOverlay').style.display='flex';
     }
@@ -2355,15 +2392,27 @@ function applyRtWeek(weekId, json, label){
     if(btn) btn.style.display = 'inline';
   }
   cache[weekId] = json;
-  // 실시간 탭이 없으면 맨 앞에 추가
-  if(!weeks.find(w=>w.id===weekId)){
-    weeks.unshift({id:weekId, label:'🔴 '+label, ref_date: json.ref_date});
+
+  // 기존 실시간 탭 업데이트 (미리 추가된 탭의 isLoading 제거)
+  const existing = weeks.find(w=>w.id===weekId || w.isLoading);
+  if(existing){
+    existing.id       = weekId;
+    existing.label    = '🔴 '+label;
+    existing.ref_date = json.ref_date;
+    existing.isLoading= false;
+  } else {
+    weeks.unshift({id:weekId, label:'🔴 '+label, ref_date:json.ref_date});
   }
-  // 항상 실시간 탭으로 전환 & 렌더
+
+  // 실시간 탭으로 전환 & 렌더
   curWeekId  = weekId;
   curRefDate = json.ref_date;
   renderTabs();
   renderAll(json);
+
+  // 상태 뱃지 업데이트
+  const statusEl = document.getElementById('rtLiveStatus');
+  if(statusEl) statusEl.textContent = '✅ 실시간 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
 }
 
 function scheduleRtRefresh(ms){
