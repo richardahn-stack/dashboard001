@@ -1043,27 +1043,28 @@ function buildLeaderSection(d){
       : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.2rem">&#9654;</div>';
 
 
-    // 지난주 지표 대비 뱃지
-    const ps = d.prev_summary || {};
-    const avgRoas = ps.avg_roas_pct || 0;
-    const avgCtr  = ps.avg_ctr  || 0;
-    const avgCvr  = ps.avg_cvr  || 0;
-    const avgCpc  = ps.avg_cpc  || 0;
-    const hasPrev = avgRoas > 0 || avgCtr > 0;
-    function liBadge(label, val, avg, lowBetter){
-      if(!avg || !val) return '<span class="li-badge li-badge--neu">'+label+'</span>';
-      const good = lowBetter ? val < avg : val > avg;
-      const pct  = Math.round(Math.abs(val - avg) / avg * 100);
+    // 해당 소재 지난주 성과 대비 뱃지
+    const prevRoas = (r.prev_spend && r.prev_revenue)
+      ? Math.round(r.prev_revenue / r.prev_spend * 100) : 0;
+    const prevCtr = r.prev_ctr  || 0;
+    const prevCvr = r.prev_cvr  || 0;
+    const prevCpc = r.prev_cpc  || 0;
+    const hasPrevData = prevCtr > 0 || prevRoas > 0;
+
+    function liBadge(label, val, prev, lowBetter){
+      if(!prev || !val) return '<span class="li-badge li-badge--neu">'+label+'</span>';
+      const good = lowBetter ? val < prev : val > prev;
+      const pct  = Math.round(Math.abs(val - prev) / prev * 100);
       const arrow = good ? '&#9650;' : '&#9660;';
       const cls   = good ? 'li-badge--up' : 'li-badge--dn';
       return '<span class="li-badge '+cls+'">'+arrow+' '+label+' '+pct+'%</span>';
     }
     const indHtml = '<div class="leader-indicators">'
-      +(hasPrev
-        ? '<div class="leader-ind-row" style="margin-bottom:2px"><span style="font-size:.6rem;color:var(--text3)">vs 지난주 평균</span></div>'
-        : '')
-      +'<div class="leader-ind-row">'+liBadge('ROAS',r.roas_pct||0,avgRoas,false)+liBadge('CTR',r.ctr||0,avgCtr,false)+'</div>'
-      +'<div class="leader-ind-row">'+liBadge('CVR',r.cvr||0,avgCvr,false)+liBadge('CPC',r.cpc||0,avgCpc,true)+'</div>'
+      +(hasPrevData
+        ? '<div class="leader-ind-row" style="margin-bottom:2px"><span style="font-size:.6rem;color:var(--text3)">vs 지난주</span></div>'
+        : '<div class="leader-ind-row" style="margin-bottom:2px"><span style="font-size:.6rem;color:var(--text3)">지난주 데이터 없음</span></div>')
+      +'<div class="leader-ind-row">'+liBadge('ROAS',r.roas_pct||0,prevRoas,false)+liBadge('CTR',r.ctr||0,prevCtr,false)+'</div>'
+      +'<div class="leader-ind-row">'+liBadge('CVR',r.cvr||0,prevCvr,false)+liBadge('CPC',r.cpc||0,prevCpc,true)+'</div>'
     +'</div>';
     return '<div class="leader-row'+(rank<=3?' leader-row--top':'')+'" onclick="openModal(\''+r.key+'\')">'
       +'<div class="leader-rank '+rCls+'">'+rank+'</div>'
@@ -1594,8 +1595,18 @@ function renderPieCharts(pie){
 }
 
 // 팝업
-function openModal(key){
+async function openModal(key){
   mKey=key;
+  // 로드 안 된 주차 데이터 백그라운드 fetch
+  const unloaded = weeks.filter(w => !cache[w.id]);
+  if(unloaded.length){
+    await Promise.all(unloaded.map(async w => {
+      try {
+        const r = await fetch('data/'+w.id+'.json');
+        if(r.ok) cache[w.id] = await r.json();
+      } catch(e){}
+    }));
+  }
   const wd=[];
   for(const w of weeks){if(cache[w.id]){const r=(cache[w.id].all_ads||[]).find(r=>r.key===key);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
   const cur=wd.find(r=>r.weekId===curWeekId)||wd[0];
@@ -1783,10 +1794,14 @@ function hideModal(){
 function closeOv(e){if(e.target===document.getElementById('mov'))hideModal();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){hideModal();closeAbModal();}});
 
-function setMetric(m,btn){
+async function setMetric(m,btn){
   curMetric=m;
   document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
+  // 로드 안 된 주차 백그라운드 fetch
+  await Promise.all(weeks.filter(w=>!cache[w.id]).map(async w=>{
+    try{const r=await fetch('data/'+w.id+'.json');if(r.ok)cache[w.id]=await r.json();}catch(e){}
+  }));
   const wd=[];
   for(const w of weeks){if(cache[w.id]){const r=(cache[w.id].all_ads||[]).find(r=>r.key===mKey);if(r)wd.push({week:w.label,weekId:w.id,...r});}}
   renderTChart(wd);
