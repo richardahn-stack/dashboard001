@@ -608,8 +608,15 @@ async function loadWeeks(){
     // 실시간 탭 뒤에 기존 주차 추가
     jsonWeeks.forEach(w=>{ if(!weeks.find(x=>x.id===w.id)) weeks.push(w); });
     renderTabs();
-    // 기존 주차 백그라운드 프리로드
-    if(jsonWeeks.length) switchWeek(jsonWeeks[0].id);
+    // 기존 주차 중 첫 번째(최신 완료 주차) 데이터 로드
+    // 실시간 탭은 loadRealtimeWeek에서 처리하므로 여기선 과거 JSON만
+    if(jsonWeeks.length){
+      const firstPast = jsonWeeks[0];
+      try{
+        const rr = await fetch('data/'+firstPast.id+'.json');
+        if(rr.ok){ cache[firstPast.id] = await rr.json(); }
+      }catch(e){}
+    }
   } catch(e){
     console.warn('weeks.json 로드 실패:', e);
   }
@@ -620,18 +627,70 @@ async function loadWeeks(){
   loadRealtimeWeek();
 }
 function renderTabs(){
-  document.getElementById('weekTabs').innerHTML=weeks.map(w=>`<button class="wtab${w.id===curWeekId?' on':''}" onclick="switchWeek('${w.id}')">${w.label}</button>`).join('');
+  const tabsEl = document.getElementById('weekTabs');
+  tabsEl.innerHTML = '';
+  weeks.forEach(w=>{
+    const btn = document.createElement('button');
+    btn.className = 'wtab'+(w.id===curWeekId?' on':'');
+    const isRT = w.id==='RT-LIVE';
+    if(isRT){
+      btn.style.borderBottom = '2px solid #E24B4A';
+      btn.style.color = w.id===curWeekId ? '#E24B4A' : 'var(--color-text-secondary)';
+    }
+    btn.textContent = w.isLoading ? w.label+' ⏳' : w.label;
+    btn.addEventListener('click', ()=>switchWeek(w.id));
+    tabsEl.appendChild(btn);
+  });
 }
 async function switchWeek(id){
   curWeekId=id; curFilter={purpose:'전체',sort:'revenue'};detailOpen=false;curTrendFilter={up:'spend_up',dn:'conv_dn'};
   renderTabs();
-  if(cache[id]){curRefDate=cache[id].ref_date||null;renderAll(cache[id]);return;}
+  // 실시간 탭 클릭 시
+  if(id === 'RT-LIVE'){
+    if(cache['RT-LIVE']){
+      curRefDate=cache['RT-LIVE'].ref_date||null;
+      renderAll(cache['RT-LIVE']);
+    } else {
+      // 아직 로딩 중
+      document.getElementById('mainContent').innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:1rem;color:var(--color-text-secondary)">'
+        +'<div style="font-size:1.5rem">🔄</div>'
+        +'<div style="font-size:.9rem;font-weight:500">실시간 데이터 수집 중...</div>'
+        +'<div style="font-size:.75rem;color:var(--color-text-tertiary)">잠시 후 자동으로 표시돼요</div>'
+        +'</div>';
+    }
+    return;
+  }
+  if(cache[id]){
+    curRefDate=cache[id].ref_date||null;
+    // 플레이스홀더 JSON인 경우 안내 표시
+    if(cache[id]._placeholder){
+      document.getElementById('mainContent').innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:1rem;color:var(--color-text-secondary)">'
+        +'<div style="font-size:1.5rem">📋</div>'
+        +'<div style="font-size:.9rem;font-weight:500">'+id+' 데이터 준비 중</div>'
+        +'<div style="font-size:.75rem;color:var(--color-text-tertiary)">다음 Actions 실행 시 데이터가 채워져요</div>'
+        +'</div>';
+      return;
+    }
+    renderAll(cache[id]);
+    return;
+  }
   document.getElementById('mainContent').innerHTML='<div class="loading">데이터 불러오는 중...</div>';
   try{
     const r=await fetch(`data/${id}.json`);
     if(!r.ok) throw new Error('HTTP '+r.status);
     cache[id]=await r.json();
     curRefDate=cache[id].ref_date||null;
+    if(cache[id]._placeholder){
+      document.getElementById('mainContent').innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:1rem;color:var(--color-text-secondary)">'
+        +'<div style="font-size:1.5rem">📋</div>'
+        +'<div style="font-size:.9rem;font-weight:500">'+id+' 데이터 준비 중</div>'
+        +'<div style="font-size:.75rem;color:var(--color-text-tertiary)">다음 Actions 실행 시 데이터가 채워져요</div>'
+        +'</div>';
+      return;
+    }
   } catch(e){
     document.getElementById('mainContent').innerHTML=`<div class="loading" style="color:#A32D2D">${id}.json 로드 실패: ${e.message}</div>`;
     return;
@@ -2105,7 +2164,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
