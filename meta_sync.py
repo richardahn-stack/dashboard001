@@ -604,11 +604,7 @@ def main():
         print(f"\n[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
         try:
             out_path = f"{OUTPUT_DIR}/{w['id']}.json"
-            # 이번 주(i=0)는 항상 갱신, 이전 주는 파일 있으면 skip
-            if i > 0 and os.path.exists(out_path):
-                print(f"  ⏭️  {out_path} 이미 존재 → skip")
-                weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
-                continue
+            # 모든 주차 재수집 (이번 주 포함)
             prev = weeks[i+1] if i+1 < len(weeks) else weeks[i]
             data = build_json_from_api(
                 token,
