@@ -349,7 +349,7 @@ tr:hover td{background:var(--bg2)}
 .rt-input:focus{border-color:var(--accent)}
 .rt-btn{padding:.6rem 1.2rem;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:.85rem;font-weight:700;cursor:pointer}
 .rt-status{font-size:.75rem;color:var(--text3);text-align:center}
-.rt-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;background:#e8f5e9;color:#2e7d32;cursor:pointer}
+.rt-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;background:var(--color-background-success,#e8f5e9);color:var(--color-text-success,#2e7d32);cursor:pointer;border:1px solid var(--color-border-secondary)}
 </style>
 
 </head>
@@ -587,6 +587,8 @@ async function loadWeeks(){
   try{const r=await fetch('data/weeks.json');weeks=await r.json();renderTabs();if(weeks.length)switchWeek(weeks[0].id);}
   catch(e){document.getElementById('weekTabs').innerHTML='<div style="padding:8px;color:#A32D2D;font-size:12px">weeks.json 로드 실패</div>';}
   // 실시간 이번 주 데이터 로드
+  const initStatus = document.getElementById('rtLiveStatus');
+  if(initStatus) initStatus.textContent = '🔄 실시간 연결 중...';
   loadRealtimeWeek();
 }
 function renderTabs(){
@@ -2076,7 +2078,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2161,8 +2163,8 @@ function rtParseInsights(insights){
 // 이번 주 JSON 빌드 (실시간)
 async function buildRtWeekJson(){
   const {start, end} = getRtDateRange();
-  const statusEl = document.getElementById('rtLiveStatus');
-  if(statusEl) statusEl.textContent = '🔄 실시간 데이터 수집 중...';
+  const rtStatusEl = document.getElementById('rtLiveStatus');
+  if(rtStatusEl) rtStatusEl.textContent = '🔄 실시간 데이터 수집 중...';
 
   // insights 호출
   const insights = await rtFetch(RT_ACCOUNT+'/insights', {
@@ -2256,11 +2258,13 @@ async function buildRtWeekJson(){
 // 실시간 주차 로드
 async function loadRealtimeWeek(force=false){
   const tok = getRtToken();
+  const statusEl = document.getElementById('rtLiveStatus');
   if(!tok){
-    // 주입 토큰 없을 때만 수동 입력 요청
+    if(statusEl) statusEl.textContent = '🔑 토큰 필요';
     document.getElementById('rtOverlay').style.display='flex';
     return;
   }
+  if(statusEl) statusEl.textContent = '🔄 실시간 수집 중...';
 
   // 캐시 확인
   if(!force){
