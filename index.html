@@ -2164,7 +2164,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2349,24 +2349,44 @@ async function buildRtWeekJson(){
   const refDate = new Date(end+'T00:00:00+09:00');
   const rows = rtParseInsights(insights, refDate);
 
-  // ── 소재 이미지 수집 (상위 30개) ──
+  // ── 소재 이미지 수집: 광고비 상위 + 이번 주 신규 소재 우선 ──
   const imgMap = {};
-  await Promise.all(rows.slice(0,30).map(async r=>{
+  const bySpend = [...rows].sort((a,b)=>(b.spend||0)-(a.spend||0));
+  const imgTargets = bySpend.slice(0,40);
+  rows.forEach(r=>{ if(r.is_new && !imgTargets.includes(r)) imgTargets.push(r); });
+  await Promise.all(imgTargets.map(async r=>{
+    if(!r.ad_id) return;
     try{
       const cr = await rtFetch(r.ad_id+'/adcreatives',
-        {fields:'thumbnail_url,image_url,video_id,picture'});
-      const c0 = cr[0]||{};
-      imgMap[r.ad_id] = {
-        img: c0.thumbnail_url||c0.image_url||c0.picture||null,
-        img_type: c0.video_id?'video':'img', video: c0.video_id||null
-      };
+        {fields:'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'});
+      const c0  = cr[0]||{};
+      const oss = c0.object_story_spec||{};
+      const afs = c0.asset_feed_spec||{};
+      const vid = c0.video_id||null;
+      let thumb=null, type='img';
+      if(vid){
+        type='video';
+        thumb = (oss.video_data && oss.video_data.image_url)
+              || (afs.videos && afs.videos[0] && afs.videos[0].thumbnail_url)
+              || c0.picture || c0.thumbnail_url || null;
+      } else {
+        thumb = c0.image_url || c0.picture
+              || (oss.link_data && (oss.link_data.image_url || oss.link_data.picture))
+              || (afs.images && afs.images[0] && afs.images[0].url)
+              || c0.thumbnail_url || null;
+      }
+      imgMap[r.ad_id] = {img: thumb, img_type: type, video: vid};
     }catch(e){}
   }));
   rows.forEach(r=>{ if(imgMap[r.ad_id]) Object.assign(r, imgMap[r.ad_id]); });
 
-  // ── 이전 주 데이터: 캐시된 최신 JSON에서 가져오기 ──
-  const prevWeekId = weeks.length>0 ? weeks[0].id : null;
-  const prevData   = prevWeekId ? (cache[prevWeekId]||null) : null;
+  // ── 이전 주 데이터: 가장 최근 과거 주차 JSON에서 가져오기 ──
+  const prevW = weeks.find(w=>w.id!=='RT-LIVE');
+  const prevWeekId = prevW ? prevW.id : null;
+  let prevData = prevWeekId ? (cache[prevWeekId]||null) : null;
+  if(prevWeekId && !prevData){
+    try{ const r=await fetch('data/'+prevWeekId+'.json'); if(r.ok){ prevData=await r.json(); cache[prevWeekId]=prevData; } }catch(e){}
+  }
   const prevRows   = prevData ? (prevData.all_ads||[]) : [];
   const prevMap    = {};
   prevRows.forEach(r=>{ prevMap[r.key] = r; });
@@ -2439,6 +2459,29 @@ async function buildRtWeekJson(){
   // ── prev_summary: 이전 주 JSON summary 재활용 ──
   const prev_summary = prevData ? (prevData.summary||{}) : {};
 
+  // ── 리딩 소재 뱃지 계산 (meta_sync.py calc_leader_badges 동일) ──
+  function rtTop7Keys(data){
+    const cv = (data.all_ads||[]).filter(r=>r.objective==='전환' && (r.spend||0)>0);
+    return new Set([...cv].sort((a,b)=>b.spend-a.spend).slice(0,7).map(r=>r.base_key));
+  }
+  const curTop7 = rtTop7Keys({all_ads: rows});
+  const pastWeeks = weeks.filter(w=>w.id!=='RT-LIVE');
+  const pastKeysets = [];
+  for(const w of pastWeeks){
+    let dat = cache[w.id];
+    if(!dat){ try{ const r=await fetch('data/'+w.id+'.json'); if(r.ok){ dat=await r.json(); cache[w.id]=dat; } }catch(e){} }
+    pastKeysets.push(dat ? rtTop7Keys(dat) : new Set());
+  }
+  const leaderBadges = {};
+  curTop7.forEach(key=>{
+    let streak = 1;
+    for(const ks of pastKeysets){ if(ks.has(key)) streak++; else break; }
+    const hasHistory = pastKeysets.some(ks=>ks.has(key));
+    if(streak>=2)        leaderBadges[key] = {type:'streak', count:streak};
+    else if(hasHistory)  leaderBadges[key] = {type:'comeback'};
+    else                 leaderBadges[key] = {type:'new'};
+  });
+
   // ── label: W26 (실시간) 형태 ──
   const monDate = new Date(start+'T00:00:00+09:00');
   const todDate = new Date(end+'T00:00:00+09:00');
@@ -2470,7 +2513,7 @@ async function buildRtWeekJson(){
                  .sort((a,b)=>b.revenue-a.revenue).slice(0,14),
     d7_win: d7Win, d7_lose: d7Lose,
     all_ads: rows.sort((a,b)=>b.spend-a.spend),
-    leader_badges: {},
+    leader_badges: leaderBadges,
   };
 
   return {json, weekId, label};
