@@ -1232,7 +1232,8 @@ function buildLeaderSection(d){
 
   // ── AB테스트 섹션 ──
   function buildAbSection(d){
-    const ads = d.all_ads || [];
+    // 해당 주차에 새로 투입된 소재만 비교 (is_new = age_days<=6)
+    const ads = (d.all_ads || []).filter(a=>a.is_new);
 
     function seriesKey(bk){
       if(!bk) return '';
@@ -1279,7 +1280,7 @@ function buildLeaderSection(d){
       <div class="sec-hd">
         <span class="sec-ico">🧪</span>
         <span class="sec-title">AB테스트 소재 비교</span>
-        <span class="sec-sub">같은 날 투입된 연속 소재 그룹 · ${groups.length}개 시리즈</span>
+        <span class="sec-sub">해당 주차 신규 투입 · 같은 날 투입된 연속 소재 그룹 · ${groups.length}개 시리즈</span>
       </div>`;
 
     groups.forEach(({sk, list, bkeys, totalSpend, age})=>{
@@ -1972,7 +1973,8 @@ let _abSortKey = 'spend';
 
 function openAbModal(seriesKeyArg){
   const d = cache[curWeekId]; if(!d) return;
-  const ads = d.all_ads || [];
+  // 해당 주차에 새로 투입된 소재만 (메인 섹션과 동일 기준)
+  const ads = (d.all_ads || []).filter(a=>a.is_new);
 
   function seriesKey(bk){
     if(!bk) return '';
@@ -2164,7 +2166,7 @@ const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
