@@ -2182,7 +2182,7 @@ function renderAbGrid(){
 const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
-const RT_CACHE_VER = 3; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
+const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
 const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
@@ -2355,6 +2355,11 @@ function rtParseInsights(insights, refDate){
 // 이번 주 JSON 빌드 (실시간)
 async function buildRtWeekJson(){
   const {start, end} = getRtDateRange();
+  // ── 환산 계수: 지난주(7일) 볼륨을 이번 주 경과일수에 맞춰 보정 ──
+  const _msDay = 86400000;
+  const elapsedDays = Math.max(1, Math.min(7,
+    Math.floor((new Date(end+'T00:00:00+09:00') - new Date(start+'T00:00:00+09:00'))/_msDay) + 1));
+  const prevFactor = elapsedDays / 7;
   const rtStatusEl = document.getElementById('rtLiveStatus');
   if(rtStatusEl) rtStatusEl.textContent = '🔄 실시간 데이터 수집 중...';
 
@@ -2428,12 +2433,14 @@ async function buildRtWeekJson(){
   rows.forEach(r=>{
     const p = prevMap[r.key];
     if(p){
-      r.prev_spend    = p.spend||0;
-      r.prev_revenue  = p.revenue||0;
+      // 볼륨 지표: 지난주 7일치를 이번 주 경과일수로 환산
+      r.prev_spend    = Math.round((p.spend||0)*prevFactor);
+      r.prev_revenue  = Math.round((p.revenue||0)*prevFactor);
+      r.prev_purchases= Math.round((p.purchases||0)*prevFactor);
+      // 비율 지표: 일수 무관 → 환산하지 않음
       r.prev_ctr      = p.ctr||0;
       r.prev_cvr      = p.cvr||0;
       r.prev_cpc      = p.cpc||0;
-      r.prev_purchases= p.purchases||0;
       if(p.roas>0 && r.roas>0){
         r.old_roas_pct = Math.round(p.roas*100);
         r.roas_delta   = Math.round((r.roas-p.roas)/p.roas*1000)/10;
@@ -2476,8 +2483,19 @@ async function buildRtWeekJson(){
     if(r.is_new) pg[g].new_count++;
   });
 
-  // ── prev_summary: 이전 주 JSON summary 재활용 ──
-  const prev_summary = prevData ? (prevData.summary||{}) : {};
+  // ── prev_summary: 지난주 summary를 경과일수로 환산 (볼륨만) ──
+  const _ps = prevData ? (prevData.summary||{}) : {};
+  const prev_summary = Object.assign({}, _ps, {
+    spend:       Math.round((_ps.spend||0)*prevFactor),
+    revenue:     Math.round((_ps.revenue||0)*prevFactor),
+    purchases:   Math.round((_ps.purchases||0)*prevFactor),
+    impressions: Math.round((_ps.impressions||0)*prevFactor),
+    clicks:      Math.round((_ps.clicks||0)*prevFactor),
+    // roas_pct, avg_*, active_ads 는 비율/카운트 → 환산 안함
+  });
+  const prev_label = prevW
+    ? `${prevW.label} · 7일→${elapsedDays}일 환산`
+    : '전주';
 
   // ── 리딩 소재 뱃지 계산 (meta_sync.py calc_leader_badges 동일) ──
   function rtTop7Keys(data){
@@ -2526,7 +2544,7 @@ async function buildRtWeekJson(){
         avg_purchases: avgPur, tc_avg_ctr: avgCtr,
       }
     },
-    prev_summary,
+    prev_summary, prev_label,
     pie: {groups: Object.entries(pg).map(([name,v])=>({name,...v}))},
     trends: {spend_up:[],rev_up:[],cpc_eff_up:[],conv_dn:[],cpc_eff_dn:[]},
     winning: rows.filter(r=>r.win_type==='전환'&&(r.win_score||0)>=3)
