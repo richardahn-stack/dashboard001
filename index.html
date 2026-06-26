@@ -1283,6 +1283,15 @@ function buildLeaderSection(d){
         <span class="sec-sub">해당 주차 신규 투입 · 같은 날 투입된 연속 소재 그룹 · ${groups.length}개 시리즈</span>
       </div>`;
 
+    // 투입일 = 주차 기준일(ref_date) - age(N일차), 타임존 무관 계산
+    function abLaunchDate(age){
+      if(!d.ref_date || age==null) return '';
+      const [y,m,dd] = d.ref_date.split('-').map(Number);
+      const rd = new Date(Date.UTC(y, m-1, dd));
+      rd.setUTCDate(rd.getUTCDate() - age);
+      return (rd.getUTCMonth()+1)+'/'+rd.getUTCDate();
+    }
+
     groups.forEach(({sk, list, bkeys, totalSpend, age})=>{
       // 전환 목적 대표 소재 (bkey별 spend 최고)
       const byBkey = {};
@@ -1301,7 +1310,7 @@ function buildLeaderSection(d){
       html += `<div class="ab-group">
         <div class="ab-group-hd">
           <span class="ab-series-name">${sk}</span>
-          <span class="ab-meta">${bkeys.length}개 변형 · ${age}일차 · 총 ${Math.round(totalSpend/10000)}만원</span>
+          <span class="ab-meta">${bkeys.length}개 변형 · 투입일 ${abLaunchDate(age)} · ${age}일차 · 총 ${Math.round(totalSpend/10000)}만원</span>
         </div>
         <div class="ab-cards">`;
 
@@ -2035,8 +2044,16 @@ function renderAbModal(){
   const {sk, list, bkeys, totalSpend, age} = _abGroup;
 
   document.getElementById('abMTitle').textContent = '🧪 ' + sk;
+  const _abRef = (cache[curWeekId] && cache[curWeekId].ref_date) || null;
+  const _abLaunch = (()=>{
+    if(!_abRef || age==null) return '';
+    const [y,m,dd] = _abRef.split('-').map(Number);
+    const rd = new Date(Date.UTC(y, m-1, dd));
+    rd.setUTCDate(rd.getUTCDate() - age);
+    return (rd.getUTCMonth()+1)+'/'+rd.getUTCDate();
+  })();
   document.getElementById('abMSub').textContent =
-    `${bkeys.length}개 변형 · ${age}일차 · 총 ${Math.round(totalSpend/10000)}만원`;
+    `${bkeys.length}개 변형 · 투입일 ${_abLaunch} · ${age}일차 · 총 ${Math.round(totalSpend/10000)}만원`;
 
   // 정렬 탭 (최초 1회만 렌더)
   const tabsEl = document.getElementById('abSortTabs');
@@ -2165,8 +2182,9 @@ function renderAbGrid(){
 const RT_ACCOUNT  = 'act_863491278417905';
 const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
+const RT_CACHE_VER = 3; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2535,7 +2553,7 @@ async function loadRealtimeWeek(force=false){
   if(!force){
     try{
       const cached = JSON.parse(localStorage.getItem(RT_CACHE_KEY)||'null');
-      if(cached && Date.now()-cached.ts < RT_TTL){
+      if(cached && cached.ver === RT_CACHE_VER && Date.now()-cached.ts < RT_TTL){
         applyRtWeek(cached.weekId, cached.json, cached.label);
         scheduleRtRefresh(cached.ts + RT_TTL - Date.now());
         return;
@@ -2545,7 +2563,7 @@ async function loadRealtimeWeek(force=false){
 
   try{
     const {json, weekId, label} = await buildRtWeekJson();
-    localStorage.setItem(RT_CACHE_KEY, JSON.stringify({json, weekId, label, ts: Date.now()}));
+    localStorage.setItem(RT_CACHE_KEY, JSON.stringify({json, weekId, label, ts: Date.now(), ver: RT_CACHE_VER}));
     applyRtWeek(weekId, json, label);
     scheduleRtRefresh(RT_TTL);
   }catch(e){
