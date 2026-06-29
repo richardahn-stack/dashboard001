@@ -4,7 +4,7 @@
 """
 
 import requests, json, re, os, sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 # ── 설정 ──────────────────────────────────────────
@@ -570,7 +570,11 @@ def main():
         sys.exit(1)
 
     # 수집할 주차 설정 (W19부터 현재까지)
-    today = datetime.today()
+    # ⚠️ GitHub Actions 서버는 UTC라 datetime.today()는 한국시간보다 최대 9시간 느림.
+    #    그러면 한국 월요일 오전인데 서버는 아직 일요일 → 막 끝난 주차가 누락됨.
+    #    한국시간(KST, UTC+9) 기준 날짜로 계산해야 주차 경계가 맞음.
+    KST = timezone(timedelta(hours=9))
+    today = datetime.now(KST).replace(tzinfo=None)
     days_since_sunday = (today.weekday() + 1) % 7
     last_sunday = today - timedelta(days=days_since_sunday)
 
