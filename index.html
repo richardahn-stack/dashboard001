@@ -781,7 +781,7 @@ var _salesTips = {};
 function _showSalesTip(key){
   if(!_salesTips[key]) return;
   _showGTT(_salesTips[key]);
-  if(_gtt){ _gtt.style.minWidth='0'; _gtt.style.maxWidth='104px'; _gtt.style.padding='6px 8px'; }
+  if(_gtt){ _gtt.style.minWidth='0'; _gtt.style.width='104px'; _gtt.style.whiteSpace='normal'; _gtt.style.padding='6px 8px'; }
 }
 
 function buildSalesSection(){
@@ -849,14 +849,14 @@ function buildSalesSection(){
       } else {
         delta = '<span style="color:var(--text3)">–</span>';
       }
-      rows.push(`<tr>
-        <td style="padding:1px 5px 1px 0;color:var(--text3)">${wlab}</td>
-        <td style="padding:1px 5px 1px 0;text-align:right;font-weight:700">${q}</td>
-        <td style="padding:1px 0;text-align:right">${delta}</td></tr>`);
+      rows.push(`<div style="display:flex;justify-content:space-between;gap:6px;padding:1px 0">
+        <span style="color:var(--text3)">${wlab}</span>
+        <span style="font-weight:700">${q}</span>
+        <span style="min-width:34px;text-align:right">${delta}</span></div>`);
     }
     _salesTips[key] = `<div style="font-size:10px;line-height:1.35">
-      <div style="font-weight:700;margin-bottom:3px;white-space:normal">${labelOf(line,color)}</div>
-      <table style="border-collapse:collapse;font-size:10px;white-space:nowrap">${rows.join('')}</table></div>`;
+      <div style="font-weight:700;margin-bottom:3px;word-break:keep-all">${labelOf(line,color)}</div>
+      ${rows.join('')}</div>`;
     return key;
   };
 
@@ -1576,7 +1576,8 @@ document.addEventListener('mousemove', function(e){
 function _showGTT(html){
   if(!_gtt) _gtt = document.getElementById('globalTT');
   if(!_gtt) return;
-  _gtt.style.minWidth='148px'; _gtt.style.maxWidth=''; _gtt.style.padding='10px 13px';
+  _gtt.style.minWidth='148px'; _gtt.style.maxWidth=''; _gtt.style.width='';
+  _gtt.style.whiteSpace=''; _gtt.style.padding='10px 13px';
   _gtt.innerHTML = html;
   _gtt.style.display = 'block';
 }
@@ -2322,7 +2323,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
