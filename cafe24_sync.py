@@ -25,37 +25,28 @@ KST          = timezone(timedelta(hours=9))
 
 # 주문에서 '주문일자'로 쓸 필드 후보 (앞에서부터 존재하는 것 사용)
 DATE_KEYS    = ["order_date", "payment_date", "ordered_date", "created_date"]
-# 주문항목(line item)에서 '결제금액(라인 합계)'으로 쓸 필드 후보
-LINE_AMOUNT_KEYS = ["actual_payment_amount", "payment_amount",
-                    "product_price_amount", "order_price_amount"]
+
+# 집계 대상 라인: 옵션명에 '오딧'이 있는 항목만, 아래 규칙으로 5개 라인 분류.
+#  - '플랩'이 있으면 인치와 무관하게 '플랩'
+#  - 없으면 인치(29/26/24/20)로 분류
+# (상품번호는 프로모션마다 바뀌므로 옵션명으로 판별)
+LINE_TRIGGER = "오딧"                       # 이 단어가 있어야 집계 대상
+INCH_LINES   = ["29인치", "26인치", "24인치", "20인치"]
 
 # 색상 추출용 키워드 사전 (긴 단어 우선 매칭). 필요 시 자유롭게 추가하세요.
 COLOR_KEYWORDS = [
-    "다크그레이", "라이트그레이", "차콜그레이", "펄스레드", "와인레드",
-    "네이비", "베이지", "브라운", "카키", "블랙", "화이트", "그레이",
-    "핑크", "레드", "블루", "그린", "옐로우", "퍼플", "아이보리",
-    "크림", "라벤더", "민트", "코랄", "오렌지", "실버", "골드",
+    "화이트", "실버", "다크그레이", "블랙",
+    "솔티블루", "펄스레드", "아이시핑크", "웻그린",
 ]
 COLOR_KEYWORDS.sort(key=len, reverse=True)  # '다크그레이'가 '그레이'보다 먼저 매칭되도록
 
+# 리포트 표시 순서 (판매 0이어도 이 순서/구성으로 항상 노출)
+ALL_LINES  = ["플랩", "29인치", "26인치", "24인치", "20인치"]
+ALL_COLORS = ["화이트", "실버", "다크그레이", "블랙",
+              "솔티블루", "펄스레드", "아이시핑크", "웻그린"]
+
 
 # ────────────────────────── 유틸 ──────────────────────────
-def to_amount(val):
-    """숫자/문자/딕셔너리에서 금액을 float으로 안전 변환."""
-    if isinstance(val, bool) or val is None:
-        return 0.0
-    if isinstance(val, (int, float)):
-        return float(val)
-    if isinstance(val, str):
-        try:
-            return float(val.replace(",", "").strip() or 0)
-        except ValueError:
-            return 0.0
-    if isinstance(val, dict):
-        for k in LINE_AMOUNT_KEYS + ["amount", "price"]:
-            if k in val:
-                return to_amount(val[k])
-    return 0.0
 
 
 def to_int(val):
@@ -115,23 +106,20 @@ def option_string(item):
     return ""
 
 
+def _nospace(s):
+    """공백 제거 후 비교용 문자열 (예: '아이시 핑크' → '아이시핑크')."""
+    return re.sub(r"\s+", "", s or "")
+
+
 def extract_color(opt_str):
-    """옵션 문자열에서 색상 키워드를 추출 (없으면 원본 옵션 문자열 유지)."""
-    if not opt_str:
+    """옵션 문자열에서 지정 색상 키워드를 추출 (공백 무시, 없으면 '미상')."""
+    o = _nospace(opt_str)
+    if not o:
         return "미상"
     for kw in COLOR_KEYWORDS:
-        if kw in opt_str:
+        if _nospace(kw) in o:      # '아이시 핑크' == '아이시핑크'
             return kw
-    return opt_str  # 사전에 없으면 원본 유지 → 로그 보고 키워드 추가
-
-
-def line_revenue(item, qty):
-    """항목 결제금액(라인 합계). 명시 필드가 없으면 단가×수량으로 추정."""
-    amt = pick(item, LINE_AMOUNT_KEYS)
-    if amt is not None:
-        return to_amount(amt)
-    unit = to_amount(item.get("product_price")) + to_amount(item.get("option_price"))
-    return unit * qty
+    return "미상"  # 8개 색상에 없으면 미상 (로그에서 확인 후 필요시 추가)
 
 
 # ────────────────────────── 주차 ──────────────────────────
@@ -177,32 +165,42 @@ def log_field_sample(orders):
     items = get_items(o)
     if items:
         it = items[0]
-        print("항목(item) 키:", sorted(it.keys()))
-        print("  product_no  :", it.get("product_no"))
+        opt = option_string(it)
+        print("항목(item) 키 개수:", len(it.keys()))
         print("  product_name:", it.get("product_name"))
-        print("  variant_code:", it.get("variant_code"))
-        print("  옵션 문자열 :", option_string(it), "→ 색상:", extract_color(option_string(it)))
+        print("  옵션 문자열 :", opt)
+        print("  → 라인 매칭 :", matched_line(opt), "| 색상:", extract_color(opt))
         print("  quantity    :", it.get("quantity"),
               "| claim_quantity:", it.get("claim_quantity"))
-        print("  라인금액필드:",
-              next((k for k in LINE_AMOUNT_KEYS if it.get(k) is not None), "❌ 없음 → 단가×수량 추정"),
-              "→", line_revenue(it, to_int(it.get("quantity"))))
     else:
         print("⚠️ items 가 비어있습니다. get_orders 의 embed=items 설정을 확인하세요.")
     print("──────────────────────────────────\n")
 
 
 # ────────────────────────── 집계 ──────────────────────────
+def matched_line(opt_str):
+    """옵션 문자열을 5개 라인 중 하나로 분류 (공백 무시).
+    '오딧'이 없으면 None. '플랩' 있으면 무조건 '플랩', 없으면 인치로 분류."""
+    o = _nospace(opt_str)
+    if _nospace(LINE_TRIGGER) not in o:
+        return None
+    if "플랩" in o:
+        return "플랩"
+    for inch in INCH_LINES:
+        if _nospace(inch) in o:      # '20인치'
+            return inch
+    return "기타"                    # 오딧이지만 인치/플랩 미표기 → 확인용
+
+
 def aggregate(orders, weeks):
-    """주문 → (주차×제품×색상) 및 (일자×제품×색상) 집계."""
+    """주문 → (주차×라인×색상) 및 (일자×라인×색상) 판매수량 집계.
+    라인 = 옵션명 키워드(오딧 등). product_no는 프로모션마다 바뀌므로 라인으로 묶는다."""
     week_ids = {w["id"] for w in weeks}
 
-    # (week_id, product_no, color) → 집계
-    wk = defaultdict(lambda: {"qty": 0, "cancel_qty": 0, "revenue": 0.0})
-    # (date, product_no, color) → 집계
-    dl = defaultdict(lambda: {"qty": 0, "cancel_qty": 0, "revenue": 0.0})
-    pname = {}                                   # product_no → 이름
-    pcolors = defaultdict(set)                   # product_no → 색상 집합
+    wk = defaultdict(lambda: {"qty": 0, "cancel_qty": 0})   # (week_id, line, color)
+    dl = defaultdict(lambda: {"qty": 0, "cancel_qty": 0})   # (date, line, color)
+    color_unknown = defaultdict(int)                        # 미상 색상 옵션 샘플 카운트
+    etc_line      = defaultdict(int)                        # '기타' 라인 옵션 샘플
     skipped = 0
 
     for od in orders:
@@ -212,74 +210,42 @@ def aggregate(orders, weeks):
             continue
         wid = date_to_week_id(date_str, weeks)   # None이면 완료 주차 밖(이번 주 등)
         for it in get_items(od):
-            pno = it.get("product_no") or it.get("product_code")
-            if pno is None:
-                skipped += 1
+            opt_str = option_string(it)
+            line = matched_line(opt_str)
+            if not line:                          # '오딧' 없으면 제외
                 continue
-            pno = str(pno)
             qty = to_int(it.get("quantity"))
             if qty <= 0:
                 continue
             cancel = to_int(it.get("claim_quantity"))
-            rev = line_revenue(it, qty)
-            color = extract_color(option_string(it))
+            color = extract_color(opt_str)
+            if color == "미상":
+                color_unknown[opt_str] += 1
+            if line == "기타":
+                etc_line[opt_str] += 1
 
-            pname.setdefault(pno, it.get("product_name") or f"상품{pno}")
-            pcolors[pno].add(color)
-
-            dkey = (date_str, pno, color)
-            dl[dkey]["qty"] += qty
-            dl[dkey]["cancel_qty"] += cancel
-            dl[dkey]["revenue"] += rev
-
+            dl[(date_str, line, color)]["qty"] += qty
+            dl[(date_str, line, color)]["cancel_qty"] += cancel
             if wid in week_ids:
-                wkey = (wid, pno, color)
-                wk[wkey]["qty"] += qty
-                wk[wkey]["cancel_qty"] += cancel
-                wk[wkey]["revenue"] += rev
+                wk[(wid, line, color)]["qty"] += qty
+                wk[(wid, line, color)]["cancel_qty"] += cancel
 
-    # ── by_week_product 구성: {week_id: [{product, ..., by_color:[...]}]} ──
-    # 중간 구조: week_id → product_no → {합계, colors:{color:{...}}}
-    tmp = defaultdict(lambda: defaultdict(
-        lambda: {"qty": 0, "cancel_qty": 0, "revenue": 0.0, "colors": defaultdict(
-            lambda: {"qty": 0, "cancel_qty": 0, "revenue": 0.0})}))
-    for (wid, pno, color), v in wk.items():
-        p = tmp[wid][pno]
-        p["qty"] += v["qty"]; p["cancel_qty"] += v["cancel_qty"]; p["revenue"] += v["revenue"]
-        c = p["colors"][color]
-        c["qty"] += v["qty"]; c["cancel_qty"] += v["cancel_qty"]; c["revenue"] += v["revenue"]
+    # ── matrix: {week_id: {line: {color: qty}}} — 5개 라인 × 8개 색상 항상 0 채움 ──
+    matrix = {}
+    for w in weeks:
+        matrix[w["id"]] = {ln: {c: 0 for c in ALL_COLORS} for ln in ALL_LINES}
+    for (wid, line, color), v in wk.items():
+        if wid in matrix and line in matrix[wid] and color in matrix[wid][line]:
+            matrix[wid][line][color] += v["qty"]        # 판매 수량(gross)
+        # (기타 라인/미상 색상은 매트릭스에서 제외 — 로그로만 확인)
 
-    by_week_product = {}
-    for wid, prods in tmp.items():
-        rows = []
-        for pno, p in prods.items():
-            by_color = [{
-                "color": color, "qty": c["qty"], "net_qty": c["qty"] - c["cancel_qty"],
-                "cancel_qty": c["cancel_qty"], "revenue": round(c["revenue"]),
-            } for color, c in sorted(p["colors"].items(), key=lambda x: -x[1]["qty"])]
-            rows.append({
-                "product_no": pno, "product_name": pname.get(pno, ""),
-                "qty": p["qty"], "net_qty": p["qty"] - p["cancel_qty"],
-                "cancel_qty": p["cancel_qty"], "revenue": round(p["revenue"]),
-                "by_color": by_color,
-            })
-        rows.sort(key=lambda r: -r["qty"])
-        by_week_product[wid] = rows
+    # ── daily_line: 일자별 추이/상관용 (일자×라인×색상) ──
+    daily_line = [{
+        "date": d, "line": line, "color": color,
+        "qty": v["qty"], "net_qty": v["qty"] - v["cancel_qty"],
+    } for (d, line, color), v in sorted(dl.items())]
 
-    # ── daily_product: 상관분석/일자 추이용 (일자×제품×색상) ──
-    daily_product = [{
-        "date": d, "product_no": pno, "product_name": pname.get(pno, ""),
-        "color": color, "qty": v["qty"], "net_qty": v["qty"] - v["cancel_qty"],
-        "cancel_qty": v["cancel_qty"], "revenue": round(v["revenue"]),
-    } for (d, pno, color), v in sorted(dl.items())]
-
-    # ── products 카탈로그: 오딧/플랩 → product_no 매핑을 짤 때 참고용 ──
-    products = [{
-        "product_no": pno, "product_name": pname[pno],
-        "colors": sorted(pcolors[pno]),
-    } for pno in sorted(pname, key=lambda x: pname[x])]
-
-    return by_week_product, daily_product, products, skipped
+    return matrix, daily_line, color_unknown, etc_line, skipped
 
 
 # ────────────────────────── 메인 ──────────────────────────
@@ -302,28 +268,42 @@ def main():
 
     log_field_sample(orders)   # 실제 필드명 점검 (로그 전용)
 
-    by_week_product, daily_product, products, skipped = aggregate(orders, weeks)
+    matrix, daily_line, color_unknown, etc_line, skipped = aggregate(orders, weeks)
     if skipped:
-        print(f"⚠️ 날짜/상품번호 누락으로 건너뛴 항목: {skipped}건 (필드명 점검 필요할 수 있음)")
+        print(f"⚠️ 주문일자 누락으로 건너뛴 주문: {skipped}건")
 
     out = {
         "generated_at": datetime.now(KST).isoformat(),
         "weeks": weeks,
-        "products": products,
-        "by_week_product": by_week_product,
-        "daily_product": daily_product,
+        "lines": ALL_LINES,
+        "colors": ALL_COLORS,
+        "matrix": matrix,          # {week_id: {line: {color: qty}}} (5×8, 0 채움)
+        "daily_line": daily_line,  # 일자별 추이/상관용
     }
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     with open(SALES_FILE, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
 
-    tot = sum(r["qty"] for rows in by_week_product.values() for r in rows)
-    print(f"\n💾 {SALES_FILE} 저장 완료")
-    print(f"   제품 {len(products)}종 | 완료 주차 판매수량 합계 {tot:,}개")
-    for w in weeks[:4]:
-        rows = by_week_product.get(w["id"], [])
-        wsum = sum(r["qty"] for rows2 in [rows] for r in rows2)
-        print(f"   {w['label']:>10} ({w['id']}): 제품 {len(rows)}종 · {wsum:,}개")
+    print(f"\n💾 {SALES_FILE} 저장 완료  (라인 {len(ALL_LINES)} × 색상 {len(ALL_COLORS)})")
+    for w in weeks[:5]:
+        m = matrix.get(w["id"], {})
+        line_tot = {ln: sum(m.get(ln, {}).values()) for ln in ALL_LINES}
+        wtot = sum(line_tot.values())
+        parts = " ".join(f"{ln}:{line_tot[ln]}" for ln in ALL_LINES)
+        print(f"   {w['label']:>10} ({w['id']}) 합계 {wtot:,}개  |  {parts}")
+
+    # 색상 '미상'으로 빠진 옵션 샘플 (색상 사전 보강 참고용)
+    if color_unknown:
+        top = sorted(color_unknown.items(), key=lambda x: -x[1])[:6]
+        print("\n⚠️ 색상 '미상' 옵션 샘플 (COLOR_KEYWORDS 보강 참고):")
+        for opt, cnt in top:
+            print(f"     ({cnt}건) {opt}")
+    # 라인 '기타'(오딧이지만 인치/플랩 미표기) 샘플
+    if etc_line:
+        top = sorted(etc_line.items(), key=lambda x: -x[1])[:6]
+        print("\n⚠️ 라인 '기타' 옵션 샘플 (인치/플랩 판별 안 됨 → 규칙 확인):")
+        for opt, cnt in top:
+            print(f"     ({cnt}건) {opt}")
 
 
 if __name__ == "__main__":
