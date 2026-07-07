@@ -776,8 +776,12 @@ function getWinData(d,purpose,sort){
   return[...all.filter(c=>(c.objective||c.purpose)===purpose)].sort(sfn(sort)).slice(0,10);
 }
 
-// ── 카페24 실판매 매트릭스 (오딧 5개 라인 × 8개 색상, 전주 대비) ──
+// ── 카페24 실판매 매트릭스 (오딧 5개 라인 × 8개 색상, 전주 대비 + 4주 트렌드 툴팁) ──
+var _salesTips = {};
+function _showSalesTip(key){ if(_salesTips[key]) _showGTT(_salesTips[key]); }
+
 function buildSalesSection(){
+  _salesTips = {};
   if(!salesData || !salesData.matrix) return '';
   const wid = curWeekId;
   const lines  = salesData.lines  || [];
@@ -787,7 +791,7 @@ function buildSalesSection(){
   const hdr = `<div class="sec"><div class="sec-hdr">
     <div class="sec-icon" style="background:#E8F0FE"><i class="ti ti-shopping-cart" style="font-size:15px;color:#1A56B0"></i></div>
     <div><span class="sec-title">오딧 실판매 (카페24)</span>
-    <div class="sec-sub">라인 × 색상 판매 수량 · 전주 대비</div></div></div>`;
+    <div class="sec-sub">라인 × 색상 판매 수량 · 전주 대비 · 숫자에 마우스를 올리면 최근 4주 트렌드</div></div></div>`;
 
   if(!cur){
     const msg = wid==='RT-LIVE'
@@ -796,10 +800,52 @@ function buildSalesSection(){
     return hdr + `<div style="color:var(--text3);font-size:12px;padding:.5rem">${msg}</div></div>`;
   }
 
-  // 전주(더 과거) 주차 찾기
+  // 현재 주차 기준 최근 4주 (완료 주차만, 오래된→최신 순)
   const idx = weeks.findIndex(w=>w.id===wid);
-  const prevW = idx>=0 ? weeks.slice(idx+1).find(w=>w.id!=='RT-LIVE') : null;
-  const prev = prevW ? salesData.matrix[prevW.id] : null;
+  const trendWeeks = [];
+  for(let i=idx; i<weeks.length && trendWeeks.length<4; i++){
+    const w = weeks[i];
+    if(w.id!=='RT-LIVE' && salesData.matrix[w.id]) trendWeeks.push(w);
+  }
+  trendWeeks.reverse();                 // 오래된 → 최신
+  const prevW = trendWeeks.length>=2 ? trendWeeks[trendWeeks.length-2] : null;
+  const prev  = prevW ? salesData.matrix[prevW.id] : null;
+
+  // 값 추출기: (line|'__col'|'__all', color|'__row'|'__all')
+  const valAt = (m, line, color)=>{
+    if(!m) return 0;
+    if(line==='__all' && color==='__all')
+      return lines.reduce((s,ln)=>s+colors.reduce((a,c)=>a+(m[ln]?.[c]||0),0),0);
+    if(line==='__all')   return lines.reduce((s,ln)=>s+(m[ln]?.[color]||0),0);
+    if(color==='__row')  return colors.reduce((s,c)=>s+(m[line]?.[c]||0),0);
+    return m[line]?.[color]||0;
+  };
+  const labelOf = (line,color)=>{
+    const l = line==='__all' ? '전체' : line;
+    const c = color==='__all' ? '전체' : color==='__row' ? '합계' : color;
+    return `${l} · ${c}`;
+  };
+
+  // 셀별 4주 트렌드 툴팁 HTML 생성 + 키 반환
+  const mkTip = (line, color)=>{
+    const key = `${line}|${color}`;
+    const rows = trendWeeks.map((w,i)=>{
+      const q = valAt(salesData.matrix[w.id], line, color);
+      let delta = '';
+      if(i>0){
+        const p = valAt(salesData.matrix[trendWeeks[i-1].id], line, color);
+        if(p===0) delta = q>0 ? '<span style="color:#1D9E75">NEW</span>' : '';
+        else { const d=(q-p)/p*100, up=d>0; delta=`<span style="color:${up?'#1D9E75':'#E5484D'}">${up?'▲':'▼'}${Math.abs(Math.round(d))}%</span>`; }
+      }
+      return `<tr><td style="padding:1px 8px 1px 0;color:var(--text3)">${w.label}</td>
+        <td style="padding:1px 8px 1px 0;text-align:right;font-weight:600">${q}</td>
+        <td style="padding:1px 0;text-align:right">${delta}</td></tr>`;
+    }).join('');
+    _salesTips[key] = `<div style="font-size:11px"><div style="font-weight:700;margin-bottom:3px">${labelOf(line,color)}</div>
+      <table style="border-collapse:collapse;font-size:11px">${rows}</table>
+      <div style="color:var(--text3);margin-top:3px;font-size:9px">최근 4주 판매 수량 · 전주 대비</div></div>`;
+    return key;
+  };
 
   const dChip = (c, p)=>{
     if(p==null) return '';
@@ -808,27 +854,29 @@ function buildSalesSection(){
     const d=(c-p)/p*100, up=d>0;
     return `<span style="color:${up?'#1D9E75':'#E5484D'};font-size:9px;font-weight:600">${up?'▲':'▼'}${Math.abs(d).toFixed(0)}%</span>`;
   };
-  const cell = (c, p)=>`<td style="text-align:center;padding:5px 6px;border-bottom:1px solid var(--bd)">
-    <div style="font-weight:${c>0?'600':'400'};color:${c>0?'var(--text1)':'var(--text3)'}">${c}</div>${dChip(c,p)}</td>`;
+  const cell = (c, p, line, color, bold)=>{
+    const key = mkTip(line, color);
+    return `<td style="text-align:center;padding:5px 6px;border-bottom:1px solid var(--bd)${bold?';background:var(--bg2)':''}">
+      <div onmouseenter="_showSalesTip('${key}')" onmouseleave="_hideGTT()" style="cursor:default;display:inline-block;font-weight:${(c>0||bold)?'700':'400'};color:${c>0?'var(--text1)':'var(--text3)'}">${c}</div>${dChip(c,p)}</td>`;
+  };
 
-  // 색상 컬럼 합계(전체 라인)
-  const colTot = c=>lines.reduce((s,ln)=>s+(cur[ln]?.[c]||0),0);
+  const colTot  = c=>lines.reduce((s,ln)=>s+(cur[ln]?.[c]||0),0);
   const colTotP = c=>prev?lines.reduce((s,ln)=>s+(prev[ln]?.[c]||0),0):null;
 
   let body = '';
   lines.forEach(ln=>{
-    const rowTot = colors.reduce((s,c)=>s+(cur[ln]?.[c]||0),0);
-    const rowTotP = prev?colors.reduce((s,c)=>s+(prev[ln]?.[c]||0),0):null;
+    const rowT  = colors.reduce((s,c)=>s+(cur[ln]?.[c]||0),0);
+    const rowTP = prev?colors.reduce((s,c)=>s+(prev[ln]?.[c]||0),0):null;
     body += `<tr><td style="padding:5px 8px;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--bd)">${ln}</td>`
-      + colors.map(c=>cell(cur[ln]?.[c]||0, prev?(prev[ln]?.[c]??null):null)).join('')
-      + `<td style="text-align:center;padding:5px 8px;font-weight:700;background:var(--bg2);border-bottom:1px solid var(--bd)"><div>${rowTot}</div>${dChip(rowTot,rowTotP)}</td></tr>`;
+      + colors.map(c=>cell(cur[ln]?.[c]||0, prev?(prev[ln]?.[c]??null):null, ln, c, false)).join('')
+      + cell(rowT, rowTP, ln, '__row', true) + `</tr>`;
   });
   // 합계 행
-  const grand = lines.reduce((s,ln)=>s+colors.reduce((a,c)=>a+(cur[ln]?.[c]||0),0),0);
-  const grandP = prev?lines.reduce((s,ln)=>s+colors.reduce((a,c)=>a+(prev[ln]?.[c]||0),0),0):null;
+  const grand  = valAt(cur,'__all','__all');
+  const grandP = prev? valAt(prev,'__all','__all') : null;
   body += `<tr style="background:var(--bg2)"><td style="padding:5px 8px;font-weight:700">합계</td>`
-    + colors.map(c=>`<td style="text-align:center;padding:5px 6px;font-weight:700"><div>${colTot(c)}</div>${dChip(colTot(c),colTotP(c))}</td>`).join('')
-    + `<td style="text-align:center;padding:5px 8px;font-weight:800"><div>${grand}</div>${dChip(grand,grandP)}</td></tr>`;
+    + colors.map(c=>cell(colTot(c), colTotP(c), '__all', c, true)).join('')
+    + cell(grand, grandP, '__all', '__all', true) + `</tr>`;
 
   const head = `<tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3)">라인＼색상</th>`
     + colors.map(c=>`<th style="padding:6px 6px;font-size:11px;color:var(--text3);white-space:nowrap">${c}</th>`).join('')
@@ -1483,7 +1531,7 @@ function buildLeaderSection(d){
 
   const abH = buildAbSection(d);
   const leaderH = buildLeaderSection(d);
-  document.getElementById('mainContent').innerHTML=kpiH+pieH+leaderH+winH+trendH+d7H+abH+buildSalesSection()+tblH;
+  document.getElementById('mainContent').innerHTML=kpiH+buildSalesSection()+pieH+leaderH+winH+trendH+d7H+abH+tblH;
   d7Sort='spend'; curD7Data=d; renderD7Section(d);
   // 필터 버튼 on 상태 초기화
   document.querySelectorAll('.d7fbtn').forEach(b=>{
@@ -2258,7 +2306,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
