@@ -778,7 +778,11 @@ function getWinData(d,purpose,sort){
 
 // ── 카페24 실판매 매트릭스 (오딧 5개 라인 × 8개 색상, 전주 대비 + 4주 트렌드 툴팁) ──
 var _salesTips = {};
-function _showSalesTip(key){ if(_salesTips[key]) _showGTT(_salesTips[key]); }
+function _showSalesTip(key){
+  if(!_salesTips[key]) return;
+  _showGTT(_salesTips[key]);
+  if(_gtt){ _gtt.style.minWidth='0'; _gtt.style.maxWidth='104px'; _gtt.style.padding='6px 8px'; }
+}
 
 function buildSalesSection(){
   _salesTips = {};
@@ -846,14 +850,13 @@ function buildSalesSection(){
         delta = '<span style="color:var(--text3)">–</span>';
       }
       rows.push(`<tr>
-        <td style="padding:2px 10px 2px 0;color:var(--text3)">${wlab}</td>
-        <td style="padding:2px 10px 2px 0;text-align:right;font-weight:700">${q}</td>
-        <td style="padding:2px 0;text-align:right">${delta}</td></tr>`);
+        <td style="padding:1px 5px 1px 0;color:var(--text3)">${wlab}</td>
+        <td style="padding:1px 5px 1px 0;text-align:right;font-weight:700">${q}</td>
+        <td style="padding:1px 0;text-align:right">${delta}</td></tr>`);
     }
-    _salesTips[key] = `<div style="font-size:11px">
-      <div style="font-weight:700;margin-bottom:4px">${labelOf(line,color)}</div>
-      <table style="border-collapse:collapse;font-size:11px">${rows.join('')}</table>
-      <div style="color:var(--text3);margin-top:4px;font-size:9px">W=이번 주 · 전주 대비</div></div>`;
+    _salesTips[key] = `<div style="font-size:10px;line-height:1.35">
+      <div style="font-weight:700;margin-bottom:3px;white-space:normal">${labelOf(line,color)}</div>
+      <table style="border-collapse:collapse;font-size:10px;white-space:nowrap">${rows.join('')}</table></div>`;
     return key;
   };
 
@@ -892,9 +895,11 @@ function buildSalesSection(){
     + colors.map(c=>`<th style="padding:6px 6px;font-size:11px;color:var(--text3);white-space:nowrap">${c}</th>`).join('')
     + `<th style="padding:6px 8px;font-size:11px;color:var(--text3)">합계</th></tr>`;
 
-  const note = prevW
-    ? `<div style="font-size:10px;color:var(--text3);margin-top:6px">전주(${prevW.label}) 대비 · 판매 수량 기준</div>`
-    : `<div style="font-size:10px;color:var(--text3);margin-top:6px">전주 데이터 없음 · 판매 수량만 표시</div>`;
+  const note = wid==='RT-LIVE'
+    ? `<div style="font-size:10px;color:#A32D2D;margin-top:6px">🔴 이번 주 진행 중 · 전주(${prevW?prevW.label:'-'})는 7일 완료분이라 아직 낮게 보일 수 있어요</div>`
+    : (prevW
+      ? `<div style="font-size:10px;color:var(--text3);margin-top:6px">전주(${prevW.label}) 대비 · 판매 수량 기준</div>`
+      : `<div style="font-size:10px;color:var(--text3);margin-top:6px">전주 데이터 없음 · 판매 수량만 표시</div>`);
 
   return hdr
     + `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;min-width:100%">`
@@ -1571,6 +1576,7 @@ document.addEventListener('mousemove', function(e){
 function _showGTT(html){
   if(!_gtt) _gtt = document.getElementById('globalTT');
   if(!_gtt) return;
+  _gtt.style.minWidth='148px'; _gtt.style.maxWidth=''; _gtt.style.padding='10px 13px';
   _gtt.innerHTML = html;
   _gtt.style.display = 'block';
 }
@@ -2316,7 +2322,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
