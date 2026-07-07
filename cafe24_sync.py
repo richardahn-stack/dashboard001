@@ -123,23 +123,34 @@ def extract_color(opt_str):
 
 
 # ────────────────────────── 주차 ──────────────────────────
-def build_weeks(today):
-    """meta_sync.py 와 동일한 주차 목록 (최신→과거)."""
+def build_weeks(today, include_live=True):
+    """주차 목록 (최신→과거). include_live면 이번 주(진행 중)를 RT-LIVE로 맨 앞에 추가.
+    완료 주차는 meta_sync.py 와 동일 규격(월~일, id=2026-W25)."""
+    completed = []
     days_since_sunday = (today.weekday() + 1) % 7
     last_sunday = today - timedelta(days=days_since_sunday)
-    weeks = []
     cur = last_sunday
     while cur >= START_SUNDAY:
         start = cur - timedelta(days=6)
         if cur.date() < today.date():          # 완료된 주차만
-            weeks.append({
+            completed.append({
                 "id":    cur.strftime("%Y-W%U"),
                 "label": f"{cur.month}/{start.day}~{cur.day}",
                 "start": start.strftime("%Y-%m-%d"),
                 "end":   cur.strftime("%Y-%m-%d"),
             })
         cur -= timedelta(weeks=1)
-    return weeks
+
+    if include_live:
+        live_start = today - timedelta(days=today.weekday())   # 이번 주 월요일
+        live = {
+            "id":    "RT-LIVE",                                 # 대시보드 실시간 탭과 동일 키
+            "label": f"{live_start.month}/{live_start.day}~{today.month}/{today.day}",
+            "start": live_start.strftime("%Y-%m-%d"),
+            "end":   today.strftime("%Y-%m-%d"),
+        }
+        return [live] + completed
+    return completed
 
 
 def date_to_week_id(date_str, weeks):
