@@ -578,14 +578,15 @@ def main():
     days_since_sunday = (today.weekday() + 1) % 7
     last_sunday = today - timedelta(days=days_since_sunday)
 
-    # 시작 기준: 2026-W19 (2026-05-10 일요일)
-    START_SUNDAY = datetime(2026, 5, 10)
+    # 시작 기준: 2025-04-06 (일요일) — 과거 주차 소급 생성 (4월까지 백필)
+    START_SUNDAY = datetime(2025, 4, 6)
 
     weeks = []
     cur = last_sunday
     while cur >= START_SUNDAY:
         start = cur - timedelta(days=6)
-        label = f"{cur.month}/{start.day}~{cur.day}"
+        label = (f"{start.month}/{start.day}~{cur.day}" if start.month==cur.month
+                 else f"{start.month}/{start.day}~{cur.month}/{cur.day}")
         # 완료된 주차만 포함 (end=일요일이 오늘보다 과거여야 함)
         # 즉 오늘이 주 중간이면 이번 주는 아직 미완료 → JSON 미생성
         if cur.date() < today.date():

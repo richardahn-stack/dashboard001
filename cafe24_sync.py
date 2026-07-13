@@ -32,6 +32,8 @@ DATE_KEYS    = ["order_date", "payment_date", "ordered_date", "created_date"]
 # (상품번호는 프로모션마다 바뀌므로 옵션명으로 판별)
 LINE_TRIGGER = "오딧"                       # 이 단어가 있어야 집계 대상
 INCH_LINES   = ["29인치", "26인치", "24인치", "20인치"]
+# 집계에서 제외할 부속품 (본품 캐리어가 아님). 공백 무시로 매칭.
+EXCLUDE_KEYWORDS = ["패커블", "커버"]
 
 # 색상 추출용 키워드 사전 (긴 단어 우선 매칭). 필요 시 자유롭게 추가하세요.
 COLOR_KEYWORDS = [
@@ -135,7 +137,8 @@ def build_weeks(today, include_live=True):
         if cur.date() < today.date():          # 완료된 주차만
             completed.append({
                 "id":    cur.strftime("%Y-W%U"),
-                "label": f"{cur.month}/{start.day}~{cur.day}",
+                "label": (f"{start.month}/{start.day}~{cur.day}" if start.month==cur.month
+                          else f"{start.month}/{start.day}~{cur.month}/{cur.day}"),
                 "start": start.strftime("%Y-%m-%d"),
                 "end":   cur.strftime("%Y-%m-%d"),
             })
@@ -191,9 +194,11 @@ def log_field_sample(orders):
 # ────────────────────────── 집계 ──────────────────────────
 def matched_line(opt_str):
     """옵션 문자열을 5개 라인 중 하나로 분류 (공백 무시).
-    '오딧'이 없으면 None. '플랩' 있으면 무조건 '플랩', 없으면 인치로 분류."""
+    '오딧'이 없으면 None. 패커블 커버 등 부속품은 제외. '플랩' 있으면 무조건 '플랩', 없으면 인치."""
     o = _nospace(opt_str)
     if _nospace(LINE_TRIGGER) not in o:
+        return None
+    if any(_nospace(kw) in o for kw in EXCLUDE_KEYWORDS):   # 패커블 커버 등 부속품 제외
         return None
     if "플랩" in o:
         return "플랩"
