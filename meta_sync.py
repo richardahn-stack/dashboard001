@@ -3,7 +3,7 @@
 사용법: python meta_sync.py
 """
 
-import requests, json, re, os, sys
+import requests, json, re, os, sys, glob, time
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
@@ -131,6 +131,39 @@ def paginate(path, params, token):
     return results
 
 
+def fetch_creative_thumb(ad_id, token):
+    """단일 광고의 최신 썸네일 URL 조회 (/{ad_id}/adcreatives).
+    메타는 호출할 때마다 새로 서명된 URL(새 oe=)을 돌려줌.
+    반환: (thumb_url, img_type, video_id)  — 소재 없거나 조회 실패 시 thumb_url=None"""
+    cr_list = api_get(
+        f"{ad_id}/adcreatives",
+        {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
+        token
+    )
+    cr_data = cr_list.get('data', [])
+    cr = cr_data[0] if cr_data else {}
+    video_id = cr.get('video_id')
+    if video_id:
+        img_type = 'video'
+        thumb_url = (
+            cr.get('object_story_spec', {}).get('video_data', {}).get('image_url')
+            or (cr.get('asset_feed_spec', {}).get('videos') or [{}])[0].get('thumbnail_url')
+            or cr.get('picture')
+            or cr.get('thumbnail_url')
+        )
+    else:
+        img_type = 'img'
+        thumb_url = (cr.get('image_url')
+                     or cr.get('picture')
+                     or cr.get('object_story_spec', {}).get('link_data', {}).get('image_url')
+                     or cr.get('object_story_spec', {}).get('link_data', {}).get('picture'))
+        if not thumb_url:
+            imgs = cr.get('asset_feed_spec', {}).get('images', [])
+            if imgs:
+                thumb_url = imgs[0].get('url')
+    return thumb_url, img_type, video_id
+
+
 def fetch_week_data(token, date_start, date_end):
     """한 주차 광고 성과 + 소재 정보 수집"""
     print(f"  📡 {date_start} ~ {date_end} 데이터 수집 중...")
@@ -160,45 +193,11 @@ def fetch_week_data(token, date_start, date_end):
         if not ad_id:
             continue
         try:
-            # ad → adcreatives 직접 조회 (/{ad_id}/adcreatives 엔드포인트)
-            cr_list = api_get(
-                f"{ad_id}/adcreatives",
-                {'fields': 'thumbnail_url,image_url,video_id,object_story_spec,asset_feed_spec,picture'},
-                token
-            )
-            cr_data = cr_list.get('data', [])
-            cr = cr_data[0] if cr_data else {}
-            video_id = cr.get('video_id')
-            thumb_url = None
-            img_type  = None
-
-            if video_id:
-                img_type = 'video'
-                # thumbnail: adcreatives 응답에서 직접 수집 (별도 API 호출 없음)
-                # 우선순위: object_story_spec > asset_feed_spec > picture > thumbnail_url
-                thumb_url = (
-                    cr.get('object_story_spec', {}).get('video_data', {}).get('image_url')
-                    or (cr.get('asset_feed_spec', {}).get('videos') or [{}])[0].get('thumbnail_url')
-                    or cr.get('picture')
-                    or cr.get('thumbnail_url')
-                )
-                video_source = None  # mp4 직접재생 불가 (ads_read 권한 제한)
-            else:
-                img_type = 'img'
-                thumb_url = (cr.get('image_url')
-                             or cr.get('picture')
-                             or cr.get('object_story_spec', {}).get('link_data', {}).get('image_url')
-                             or cr.get('object_story_spec', {}).get('link_data', {}).get('picture'))
-                if not thumb_url:
-                    imgs = cr.get('asset_feed_spec', {}).get('images', [])
-                    if imgs:
-                        thumb_url = imgs[0].get('url')
-                video_source = None
-
+            thumb_url, img_type, video_id = fetch_creative_thumb(ad_id, token)
             creatives[ad_id] = {
                 'thumbnail_url': thumb_url,
                 'video_id':      video_id,
-                'video_source':  video_source,
+                'video_source':  None,  # mp4 직접재생 불가 (ads_read 권한 제한)
                 'type':          img_type,
             }
         except Exception as e:
@@ -538,6 +537,103 @@ def calc_leader_badges(current_keys, weeks_in_order, output_dir):
     return badges
 
 
+# ── 썸네일 링크 갱신 패스 (만료 임박분만 새 링크로 교체) ──────────────
+# 방침: 이미지 파일을 저장하지 않고 URL만 갱신 → 서버 용량 0.
+#   단, 소재가 삭제돼 메타가 URL을 안 주면 그 소재는 그대로 둠(포기).
+#   → 이 스크립트가 만료 창(짧게는 ~10일)보다 자주 실행돼야 링크가 안 죽음.
+#     (매일/매주 Actions면 충분)
+
+def _needs_refresh(url, margin_days=7):
+    """만료가 margin_days 이내로 임박했거나 이미 지난 scontent...&oe= URL이면 True.
+    www.facebook.com/ads/image/?d= 형태(만료 없음)나 우리 경로는 False."""
+    if not url or 'fbcdn.net' not in url or 'oe=' not in url:
+        return False
+    m = re.search(r'[?&]oe=([0-9A-Fa-f]+)', url)
+    if not m:
+        return False
+    try:
+        expiry = int(m.group(1), 16)          # oe = unix timestamp (16진수)
+    except ValueError:
+        return False
+    return expiry <= time.time() + margin_days * 86400
+
+
+def _iter_ad_entries(obj):
+    """JSON 구조 어디에 있든 광고 엔트리(dict with 'ad_id'&'img')를 모두 순회."""
+    if isinstance(obj, dict):
+        if 'ad_id' in obj and 'img' in obj:
+            yield obj
+        for v in obj.values():
+            yield from _iter_ad_entries(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _iter_ad_entries(v)
+
+
+def refresh_expiring_thumbs(token, output_dir, margin_days=7):
+    """과거 주차 JSON들을 훑어 만료 임박 썸네일 URL만 새 링크로 교체."""
+    print("\n" + "=" * 50)
+    print("  🔄 썸네일 링크 갱신 (만료 임박분)")
+    print("=" * 50)
+
+    files = [f for f in sorted(glob.glob(f"{output_dir}/*.json"))
+             if os.path.basename(f) not in ('weeks.json', 'sales.json')]
+
+    # 1) 만료 임박 엔트리 수집 (파일별 보관 + 대상 ad_id 집합)
+    file_entries = {}            # path -> (data, [엔트리들])
+    ad_ids_needed = set()
+    for path in files:
+        try:
+            with open(path, encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"  ⚠️  {os.path.basename(path)} 읽기 실패: {e}")
+            continue
+        need = [e for e in _iter_ad_entries(data)
+                if e.get('ad_id') and _needs_refresh(e.get('img'), margin_days)]
+        if need:
+            file_entries[path] = (data, need)
+            ad_ids_needed.update(e['ad_id'] for e in need)
+
+    if not ad_ids_needed:
+        print("  ✅ 만료 임박 썸네일 없음 — 갱신 불필요")
+        return
+
+    print(f"  대상 소재 {len(ad_ids_needed)}개 · 파일 {len(file_entries)}개")
+
+    # 2) ad_id별 새 URL 1회씩 조회 (캐시). 삭제/조회불가 소재는 None(=포기)
+    fresh, ok, dead = {}, 0, 0
+    for ad_id in ad_ids_needed:
+        try:
+            url, _t, _v = fetch_creative_thumb(ad_id, token)
+            fresh[ad_id] = url
+            if url:
+                ok += 1
+            else:
+                dead += 1
+        except Exception as e:
+            fresh[ad_id] = None
+            dead += 1
+            print(f"    ⚠️  갱신 실패(삭제/조회불가) [{ad_id}]: {e}")
+    print(f"  새 링크 확보 {ok}개 / 실패·포기 {dead}개")
+
+    # 3) 파일별로 img 덮어쓰기 후 저장 (실제 변경분 있을 때만)
+    updated = 0
+    for path, (data, entries) in file_entries.items():
+        changed = 0
+        for e in entries:
+            new = fresh.get(e['ad_id'])
+            if new:
+                e['img'] = new
+                changed += 1
+        if changed:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False)
+            updated += 1
+            print(f"    ♻️  {os.path.basename(path)}: {changed}개 URL 갱신")
+    print(f"  ✅ 갱신 완료: 파일 {updated}개 수정")
+
+
 def main():
     print("=" * 50)
     print("  메타 광고 대시보드 자동 동기화")
@@ -652,6 +748,13 @@ def main():
     with open(f"{OUTPUT_DIR}/weeks.json", 'w', encoding='utf-8') as f:
         json.dump(weeks_list, f, ensure_ascii=False)
     print(f"\n✅ weeks.json 저장 완료 ({len(weeks_list)}개 주차)")
+
+    # ── 만료 임박 썸네일 링크 갱신 (이미지 저장 없이 URL만 교체) ──
+    try:
+        refresh_expiring_thumbs(token, OUTPUT_DIR)
+    except Exception as e:
+        print(f"  ⚠️  썸네일 갱신 패스 오류(스킵): {e}")
+
     print(THUMB_PATCH_NOTE)
     print("\n🎉 동기화 완료! data/ 폴더를 GitHub에 push하세요.")
     print("   git add data/ && git commit -m 'Auto sync' && git push")
