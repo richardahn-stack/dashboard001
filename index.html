@@ -1034,9 +1034,12 @@ function renderAll(d){
 
   // 섹션4: 광고비 구성 (파이차트 + 신규 vs 기존 이중 막대 + 툴팁)
   const pyAds = d.all_ads||[];
-  const tc_ads  = pyAds.filter(function(r){return r.objective==='트래픽'||r.objective==='콘조';});
-  const ptr_ads = pyAds.filter(function(r){return r.mgr==='파트너스';});
-  const std_ads = pyAds.filter(function(r){return r.objective==='전환' && r.mgr!=='파트너스';});
+  // 프로모션: 소재명에 '썸머블루위크' 포함 (신규 데이터는 promo 플래그, 과거 데이터는 base_key로 호환)
+  function isPromo(r){return r.promo===true || String(r.base_key||r.key||'').indexOf('썸머블루위크')>=0;}
+  const promo_ads = pyAds.filter(isPromo);
+  const tc_ads  = pyAds.filter(function(r){return !isPromo(r) && (r.objective==='트래픽'||r.objective==='콘조');});
+  const ptr_ads = pyAds.filter(function(r){return !isPromo(r) && r.mgr==='파트너스';});
+  const std_ads = pyAds.filter(function(r){return !isPromo(r) && r.objective==='전환' && r.mgr!=='파트너스';});
 
   function isNew(r){return r.is_new===true;}
   function sumSpend(arr){return arr.reduce(function(s,r){return s+(r.spend||0);},0);}
@@ -1047,12 +1050,12 @@ function renderAll(d){
     return v.toLocaleString();
   }
 
-  var typeNames  = ['콘조/트래픽','파트너스','상시전환'];
-  var typeColors = ['#5EA3D0','#F0A04B','#6DB87A'];
-  var typeDark   = ['#185FA5','#854F0B','#27500A'];
-  var typeLight  = ['#B5D4F4','#FAC775','#C0DD97'];
-  var typeLText  = ['#0C447C','#633806','#27500A'];
-  var typeAds    = [tc_ads, ptr_ads, std_ads];
+  var typeNames  = ['콘조/트래픽','파트너스','상시전환','프로모션'];
+  var typeColors = ['#5EA3D0','#F0A04B','#6DB87A','#B07CD1'];
+  var typeDark   = ['#185FA5','#854F0B','#27500A','#6A2E96'];
+  var typeLight  = ['#B5D4F4','#FAC775','#C0DD97','#E4CBF2'];
+  var typeLText  = ['#0C447C','#633806','#27500A','#5A2080'];
+  var typeAds    = [tc_ads, ptr_ads, std_ads, promo_ads];
 
   var spendVals  = typeAds.map(sumSpend);
   var cntVals    = typeAds.map(function(a){return a.length;});
@@ -1264,7 +1267,7 @@ function renderAll(d){
       '<i class="ti ti-arrows-diff" style="font-size:13px"></i>신규 vs 기존 소재 비교</div>'+
     '<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:12px">막대에 마우스를 올리면 광고비·소재 수 확인 가능</div>'+
 
-    [0,1,2].map(mkDblBarRow).join('')+
+    typeNames.map(function(_,i){return i;}).map(mkDblBarRow).join('')+
 
     '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">'+
       '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-tertiary)">'+
@@ -1621,8 +1624,8 @@ function buildMetaVidHtml(vidId, thumbS){
 function showPieTT(ttId, i){
   var data = ttId==='ttPS' ? window._pieSpendData : window._pieCntData;
   if(!data) return;
-  var names=['콘조/트래픽','파트너스','상시전환'];
-  var colors=['#5EA3D0','#F0A04B','#6DB87A'];
+  var names=['콘조/트래픽','파트너스','상시전환','프로모션'];
+  var colors=['#5EA3D0','#F0A04B','#6DB87A','#B07CD1'];
   var html = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'+
     '<div style="width:9px;height:9px;border-radius:2px;background:'+colors[i]+'"></div>'+
     '<span style="font-weight:500;color:var(--color-text-primary);font-size:13px">'+names[i]+'</span></div>';
@@ -2336,7 +2339,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
@@ -2470,7 +2473,7 @@ function rtParseInsights(insights, refDate){
       rows[key] = {
         key, base_key: bk, ad_id: i.ad_id, _max_spend: spend,
         objective: obj, pa_type: pa, landing: land, purpose: obj,
-        mgr, media,
+        mgr, media, promo: ad_name.includes('썸머블루위크'),
         spend:0, impressions:0, clicks:0, purchases:0, revenue:0,
         roas_sum:0, roas_n:0, age_days: age,
       };
