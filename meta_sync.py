@@ -23,6 +23,12 @@ DRIVE_MAP_PATH = "./drive_map.json"
 SKIP = {'공식','DT','dt','영상','배너','콘조','오딧','플랩','핑크프로모션',
         '전환','상시','2차활용','카탈로그','트래픽','핑크사전','웨딩프로모션'}
 
+# 프로모션 태그: 소재명에 아래 중 하나라도 포함되면 '프로모션'으로 분류
+PROMO_TAGS = ['썸머블루위크','웨딩프로모션','핑크프로모션','설프로모션','블프','골든아워','브캠']
+
+def is_promo_name(name):
+    return any(t in name for t in PROMO_TAGS)
+
 def get_landing(camp, ad):
     if any(k in camp for k in ['아이시핑크','핑크프로모션','핑크사전']): return '핑크'
     if '웨딩' in camp: return '웨딩'
@@ -308,7 +314,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
                     'ad_id': ins.get('ad_id'), '_max_spend': spend,
                     'objective': obj, 'pa_type': pa, 'landing': land,
                     'purpose': obj, 'mgr': mgr, 'media': media,
-                    'promo': ('썸머블루위크' in ad_name),
+                    'promo': is_promo_name(ad_name),
                     'spend': 0, 'impressions': 0, 'clicks': 0,
                     'purchases': 0, 'revenue': 0, 'roas_sum': 0, 'roas_n': 0,
                     'age_days': age,
@@ -701,12 +707,16 @@ def main():
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     weeks_list = []
+    force_resync = os.environ.get('FORCE_RESYNC', '').strip() not in ('', '0', 'false', 'False')
+    if force_resync:
+        print("\n⚠️  FORCE_RESYNC 켜짐 → 기존 과거 주차도 모두 다시 수집합니다.")
 
     for i, w in enumerate(weeks):
         print(f"\n[{i+1}/{len(weeks)}] {w['label']} 처리 중...")
         out_path = f"{OUTPUT_DIR}/{w['id']}.json"
         # 이번 주(i=0)는 항상 갱신, 이전 주는 파일 있으면 skip (매주 자동 모드)
-        if i > 0 and os.path.exists(out_path):
+        # FORCE_RESYNC 켜지면 과거 주차도 재수집 (프로모션 등 분류 변경 소급 반영용)
+        if i > 0 and os.path.exists(out_path) and not force_resync:
             print(f"  ⏭️  {out_path} 이미 존재 → skip")
             weeks_list.append({'id': w['id'], 'label': w['label'], 'ref_date': w['end']})
             continue
