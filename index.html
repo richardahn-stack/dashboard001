@@ -535,7 +535,6 @@ function labelBadges(c){
 }
 
 let weeks=[],curWeekId=null,curRefDate=null,curFilter={purpose:'전체',sort:'revenue'},detailOpen=false;
-let salesData=null;   // 카페24 판매 매트릭스 (data/sales.json)
 const cache={};
 let tChart=null,curMetric='all',mKey=null,curTrendFilter={up:'spend_up',dn:'conv_dn'};
 let pieCharts={};
@@ -624,12 +623,6 @@ async function loadWeeks(){
   } catch(e){
     console.warn('weeks.json 로드 실패:', e);
   }
-
-  // ── 카페24 판매 데이터 로드 (오딧 라인×색상 매트릭스) ──
-  try{
-    const rs = await fetch('data/sales.json');
-    if(rs.ok) salesData = await rs.json();
-  } catch(e){ console.warn('sales.json 로드 실패:', e); }
 
   // ── 실시간 데이터 로드 ──
   const initStatus = document.getElementById('rtLiveStatus');
@@ -787,136 +780,6 @@ function getWinData(d,purpose,sort){
     return[...all.filter(c=>['트래픽','콘조'].includes(c.objective||c.purpose))].sort(sfn('ctr')).slice(0,10);
   }
   return[...all.filter(c=>(c.objective||c.purpose)===purpose)].sort(sfn(sort)).slice(0,10);
-}
-
-// ── 카페24 실판매 매트릭스 (오딧 5개 라인 × 8개 색상, 전주 대비 + 4주 트렌드 툴팁) ──
-var _salesTips = {};
-function _showSalesTip(key){
-  if(!_salesTips[key]) return;
-  _showGTT(_salesTips[key]);
-  if(_gtt){ _gtt.style.minWidth='0'; _gtt.style.width='104px'; _gtt.style.whiteSpace='normal'; _gtt.style.padding='6px 8px'; }
-}
-
-function buildSalesSection(){
-  _salesTips = {};
-  if(!salesData || !salesData.matrix) return '';
-  const wid = curWeekId;
-  const lines  = salesData.lines  || [];
-  const colors = salesData.colors || [];
-  const cur = salesData.matrix[wid];
-
-  const hdr = `<div class="sec"><div class="sec-hdr">
-    <div class="sec-icon" style="background:#E8F0FE"><i class="ti ti-shopping-cart" style="font-size:15px;color:#1A56B0"></i></div>
-    <div><span class="sec-title">오딧 실판매 (카페24)</span>
-    <div class="sec-sub">라인 × 색상 판매 수량 · 전주 대비 · 숫자에 마우스를 올리면 최근 4주 트렌드</div></div></div>`;
-
-  if(!cur){
-    const msg = wid==='RT-LIVE'
-      ? '이번 주 실판매는 주 마감 후 집계돼요.'
-      : '이 주차의 판매 데이터가 아직 없어요.';
-    return hdr + `<div style="color:var(--text3);font-size:12px;padding:.5rem">${msg}</div></div>`;
-  }
-
-  // 현재 주차 기준 최근 4주 (완료 주차만, 오래된→최신 순)
-  const idx = weeks.findIndex(w=>w.id===wid);
-  const trendWeeks = [];
-  for(let i=idx; i<weeks.length && trendWeeks.length<4; i++){
-    const w = weeks[i];
-    if(w.id!=='RT-LIVE' && salesData.matrix[w.id]) trendWeeks.push(w);
-  }
-  trendWeeks.reverse();                 // 오래된 → 최신
-  const prevW = trendWeeks.length>=2 ? trendWeeks[trendWeeks.length-2] : null;
-  const prev  = prevW ? salesData.matrix[prevW.id] : null;
-
-  // 값 추출기: (line|'__col'|'__all', color|'__row'|'__all')
-  const valAt = (m, line, color)=>{
-    if(!m) return 0;
-    if(line==='__all' && color==='__all')
-      return lines.reduce((s,ln)=>s+colors.reduce((a,c)=>a+(m[ln]?.[c]||0),0),0);
-    if(line==='__all')   return lines.reduce((s,ln)=>s+(m[ln]?.[color]||0),0);
-    if(color==='__row')  return colors.reduce((s,c)=>s+(m[line]?.[c]||0),0);
-    return m[line]?.[color]||0;
-  };
-  const labelOf = (line,color)=>{
-    const l = line==='__all' ? '전체' : line;
-    const c = color==='__all' ? '전체' : color==='__row' ? '합계' : color;
-    return `${l} · ${c}`;
-  };
-
-  // 셀별 4주 트렌드 툴팁 HTML 생성 + 키 반환 (최근 순: W, W-1, W-2, W-3)
-  const mkTip = (line, color)=>{
-    const key = `${line}|${color}`;
-    const n = trendWeeks.length;                 // 오래된→최신
-    const rows = [];
-    for(let i=n-1; i>=0; i--){                    // 최신부터
-      const w = trendWeeks[i];
-      const q = valAt(salesData.matrix[w.id], line, color);
-      const wlab = (i===n-1) ? 'W' : 'W-'+(n-1-i);
-      let delta = '';
-      if(i>0){
-        const p = valAt(salesData.matrix[trendWeeks[i-1].id], line, color);
-        if(p===0) delta = q>0 ? '<span style="color:#1D9E75">NEW</span>' : '<span style="color:var(--text3)">–</span>';
-        else { const d=(q-p)/p*100, up=d>0, fl=Math.abs(d)<0.5;
-          delta = fl ? '<span style="color:var(--text3)">0%</span>'
-            : `<span style="color:${up?'#1D9E75':'#E5484D'}">${up?'▲':'▼'}${Math.abs(Math.round(d))}%</span>`; }
-      } else {
-        delta = '<span style="color:var(--text3)">–</span>';
-      }
-      rows.push(`<div style="display:flex;justify-content:space-between;gap:6px;padding:1px 0">
-        <span style="color:var(--text3)">${wlab}</span>
-        <span style="font-weight:700">${q}</span>
-        <span style="min-width:34px;text-align:right">${delta}</span></div>`);
-    }
-    _salesTips[key] = `<div style="font-size:10px;line-height:1.35">
-      <div style="font-weight:700;margin-bottom:3px;word-break:keep-all">${labelOf(line,color)}</div>
-      ${rows.join('')}</div>`;
-    return key;
-  };
-
-  const dChip = (c, p)=>{
-    if(p==null) return '';
-    if(p===0) return c>0 ? '<span style="color:#1D9E75;font-size:9px;font-weight:600">NEW</span>' : '';
-    if(c===p) return '<span style="color:var(--text3);font-size:9px">0%</span>';
-    const d=(c-p)/p*100, up=d>0;
-    return `<span style="color:${up?'#1D9E75':'#E5484D'};font-size:9px;font-weight:600">${up?'▲':'▼'}${Math.abs(d).toFixed(0)}%</span>`;
-  };
-  const cell = (c, p, line, color, bold)=>{
-    const key = mkTip(line, color);
-    return `<td style="text-align:center;padding:5px 6px;border-bottom:1px solid var(--bd)${bold?';background:var(--bg2)':''}">
-      <div onmouseenter="_showSalesTip('${key}')" onmouseleave="_hideGTT()" style="cursor:default;display:inline-block;font-weight:${(c>0||bold)?'700':'400'};color:${c>0?'var(--text1)':'var(--text3)'}">${c}</div>${dChip(c,p)}</td>`;
-  };
-
-  const colTot  = c=>lines.reduce((s,ln)=>s+(cur[ln]?.[c]||0),0);
-  const colTotP = c=>prev?lines.reduce((s,ln)=>s+(prev[ln]?.[c]||0),0):null;
-
-  let body = '';
-  lines.forEach(ln=>{
-    const rowT  = colors.reduce((s,c)=>s+(cur[ln]?.[c]||0),0);
-    const rowTP = prev?colors.reduce((s,c)=>s+(prev[ln]?.[c]||0),0):null;
-    body += `<tr><td style="padding:5px 8px;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--bd)">${ln}</td>`
-      + colors.map(c=>cell(cur[ln]?.[c]||0, prev?(prev[ln]?.[c]??null):null, ln, c, false)).join('')
-      + cell(rowT, rowTP, ln, '__row', true) + `</tr>`;
-  });
-  // 합계 행
-  const grand  = valAt(cur,'__all','__all');
-  const grandP = prev? valAt(prev,'__all','__all') : null;
-  body += `<tr style="background:var(--bg2)"><td style="padding:5px 8px;font-weight:700">합계</td>`
-    + colors.map(c=>cell(colTot(c), colTotP(c), '__all', c, true)).join('')
-    + cell(grand, grandP, '__all', '__all', true) + `</tr>`;
-
-  const head = `<tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3)">라인＼색상</th>`
-    + colors.map(c=>`<th style="padding:6px 6px;font-size:11px;color:var(--text3);white-space:nowrap">${c}</th>`).join('')
-    + `<th style="padding:6px 8px;font-size:11px;color:var(--text3)">합계</th></tr>`;
-
-  const note = wid==='RT-LIVE'
-    ? `<div style="font-size:10px;color:#A32D2D;margin-top:6px">🔴 이번 주 진행 중 · 전주(${prevW?prevW.label:'-'})는 7일 완료분이라 아직 낮게 보일 수 있어요</div>`
-    : (prevW
-      ? `<div style="font-size:10px;color:var(--text3);margin-top:6px">전주(${prevW.label}) 대비 · 판매 수량 기준</div>`
-      : `<div style="font-size:10px;color:var(--text3);margin-top:6px">전주 데이터 없음 · 판매 수량만 표시</div>`);
-
-  return hdr
-    + `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;min-width:100%">`
-    + `<thead>${head}</thead><tbody>${body}</tbody></table></div>${note}</div>`;
 }
 
 function renderAll(d){
@@ -1569,7 +1432,7 @@ function buildLeaderSection(d){
 
   const abH = buildAbSection(d);
   const leaderH = buildLeaderSection(d);
-  document.getElementById('mainContent').innerHTML=kpiH+buildSalesSection()+pieH+leaderH+winH+trendH+d7H+abH+tblH;
+  document.getElementById('mainContent').innerHTML=kpiH+pieH+leaderH+winH+trendH+d7H+abH+tblH;
   d7Sort='spend'; curD7Data=d; renderD7Section(d);
   // 필터 버튼 on 상태 초기화
   document.querySelectorAll('.d7fbtn').forEach(b=>{
@@ -2346,7 +2209,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
