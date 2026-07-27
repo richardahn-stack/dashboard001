@@ -417,14 +417,13 @@ tr:hover td{background:var(--bg2)}
         </div>
       </div>
       <div>
-        <div class="csec-title"><i class="ti ti-chart-line" style="font-size:14px;color:#185FA5"></i>주차별 성과 트렌드</div>
+        <div class="csec-title"><i class="ti ti-chart-line" style="font-size:14px;color:#185FA5"></i>주차별 성과 트렌드<span style="font-size:10px;font-weight:400;color:var(--text3);margin-left:6px">지표를 눌러 그래프에 추가/제거</span></div>
         <div class="mtabs">
-          <button class="mtab on" onclick="setMetric('all',this)">종합</button>
-          <button class="mtab" onclick="setMetric('roas',this)">ROAS</button>
-          <button class="mtab" onclick="setMetric('spend',this)">광고비</button>
-          <button class="mtab" onclick="setMetric('ctr',this)">CTR</button>
-          <button class="mtab" onclick="setMetric('cvr',this)">CVR</button>
-          <button class="mtab" onclick="setMetric('rank',this)">순위</button>
+          <button class="mtab" data-metric="roas" onclick="setMetric('roas',this)">ROAS</button>
+          <button class="mtab" data-metric="spend" onclick="setMetric('spend',this)">광고비</button>
+          <button class="mtab" data-metric="ctr" onclick="setMetric('ctr',this)">CTR</button>
+          <button class="mtab" data-metric="cvr" onclick="setMetric('cvr',this)">CVR</button>
+          <button class="mtab" data-metric="rank" onclick="setMetric('rank',this)">순위</button>
         </div>
         <div class="cwrap" id="cwrap"><canvas id="trendChart"></canvas></div>
         <div id="rtblWrap" style="display:none;margin-top:8px"></div>
@@ -458,6 +457,15 @@ const PROMO_TAGS=['썸머블루위크','웨딩프로모션','핑크프로모션'
 const isDark=matchMedia('(prefers-color-scheme:dark)').matches;
 const tc=isDark?'#B4B2A9':'#5F5E5A',gc=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
 const CHART_COLORS=['#378ADD','#1D9E75','#D4537E','#EF9F27'];
+// 소재 팝업 트렌드: 토글 가능한 지표 레지스트리 (fmt는 const 포매터를 늦게 호출하도록 래핑)
+const METRICS={
+  roas: {label:'ROAS',  get:r=>r.roas_pct||0, fmt:v=>fmtR(v||0),                 color:CHART_COLORS[0], axis:'yRoas'},
+  spend:{label:'광고비', get:r=>r.spend||0,    fmt:v=>fmtS(v||0),                 color:CHART_COLORS[1], axis:'ySpend'},
+  rank: {label:'순위',   get:(r,rk)=>rk,        fmt:v=>v==null?'-':v+'위',          color:'#8B5CF6',       axis:'yRank', reverse:true},
+  ctr:  {label:'CTR',    get:r=>r.ctr||0,       fmt:v=>(Math.round((v||0)*100)/100)+'%', color:CHART_COLORS[2], axis:'yPct'},
+  cvr:  {label:'CVR',    get:r=>r.cvr||0,       fmt:v=>(Math.round((v||0)*100)/100)+'%', color:CHART_COLORS[3], axis:'yPct'},
+};
+const METRIC_ORDER=['roas','spend','rank','ctr','cvr'];
 
 const TIPS={
   roas:{title:'ROAS',desc:'광고비 대비 발생한 전환 매출 비중',quote:'광고비 몇 배의 돈을 벌어왔는지'},
@@ -536,7 +544,7 @@ function labelBadges(c){
 
 let weeks=[],curWeekId=null,curRefDate=null,curFilter={purpose:'전체',sort:'revenue'},detailOpen=false;
 const cache={};
-let tChart=null,curMetric='all',mKey=null,curTrendFilter={up:'spend_up',dn:'conv_dn'};
+let tChart=null,curMetrics=['spend','roas','rank'],mKey=null,curTrendFilter={up:'spend_up',dn:'conv_dn'};
 let pieCharts={};
 
 
@@ -1799,8 +1807,7 @@ async function openModal(key){
     ];
     wsEl.innerHTML=`<div class="wscore-detail"><div class="wscore-ttl">위닝 점수 ${cur.win_score}/5점 ${cur.win_score>=3?'✅ 위닝':'❌ 미달'}</div>${fd.map(f=>`<div class="wscore-row"><span class="wscore-lbl">${f.l}</span><span class="wscore-thr">기준 ${f.thr}</span><span class="wscore-val">${f.val}</span><span class="wscore-chk">${fl[f.k]?'✓':'–'}</span><div class="wscore-bar-wrap"><div class="wscore-bar" style="width:${Math.max(0,f.pct).toFixed(0)}%;background:${fl[f.k]?f.color:'#D3D1C7'}"></div></div></div>`).join('')}</div>`;
   } else wsEl.innerHTML='';
-  curMetric='all';
-  document.querySelectorAll('.mtab').forEach((b,i)=>b.classList.toggle('on',i===0));
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.toggle('on',curMetrics.includes(b.dataset.metric)));
   renderTChart(wd);
   const ov=document.getElementById('mov');
   ov.style.display='flex';requestAnimationFrame(()=>ov.classList.add('show'));
@@ -1950,9 +1957,11 @@ function closeOv(e){if(e.target===document.getElementById('mov'))hideModal();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){hideModal();closeAbModal();}});
 
 async function setMetric(m,btn){
-  curMetric=m;
-  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+  // 토글: 이미 켜져 있으면 끄고(단 최소 1개는 유지), 아니면 켠다
+  const i=curMetrics.indexOf(m);
+  if(i>=0){ if(curMetrics.length>1) curMetrics.splice(i,1); }
+  else curMetrics.push(m);
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.toggle('on',curMetrics.includes(b.dataset.metric)));
   // 로드 안 된 주차 백그라운드 fetch
   await Promise.all(weeks.filter(w=>!cache[w.id]).map(async w=>{
     try{const r=await fetch('data/'+w.id+'.json');if(r.ok)cache[w.id]=await r.json();}catch(e){}
@@ -1964,32 +1973,40 @@ async function setMetric(m,btn){
 
 function renderTChart(wd){
   const cw=document.getElementById('cwrap'),rt=document.getElementById('rtblWrap');
+  if(rt) rt.style.display='none';                 // 순위는 이제 그래프 라인으로 표시 (표 제거)
   if(tChart){tChart.destroy();tChart=null;}
   const sorted=[...wd].sort((a,b)=>a.weekId>b.weekId?1:-1);
   const allS=[...weeks].sort((a,b)=>a.id>b.id?1:-1);
   const fId=(()=>{for(const w of allS){if((cache[w.id] && (cache[w.id].all_ads||[]).find(r=>r.key===mKey)))return w.id;}return (sorted[0] && sorted[0].weekId);})();
   const fIdx=sorted.findIndex(r=>r.weekId===fId);
   const labels=sorted.map((r,i)=>r.week+(i===fIdx?' ★':''));
-  if(curMetric==='rank'){
-    cw.style.display='none';rt.style.display='block';
-    rt.innerHTML=`<table class="rtbl"><thead><tr><th>주차</th><th>순위</th><th>광고비</th><th>ROAS</th></tr></thead><tbody>${sorted.map((r,i)=>{const wa=(cache[r.weekId] && cache[r.weekId].all_ads)||[];const rank=[...wa].sort((a,b)=>b.spend-a.spend).findIndex(a=>a.key===mKey)+1;return`<tr style="${i===fIdx?'background:rgba(24,95,165,0.05)':''}"><td>${r.week}${i===fIdx?' 🆕':''}</td><td>${rank>0?rank+'위/'+wa.length+'개':'-'}</td><td>${fmtS(r.spend)}</td><td class="${rvC(r.roas_pct)}">${r.roas_pct>0?fmtR(r.roas_pct):'-'}</td></tr>`;}).join('')}</tbody></table>`;
-    return;
-  }
-  cw.style.display='block';rt.style.display='none';
+  cw.style.display='block';
   if(sorted.length<2){cw.innerHTML=`<div class="no-data">주차 데이터가 2개 이상이어야 트렌드를 볼 수 있어요</div>`;return;}
   cw.innerHTML='<canvas id="trendChart"></canvas>';
   const ctx=document.getElementById('trendChart').getContext('2d');
-  if(curMetric==='all'){
-    tChart=new Chart(ctx,{type:'line',data:{labels,datasets:[
-      {label:'ROAS(%)',data:sorted.map(r=>r.roas_pct||0),borderColor:CHART_COLORS[0],backgroundColor:CHART_COLORS[0]+'18',borderWidth:2,pointRadius:sorted.map((_,i)=>i===fIdx?8:4),pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':CHART_COLORS[0]),pointBorderColor:'#fff',pointBorderWidth:1.5,fill:false,tension:0.3,yAxisID:'yR'},
-      {label:'CTR(%)',data:sorted.map(r=>r.ctr||0),borderColor:CHART_COLORS[2],backgroundColor:CHART_COLORS[2]+'18',borderWidth:2,pointRadius:sorted.map((_,i)=>i===fIdx?8:4),pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':CHART_COLORS[2]),pointBorderColor:'#fff',pointBorderWidth:1.5,fill:false,tension:0.3,yAxisID:'yC'},
-      {label:'CVR(%)',data:sorted.map(r=>r.cvr||0),borderColor:CHART_COLORS[3],backgroundColor:CHART_COLORS[3]+'18',borderWidth:2,pointRadius:sorted.map((_,i)=>i===fIdx?8:4),pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':CHART_COLORS[3]),pointBorderColor:'#fff',pointBorderWidth:1.5,fill:false,tension:0.3,yAxisID:'yC'},
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{font:{size:11},color:tc,boxWidth:12,padding:12}}},scales:{x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc},grid:{color:gc}},yR:{position:'left',ticks:{color:tc,callback:v=>fmtR(v)},grid:{color:gc}},yC:{position:'right',ticks:{color:tc,callback:v=>v+'%'},grid:{display:false}}}}});
-  } else {
-    const mm={roas:{key:'roas_pct',fmt:fmtR,color:CHART_COLORS[0]},spend:{key:'spend',fmt:fmtS,color:CHART_COLORS[1]},ctr:{key:'ctr',fmt:v=>v+'%',color:CHART_COLORS[2]},cvr:{key:'cvr',fmt:v=>v+'%',color:CHART_COLORS[3]}};
-    const m=mm[curMetric];
-    tChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:m.fmt(0),data:sorted.map(r=>r[m.key]||0),borderColor:m.color,backgroundColor:m.color+'22',borderWidth:2.5,pointRadius:sorted.map((_,i)=>i===fIdx?9:5),pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':m.color),pointBorderColor:'#fff',pointBorderWidth:2,fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${m.fmt(ctx.parsed.y)}`}}},scales:{x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc},grid:{color:gc}},y:{ticks:{color:tc,callback:v=>m.fmt(v)},grid:{color:gc}}}}});
-  }
+
+  // 순위: 해당 주차 all_ads를 광고비 내림차순 정렬했을 때의 등수 (없으면 null → 선 끊김)
+  const rankOf=r=>{const wa=(cache[r.weekId]&&cache[r.weekId].all_ads)||[];const k=[...wa].sort((a,b)=>b.spend-a.spend).findIndex(a=>a.key===mKey)+1;return k>0?k:null;};
+
+  const active=METRIC_ORDER.filter(m=>curMetrics.includes(m));
+  const datasets=active.map(m=>{
+    const M=METRICS[m];
+    const data=sorted.map(r=>M.get(r, m==='rank'?rankOf(r):null));
+    return {label:M.label,data,borderColor:M.color,backgroundColor:M.color+'18',borderWidth:2.2,
+      pointRadius:sorted.map((_,i)=>i===fIdx?8:4),
+      pointBackgroundColor:sorted.map((_,i)=>i===fIdx?'#0C447C':M.color),
+      pointBorderColor:'#fff',pointBorderWidth:1.5,fill:false,tension:0.3,spanGaps:true,
+      yAxisID:M.axis,_fmt:M.fmt};
+  });
+  // 단위가 제각각(원·%·배수·등수)이라 축 눈금은 숨기고 범례+툴팁으로 값을 보여줌.
+  // 각 지표는 자기 축에서 독립적으로 스케일 → 여러 개 겹쳐도 형태 비교가 됨. 순위는 역축(1위가 위).
+  const scales={x:{ticks:{color:(_,i)=>i===fIdx?'#0C447C':tc},grid:{color:gc}}};
+  active.forEach(m=>{const M=METRICS[m];scales[M.axis]={display:false,reverse:!!M.reverse,min:M.reverse?1:undefined};});
+
+  tChart=new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:11},color:tc,boxWidth:12,padding:12,usePointStyle:true}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.dataset._fmt?c.dataset._fmt(c.parsed.y):c.parsed.y}`}}},
+    scales}});
 }
 
 /* ───── AB 비교 팝업 ───── */
@@ -2209,7 +2226,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
