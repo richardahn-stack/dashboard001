@@ -826,6 +826,38 @@ function aggregateColors(d){
   const rows=order.filter(c=>CG.some(g=>mat[c][g.k].n>0));   // 데이터 있는 컬러만, 고정 순서 유지
   return {rows,mat};
 }
+// 컬러 막대 세그먼트 호버 툴팁 (소재 수·광고비 + 컬러 내/전체 대비 비중)
+function _colorTipEl(){
+  let t=document.getElementById('colorTip');
+  if(!t){t=document.createElement('div');t.id='colorTip';
+    t.style.cssText='position:fixed;z-index:9999;display:none;pointer-events:none;background:var(--bg);border:.5px solid var(--border2);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--text2);box-shadow:0 4px 16px rgba(0,0,0,0.14);min-width:172px';
+    document.body.appendChild(t);}
+  return t;
+}
+function moveColorTip(ev){const t=document.getElementById('colorTip');if(!t)return;
+  var w=t.offsetWidth||180,h=t.offsetHeight||96,x=ev.clientX+14,y=ev.clientY+14;
+  if(x+w>window.innerWidth-8)x=ev.clientX-w-14;
+  if(y+h>window.innerHeight-8)y=ev.clientY-h-14;
+  t.style.left=x+'px';t.style.top=y+'px';
+}
+function hideColorTip(){const t=document.getElementById('colorTip');if(t)t.style.display='none';}
+function showColorTip(ev,color,gk){
+  const a=window._colorAgg;if(!a||!a.mat[color])return;
+  const cell=a.mat[color][gk];
+  let cN=0,cS=0;CG.forEach(g=>{cN+=a.mat[color][g.k].n;cS+=a.mat[color][g.k].s;});   // 컬러 합계
+  let gN=0,gS=0;a.rows.forEach(c=>CG.forEach(g=>{gN+=a.mat[c][g.k].n;gS+=a.mat[c][g.k].s;})); // 전체 합계
+  const G=CG.find(g=>g.k===gk)||{};
+  const p=(x,tot)=>tot>0?(Math.round(x/tot*1000)/10)+'%':'0%';
+  const t=_colorTipEl();
+  t.innerHTML=`<div style="font-weight:600;color:var(--text);margin-bottom:5px;display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:${G.c}"></span>${color} · ${G.l}</div>`
+    +`<div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px">`
+    +`<span style="color:var(--text3)">소재 수</span><span style="text-align:right;color:var(--text)">${cell.n}개</span>`
+    +`<span style="color:var(--text3)">광고비</span><span style="text-align:right;color:var(--text)">${fmtS(cell.s)}</span>`
+    +`<span style="color:var(--text3)">컬러 내</span><span style="text-align:right">소재 ${p(cell.n,cN)} · 광고비 ${p(cell.s,cS)}</span>`
+    +`<span style="color:var(--text3)">전체 대비</span><span style="text-align:right">소재 ${p(cell.n,gN)} · 광고비 ${p(cell.s,gS)}</span>`
+    +`</div>`;
+  t.style.display='block';moveColorTip(ev);
+}
 function _cVal(cell){return colorMetric==='spend'?cell.s:cell.n;}
 function _cFmt(v){return colorMetric==='spend'?fmtS(v):(Math.round(v)+'개');}
 function renderColorBody(){
@@ -848,7 +880,7 @@ function renderColorBody(){
   return a.rows.map(c=>{
     const t=tot[c]||1, barW=Math.max(6,Math.round(t/(maxT||1)*100));
     const segs=CG.map(g=>{const v=_cVal(a.mat[c][g.k]);if(!v)return '';const w=v/t*100;
-      return `<div title="${g.l} · ${_cFmt(v)}" style="width:${w}%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;overflow:hidden;white-space:nowrap;background:${g.c}">${(colorMetric==='count'&&w>=12)?Math.round(v):''}</div>`;}).join('');
+      return `<div onmouseenter="showColorTip(event,'${c}','${g.k}')" onmousemove="moveColorTip(event)" onmouseleave="hideColorTip()" style="width:${w}%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;overflow:hidden;white-space:nowrap;background:${g.c};cursor:default">${(colorMetric==='count'&&w>=12)?Math.round(v):''}</div>`;}).join('');
     const dot=`<span style="width:11px;height:11px;border-radius:50%;background:${COLOR_SWATCH[c]};${c==='화이트'?'border:.5px solid var(--border2);':''}flex:none"></span>`;
     return `<div style="display:grid;grid-template-columns:92px 1fr 96px;align-items:center;gap:10px;padding:5px 0">`
       +`<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:${c==='기타'?'var(--text3)':'var(--text)'}">${dot}${c}</span>`
@@ -875,7 +907,7 @@ function buildColorSection(d){
   if(!window._colorAgg.rows.length)return '';
   return `<div class="sec" id="colorSec">${colorSectionInner()}</div>`;
 }
-function _rerenderColorSec(){const el=document.getElementById('colorSec');if(el)el.innerHTML=colorSectionInner();}
+function _rerenderColorSec(){hideColorTip();const el=document.getElementById('colorSec');if(el)el.innerHTML=colorSectionInner();}
 function setColorView(v){colorView=v;_rerenderColorSec();}
 function setColorMetric(m){colorMetric=m;_rerenderColorSec();}
 
@@ -2315,7 +2347,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
