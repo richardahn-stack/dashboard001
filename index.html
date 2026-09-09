@@ -453,7 +453,7 @@ const PC={'전환':'tp-전환','트래픽':'tp-트래픽','콘조':'tp-콘조','
 const LAND_COLORS={'오딧':'#F97316','플랩':'#3B82F6','핑크':'#EC4899','강민경유혜주':'#8B5CF6','웨딩':'#6366F1','기타':'#9CA3AF'};
 const PIE_COLORS={'전환':'#378ADD','트래픽':'#1D9E75','콘조':'#EF9F27','PA':'#F59E0B','자컨':'#10B981','-':'#9CA3AF','오딧':'#F97316','플랩':'#3B82F6','핑크':'#EC4899','강민경유혜주':'#8B5CF6','웨딩':'#6366F1'};
 // 프로모션 태그 (meta_sync.py PROMO_TAGS와 동일하게 유지)
-const PROMO_TAGS=['썸머블루위크','웨딩프로모션','핑크프로모션','설프로모션','블프','골든아워','브캠'];
+const PROMO_TAGS=['썸머블루위크','웨딩프로모션','핑크프로모션','설프로모션','블프','골든아워','브캠','라스트'];
 const isDark=matchMedia('(prefers-color-scheme:dark)').matches;
 const tc=isDark?'#B4B2A9':'#5F5E5A',gc=isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)';
 const CHART_COLORS=['#378ADD','#1D9E75','#D4537E','#EF9F27'];
@@ -484,7 +484,13 @@ const CG=[{k:'tc',l:'콘조/트래픽',c:'#378ADD'},{k:'ptr',l:'파트너스',c:
 let colorView='bar', colorMetric='spend';
 function adIsPromo(r){return r.promo===true || PROMO_TAGS.some(t=>String(r.base_key||r.key||'').indexOf(t)>=0);}
 // 소재명에서 대표 컬러 추출 (매핑 없으면 '기타')
-function colorOf(r){const s=String(r.base_key||r.key||'');for(const m of COLOR_MAP){if(m.tags.some(t=>s.indexOf(t)>=0))return m.c;}return '기타';}
+// 주의: 프로모션 타이틀(예: 썸머블루위크의 '블루')이 컬러로 오탐되지 않게 먼저 제거
+function colorOf(r){
+  let s=String(r.base_key||r.key||'');
+  PROMO_TAGS.forEach(t=>{s=s.split(t).join('');});
+  for(const m of COLOR_MAP){if(m.tags.some(t=>s.indexOf(t)>=0))return m.c;}
+  return '기타';
+}
 // 오딧·플랩 소재 판별: 신규는 od 플래그, 과거 주차는 landing으로 근사(핑크·웨딩 캠페인의 오딧 소재는 누락될 수 있음)
 function isOdFlap(r){return r.od===true || ['오딧','플랩','오딧+플랩'].includes(r.landing);}
 // 4그룹 단일 배정 (우선순위: 프로모션 > 파트너스 > 콘조/트래픽 > 상시전환)
@@ -2347,7 +2353,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
