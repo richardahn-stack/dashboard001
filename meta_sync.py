@@ -315,6 +315,7 @@ def build_json_from_api(token, end_date_str, prev_end_date_str, label, prev_labe
                     'objective': obj, 'pa_type': pa, 'landing': land,
                     'purpose': obj, 'mgr': mgr, 'media': media,
                     'promo': is_promo_name(ad_name),
+                    'od': ('오딧' in ad_name) or ('플랩' in ad_name),
                     'spend': 0, 'impressions': 0, 'clicks': 0,
                     'purchases': 0, 'revenue': 0, 'roas_sum': 0, 'roas_n': 0,
                     'age_days': age,

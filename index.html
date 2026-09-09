@@ -467,14 +467,26 @@ const METRICS={
 };
 const METRIC_ORDER=['roas','spend','rank','ctr','cvr'];
 
-// ── 컬러별 소재 분포 (소재명 컬러 × 4그룹) ──
-const PRODUCT_COLORS=['화이트','실버','다크그레이','블랙','솔티블루','펄스레드','아이시핑크','웻그린'];
-const COLOR_SWATCH={'화이트':'#EDEDEA','실버':'#C7CBD1','다크그레이':'#55585C','블랙':'#222222','솔티블루':'#4A6FA5','펄스레드':'#D24B4A','아이시핑크':'#E8A0C0','웻그린':'#5B8F6E','미지정':'#B4B2A9'};
+// ── 컬러별 소재 분포 (오딧·플랩 소재 한정 · 소재명 컬러 × 4그룹) ──
+// 대표색 ← 소재명에 나타나는 표기 변형들. 위에서부터 검사, 첫 매칭 채택.
+const COLOR_MAP=[
+  {c:'솔티블루',  tags:['솔티블루','블루']},
+  {c:'아이시핑크',tags:['아이시핑크','핑크']},
+  {c:'펄스레드',  tags:['펄스레드','레드']},
+  {c:'실버',      tags:['실버']},
+  {c:'다크그레이',tags:['다크그레이','그레이']},
+  {c:'블랙',      tags:['블랙']},
+  {c:'화이트',    tags:['화이트']},
+];
+const COLOR_ORDER=['화이트','실버','다크그레이','블랙','솔티블루','펄스레드','아이시핑크','기타']; // 제품 색상 순 + 기타
+const COLOR_SWATCH={'화이트':'#EDEDEA','실버':'#C7CBD1','다크그레이':'#55585C','블랙':'#222222','솔티블루':'#4A6FA5','펄스레드':'#D24B4A','아이시핑크':'#E8A0C0','기타':'#B4B2A9'};
 const CG=[{k:'tc',l:'콘조/트래픽',c:'#378ADD'},{k:'ptr',l:'파트너스',c:'#EF9F27'},{k:'std',l:'상시전환',c:'#639922'},{k:'promo',l:'프로모션',c:'#7F77DD'}];
 let colorView='bar', colorMetric='spend';
 function adIsPromo(r){return r.promo===true || PROMO_TAGS.some(t=>String(r.base_key||r.key||'').indexOf(t)>=0);}
-// 소재명(base_key)에서 제품 컬러 추출 (없으면 미지정)
-function colorOf(r){const s=String(r.base_key||r.key||'');for(const c of PRODUCT_COLORS){if(s.indexOf(c)>=0)return c;}return '미지정';}
+// 소재명에서 대표 컬러 추출 (매핑 없으면 '기타')
+function colorOf(r){const s=String(r.base_key||r.key||'');for(const m of COLOR_MAP){if(m.tags.some(t=>s.indexOf(t)>=0))return m.c;}return '기타';}
+// 오딧·플랩 소재 판별: 신규는 od 플래그, 과거 주차는 landing으로 근사(핑크·웨딩 캠페인의 오딧 소재는 누락될 수 있음)
+function isOdFlap(r){return r.od===true || ['오딧','플랩','오딧+플랩'].includes(r.landing);}
 // 4그룹 단일 배정 (우선순위: 프로모션 > 파트너스 > 콘조/트래픽 > 상시전환)
 function groupOf(r){
   if(adIsPromo(r))return 'promo';
@@ -807,8 +819,8 @@ function getWinData(d,purpose,sort){
 }
 
 function aggregateColors(d){
-  const ads=d.all_ads||[];
-  const order=PRODUCT_COLORS.concat(['미지정']);
+  const ads=(d.all_ads||[]).filter(isOdFlap);          // 오딧·플랩 소재만
+  const order=COLOR_ORDER;
   const mat={}; order.forEach(c=>{mat[c]={tc:{n:0,s:0},ptr:{n:0,s:0},std:{n:0,s:0},promo:{n:0,s:0}};});
   ads.forEach(r=>{const c=colorOf(r),g=groupOf(r);mat[c][g].n+=1;mat[c][g].s+=(r.spend||0);});
   const rows=order.filter(c=>CG.some(g=>mat[c][g.k].n>0));   // 데이터 있는 컬러만, 고정 순서 유지
@@ -827,7 +839,7 @@ function renderColorBody(){
       const cells=CG.map(g=>{const cell=a.mat[c][g.k];tn+=cell.n;ts+=cell.s;
         return `<td style="text-align:right;padding:6px 8px;color:var(--text2)">${cell.n?cell.n+'개 · '+fmtS(cell.s):'<span style="color:var(--text3)">–</span>'}</td>`;}).join('');
       const dot=`<span style="width:10px;height:10px;border-radius:50%;background:${COLOR_SWATCH[c]};${c==='화이트'?'border:.5px solid var(--border2);':''}display:inline-block;vertical-align:-1px;margin-right:6px"></span>`;
-      return `<tr style="border-top:.5px solid var(--border)"><td style="padding:6px 8px;color:${c==='미지정'?'var(--text3)':'var(--text)'}">${dot}${c}</td>${cells}<td style="text-align:right;padding:6px 8px;font-weight:500;color:var(--text)">${tn}개 · ${fmtS(ts)}</td></tr>`;
+      return `<tr style="border-top:.5px solid var(--border)"><td style="padding:6px 8px;color:${c==='기타'?'var(--text3)':'var(--text)'}">${dot}${c}</td>${cells}<td style="text-align:right;padding:6px 8px;font-weight:500;color:var(--text)">${tn}개 · ${fmtS(ts)}</td></tr>`;
     }).join('');
     return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:520px">${head}${body}</table></div>`;
   }
@@ -839,7 +851,7 @@ function renderColorBody(){
       return `<div title="${g.l} · ${_cFmt(v)}" style="width:${w}%;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;overflow:hidden;white-space:nowrap;background:${g.c}">${(colorMetric==='count'&&w>=12)?Math.round(v):''}</div>`;}).join('');
     const dot=`<span style="width:11px;height:11px;border-radius:50%;background:${COLOR_SWATCH[c]};${c==='화이트'?'border:.5px solid var(--border2);':''}flex:none"></span>`;
     return `<div style="display:grid;grid-template-columns:92px 1fr 96px;align-items:center;gap:10px;padding:5px 0">`
-      +`<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:${c==='미지정'?'var(--text3)':'var(--text)'}">${dot}${c}</span>`
+      +`<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:${c==='기타'?'var(--text3)':'var(--text)'}">${dot}${c}</span>`
       +`<div style="height:22px;width:${barW}%;min-width:40px;display:flex;border-radius:6px;overflow:hidden;background:var(--bg3)">${segs}</div>`
       +`<span style="font-size:12px;text-align:right;color:var(--text2)">${_cFmt(t)}</span></div>`;
   }).join('');
@@ -852,7 +864,7 @@ function colorSectionInner(){
   return '<div class="sec-hdr"><div class="sec-icon" style="background:#EEEDFE">'
     +'<i class="ti ti-palette" style="font-size:15px;color:#534AB7"></i></div>'
     +'<div><span class="sec-title">컬러별 소재 분포</span>'
-    +'<div class="sec-sub">소재명 컬러 × 그룹별 소재 수·광고비</div></div></div>'
+    +'<div class="sec-sub">오딧·플랩 소재 한정 · 컬러 × 그룹별 소재 수·광고비</div></div></div>'
     +`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">`
     +`<div style="display:flex;gap:6px">${vbtn('bar','막대')}${vbtn('table','표')}</div>${metricToggle}</div>`
     +(colorView==='bar'?`<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">${legend}</div>`:'')
@@ -2303,7 +2315,7 @@ const RT_API      = 'https://graph.facebook.com/v21.0';
 const RT_CACHE_KEY = 'rt_week_cache';
 const RT_CACHE_VER = 4; // 빌드 로직 변경 시 +1 → 구버전 캐시 자동 무효화
 const RT_TOKEN_KEY = 'rt_meta_token';
-const RT_TOKEN_INJECTED = 'EAAVL6wvqG3wBRjTHUS5Wy0AKO0rnQWYivseR9diSx1yPcIVdOREr9ftUMzx9KMKqVhu5kiTZATuGZCr77eT4ObOueKsuS3NwpE1Y7qf6zKEnwULXhwxwKlyWyVlZCqckbi6WwEPd2p6iqPD1QoCwYBlxMjON1qqiBfqLZCGCphckpZAkEzqg0qSizVXTrNQZDZD';
+const RT_TOKEN_INJECTED = '__RT_TOKEN_PLACEHOLDER__';
 const RT_TTL       = 60 * 60 * 1000; // 1시간
 let   rtRefreshTimer = null;
 
