@@ -40,11 +40,10 @@ jobs:
           git diff --staged --quiet || git commit -m "Auto sync $(date +'%Y-%m-%d %H:%M')"
           git push
 
+      # Cloudflare 가 pages-action 을 폐기(wrangler-action 으로 통합)하여 교체.
       - name: Cloudflare Pages 배포
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: dashboard001
-          directory: .
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy . --project-name=dashboard001 --branch=main
