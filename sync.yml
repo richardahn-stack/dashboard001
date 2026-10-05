@@ -30,7 +30,14 @@ jobs:
         env:
           META_TOKEN: ${{ secrets.META_TOKEN }}
         run: |
-          sed -i "s|__RT_TOKEN_PLACEHOLDER__|${META_TOKEN}|g" index.html
+          echo "== 리포 루트 파일 목록 =="
+          ls -la
+          if [ -f index.html ]; then
+            sed -i "s|__RT_TOKEN_PLACEHOLDER__|${META_TOKEN}|g" index.html
+            echo "✅ index.html 토큰 주입 완료"
+          else
+            echo "⚠️  루트에 index.html 이 없어 토큰 주입을 건너뜁니다. 리포 루트에 index.html 을 올려주세요."
+          fi
 
       - name: 변경사항 커밋 및 푸시
         run: |
@@ -40,7 +47,7 @@ jobs:
           git diff --staged --quiet || git commit -m "Auto sync $(date +'%Y-%m-%d %H:%M')"
           git push
 
-      # Cloudflare 가 pages-action 을 폐기(wrangler-action 으로 통합)하여 교체.
+      # Cloudflare Pages 배포 (wrangler-action 사용)
       - name: Cloudflare Pages 배포
         uses: cloudflare/wrangler-action@v3
         with:
